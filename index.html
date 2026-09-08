@@ -255,8 +255,9 @@ body {
       </div>
       <div id="lobbyBox" style="display:none;margin-top:12px">
         <div style="font-size:14px;color:#fde047;font-weight:800;text-align:center">房间码 <span id="roomShow" style="font-size:22px;letter-spacing:4px"></span> · 发给朋友一起玩（2~8人）</div>
-        <div id="memberList" style="margin-top:8px"></div>
-        <button class="start-btn" id="startBtn">开始游戏！（需≥2人）</button>
+<div id="memberList" style="margin-top:8px"></div>
+<button class="start-btn" id="startBtn">开始游戏！（需≥2人）</button>
+<button class="start-btn" id="leaveBtn" style="background:#52525b;display:block">退出房间</button>
       </div>
       <div id="connTip" class="menu-tip" style="color:#fca5a5;min-height:0"></div>
       <div class="menu-tip">规则：友情值达标并宣告后维持一整轮即获胜 · 角色牌凑羁绊赚友情 · 馒头切断连锁不可被反击 · 事件牌扭转局势 · 可用格&lt;3出局<br>游戏中掉线的玩家会由 AI 自动接管，本机可凭房间码重连续战。</div>
@@ -540,6 +541,28 @@ function netConnect(done, fail) {
 function netSend(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
 function sendAct(a, v) { netSend({ t:'act', a, v: v||{} }); }
 function connTip(msg) { const el = document.getElementById('connTip'); if (el) el.textContent = msg||''; }
+// ===== 账号身份（KC-6 游戏站联动：KC-6 打开时自动注入用户信息；否则用本设备指纹） =====
+const KC6 = {
+  getUser() { // 预留入口：window.KC6.getUser() 或 URL 参数 ?kuid=..&kname=..
+    try {
+      if (window.KC6 && typeof window.KC6.getUser === 'function') {
+        const u = window.KC6.getUser();
+        if (u && u.uid) return { uid: 'kc6:' + String(u.uid), name: u.name || '', avatar: u.avatar || '' };
+      }
+      const q = new URLSearchParams(location.search);
+      if (q.get('kuid')) return { uid: 'kc6:' + String(q.get('kuid')).slice(0, 40), name: q.get('kname') || '', avatar: '' };
+    } catch(_) {}
+    return null;
+  }
+};
+function myUid() {
+  const u = KC6.getUser();
+  if (u) return u.uid;
+  let uid = null;
+  try { uid = localStorage.getItem('kp_uid'); } catch(_) {}
+  if (!uid) { uid = 'dev:' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36); try { localStorage.setItem('kp_uid', uid); } catch(_) {} }
+  return uid;
+}
 function getNick() { const n = document.getElementById('nick').value.trim() || ('朋友'+Math.floor(Math.random()*90+10)); localStorage.setItem('kp_nick', n); return n; }
 function renderMemberList() {
   const ml = document.getElementById('memberList');
@@ -2234,6 +2257,8 @@ function applySnap(s) {
 // ============ 菜单绑定（联机） ============
 const _savedNick = localStorage.getItem('kp_nick');
 if (_savedNick) document.getElementById('nick').value = _savedNick;
+const _kc6u = KC6.getUser(); // KC-6 游戏站注入的昵称优先
+if (_kc6u && _kc6u.name) document.getElementById('nick').value = _kc6u.name.slice(0, 10);
 const _savedSrv = localStorage.getItem('kp_srv');
 if (_savedSrv) document.getElementById('srvUrl').value = _savedSrv;
 document.getElementById('nick').addEventListener('change', e => localStorage.setItem('kp_nick', e.target.value));
@@ -2242,7 +2267,7 @@ document.getElementById('createBtn').onclick = () => {
   connTip(''); const nick = getNick();
   netConnect(() => {
     HOST = true;
-    netSend({ t:'create', name: nick });
+    netSend({ t:'create', name: nick, uid: myUid() });
   }, msg => connTip(msg));
 };
 document.getElementById('joinBtn').onclick = () => {
@@ -2252,13 +2277,21 @@ document.getElementById('joinBtn').onclick = () => {
   const nick = getNick();
   netConnect(() => {
     const tok = localStorage.getItem('kp_tok_'+code) || '';
-    netSend({ t:'join', room: code, name: nick, token: tok });
+    netSend({ t:'join', room: code, name: nick, token: tok, uid: myUid() });
   }, msg => connTip(msg));
 };
+document.getElementById('leaveBtn').onclick = () => {
+  if (NET.started) return; // 对局中退出走游戏内菜单
+  NET.quiet = true;
+  try { NET.ws && NET.ws.close(); } catch(_) {}
+  NET.on = false; NET.ws = null; NET.room = null; NET.pid = null; NET.members = []; HOST = false;
+  document.getElementById('lobbyBox').style.display = 'none';
+  connTip('已退出房间');
+};
 document.getElementById('startBtn').onclick = () => {
-  if (!HOST || NET.started) return;
-  netSend({ t:'start' });
-  startGameMp(NET.members);
+if (!HOST || NET.started) return;
+netSend({ t:'start' });
+startGameMp(NET.members);
 };
 document.getElementById('btnMenu').onclick = () => {
   if (confirm('确定离开？离开后当前对局将丢失（房主离开会导致对局终止）')) { NET.quiet = true; location.reload(); }

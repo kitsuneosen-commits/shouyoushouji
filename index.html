@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>加帕里公园：朋友收集（单机试玩版）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(180deg, #0f172a 0%, #042f2e 50%, #022c22 100%);
+  color: #fff; min-height: 100vh; overflow-x: hidden;
+  user-select: none;
+}
+/* ===== 大厅 ===== */
+#menu { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.menu-box { text-align: center; max-width: 460px; width: 90%; }
+.menu-logo { font-size: 64px; margin-bottom: 8px; }
+.menu-title { font-size: 38px; font-weight: 900; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+.menu-sub { color: #fbbf24; font-weight: 800; font-size: 20px; margin: 4px 0 24px; }
+.menu-card { background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 24px; backdrop-filter: blur(8px); }
+.menu-card label { display: block; color: rgba(255,255,255,.7); font-size: 13px; margin-bottom: 8px; text-align: left; }
+.menu-card input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font-size: 16px; outline: none; }
+.menu-card input:focus { border-color: #fbbf24; }
+.ai-row { display: flex; gap: 8px; margin: 14px 0; }
+.ai-btn { flex: 1; padding: 10px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: .15s; }
+.ai-btn.on { background: linear-gradient(90deg,#f59e0b,#f97316); border-color: #fbbf24; box-shadow: 0 0 16px rgba(251,191,36,.4); }
+.start-btn { width: 100%; padding: 14px 0; border: none; border-radius: 12px; background: linear-gradient(90deg,#f59e0b,#ea580c); color: #fff; font-size: 19px; font-weight: 900; cursor: pointer; transition: .15s; box-shadow: 0 6px 20px rgba(234,88,12,.4); }
+.start-btn:hover { transform: scale(1.02); }
+.start-btn:active { transform: scale(.97); }
+.menu-tip { color: rgba(255,255,255,.4); font-size: 12px; margin-top: 16px; line-height: 1.7; }
+
+/* ===== 桌面 ===== */
+#game { display: none; }
+.topbar { position: sticky; top: 0; z-index: 40; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,.1); padding: 8px 16px; display: flex; align-items: center; gap: 16px; font-size: 13px; }
+.topbar b { color: #fbbf24; }
+.topbar .sp { flex: 1; }
+.topbar button { background: none; border: none; color: rgba(255,255,255,.6); cursor: pointer; font-size: 12px; text-decoration: underline; }
+.table-area { max-width: 1100px; margin: 0 auto; padding: 14px 14px 410px; }
+
+/* 对手卡 */
+.opponents { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.opp { position: relative; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.25); padding: 10px; transition: .3s; }
+.opp.cur { border-color: rgba(251,191,36,.8); animation: turnpulse 1.8s infinite; }
+.opp.dead { filter: grayscale(1) brightness(.5); }
+.opp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.opp-head .nm { font-weight: 800; font-size: 14px; }
+.opp-head .fv { margin-left: auto; color: #fde047; font-weight: 900; font-size: 15px; }
+.tag-ai { font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #6366f1; font-weight: 800; }
+.tag-declare { font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #facc15; color: #1e293b; font-weight: 900; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .4; } }
+.slots { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.slot { aspect-ratio: 3/4.2; border-radius: 6px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); overflow: hidden; cursor: pointer; position: relative; }
+.slot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.slot.locked { border-color: rgba(239,68,68,.6); background: rgba(127,29,29,.3); }
+.slot.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.slot.sel { border-color: #fbbf24; background: rgba(251,191,36,.2); animation: blink 1s infinite; }
+.opp.sel-tgt { border-color: #fbbf24; box-shadow: 0 0 18px rgba(251,191,36,.55); animation: turnpulse 1.4s infinite; }
+.opp-foot { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: rgba(255,255,255,.55); }
+
+/* 中央区 */
+.center { display: flex; align-items: center; justify-content: center; gap: 28px; margin: 18px 0; }
+.pile { text-align: center; }
+.pile-box { width: 92px; height: 132px; position: relative; }
+.pile-box .cb { position: absolute; inset: 0; border-radius: 10px; border: 2px solid rgba(251,191,36,.4); background: linear-gradient(135deg,#0f766e,#134e4a); }
+.pile-box .cb::after { content: '🐾'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; opacity: .85; }
+.pile-n { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 6px; }
+.resolve-zone { flex: 1; max-width: 430px; min-height: 185px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.3); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; position: relative; animation: tablepulse 5s infinite; }
+.rz-title { position: absolute; top: 8px; left: 12px; font-size: 11px; color: #fbbf24; font-weight: 800; }
+.rz-timer { position: absolute; top: 8px; right: 12px; font-size: 11px; color: rgba(255,255,255,.65); }
+.rz-card { width: 108px; height: 152px; animation: floatcard 3s infinite; }
+.rz-card img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 10px; border: 3px solid rgba(255,255,255,.5); box-shadow: 0 8px 30px rgba(0,0,0,.6); }
+.rz-info { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 8px; text-align: center; line-height: 1.6; }
+.rz-chain { color: #7dd3fc; font-size: 11px; }
+@keyframes floatcard { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes tablepulse { 0%,100% { box-shadow: inset 0 0 60px 10px rgba(13,148,136,.12); } 50% { box-shadow: inset 0 0 90px 26px rgba(20,184,166,.25); } }
+@keyframes turnpulse { 0%,100% { box-shadow: 0 0 0 2px rgba(251,191,36,.35), 0 0 14px rgba(251,191,36,.2); } 50% { box-shadow: 0 0 0 3px rgba(251,191,36,.85), 0 0 26px rgba(251,191,36,.5); } }
+
+/* 我的状态 */
+.me-panel { border-radius: 12px; border: 1px solid rgba(255,255,255,.15); background: rgba(0,0,0,.25); padding: 10px 12px; margin-bottom: 10px; }
+.me-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.me-head .nm { font-weight: 800; }
+.me-head .fv { margin-left: auto; color: #fde047; font-weight: 900; font-size: 18px; }
+.my-turn { font-size: 10px; padding: 2px 8px; border-radius: 99px; background: #34d399; color: #064e3b; font-weight: 900; }
+.declare-btn { margin-left: 10px; padding: 4px 12px; border: none; border-radius: 8px; background: linear-gradient(90deg,#facc15,#f59e0b); color: #1e293b; font-weight: 900; font-size: 12px; cursor: pointer; animation: blink 1.4s infinite; }
+
+/* 手牌 */
+.hand-zone { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(0deg, rgba(0,0,0,.9) 20%, transparent); padding: 44px 12px 10px; }
+.hand-row { display: flex; justify-content: center; align-items: flex-end; gap: 4px; height: 176px; perspective: 900px; }
+.hcard { width: 108px; height: 152px; position: relative; transform-origin: bottom center; transition: transform .18s cubic-bezier(.2,.8,.3,1); }
+.hcard:hover { transform: translateY(-64px) scale(1.3) !important; z-index: 50; }
+.hcard-inner { width: 100%; height: 100%; border-radius: 9px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,.35); box-shadow: 0 6px 18px rgba(0,0,0,.5); cursor: pointer; }
+.hcard-inner img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.hcard-inner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,.3) 50%, transparent 58%); transform: translateX(-160%); animation: shine 3s infinite; }
+@keyframes shine { 0%,60% { transform: translateX(-160%); } 100% { transform: translateX(160%); } }
+.hcard.sel .hcard-inner { border-color: #fde047; box-shadow: 0 0 0 3px rgba(251,191,36,.7), 0 10px 30px rgba(251,191,36,.4); }
+.hcard.bondcand .hcard-inner { border-color: #e879f9; }
+.hcard.cntcand .hcard-inner { border-color: #ff4d4d; animation: redpulse 1.1s ease-in-out infinite; }
+@keyframes redpulse {
+  0%,100% { box-shadow: 0 0 10px 3px rgba(255,60,60,.75), 0 0 26px 6px rgba(255,0,0,.45); }
+  50%      { box-shadow: 0 0 20px 7px rgba(255,80,80,1), 0 0 46px 14px rgba(255,0,0,.65); }
+}
+.hcard.bondglow .hcard-inner { border-color: #4ade80; animation: greenpulse 1.3s ease-in-out infinite; }
+@keyframes greenpulse {
+  0%,100% { box-shadow: 0 0 10px 3px rgba(60,220,110,.65), 0 0 24px 6px rgba(0,255,100,.35); }
+  50%      { box-shadow: 0 0 18px 6px rgba(60,240,120,.95), 0 0 40px 10px rgba(0,255,100,.5); }
+}
+.hcard .top-info { position: absolute; top: 3px; left: 3px; right: 3px; display: flex; justify-content: space-between; z-index: 2; font-size: 10px; }
+.hcard .type-tag { padding: 1px 6px; border-radius: 99px; font-weight: 800; background: rgba(0,0,0,.55); }
+.hcard .type-tag.bun { background: #ec4899; }
+.hcard .type-tag.evt { background: #8b5cf6; }
+.hcard .bot-info { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(0deg, rgba(0,0,0,.85), transparent); padding: 10px 4px 3px; z-index: 2; font-size: 10px; }
+.hcard .fv { color: #fde047; font-weight: 900; float: left; }
+.hcard .lv { color: #6ee7b7; font-weight: 700; float: right; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 10px; min-height: 40px; }
+.gbtn { padding: 9px 18px; border: none; border-radius: 11px; font-size: 14px; font-weight: 800; cursor: pointer; transition: .12s; color: #fff; }
+.gbtn:active { transform: scale(.94); }
+.gbtn:disabled { opacity: .35; cursor: not-allowed; }
+.gbtn.draw { background: linear-gradient(90deg,#14b8a6,#06b6d4); }
+.gbtn.play { background: linear-gradient(90deg,#f59e0b,#ea580c); }
+.gbtn.bun { background: linear-gradient(90deg,#ec4899,#e11d48); }
+.gbtn.place { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); }
+.gbtn.end { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); }
+.gbtn.counter { background: linear-gradient(90deg,#ef4444,#dc2626); }
+.gbtn.bond { background: linear-gradient(90deg,#d946ef,#a21caf); }
+.gbtn.settle { background: linear-gradient(90deg,#f59e0b,#ea580c); }
+.gbtn.fx { background: #475569; }
+
+/* 左侧信息栏 */
+#sideInfo { position: fixed; left: 12px; top: 76px; width: 300px; max-height: calc(100vh - 300px); overflow-y: auto; z-index: 120; background: rgba(2,6,23,.94); border: 1px solid rgba(251,191,36,.4); border-radius: 14px; padding: 14px; display: none; box-shadow: 0 14px 50px rgba(0,0,0,.6); }
+#sideInfo.show { display: block; animation: fadein .2s; }
+#sideInfo .si-img { width: 100%; height: 250px; border-radius: 10px; overflow: hidden; border: 3px solid rgba(251,191,36,.5); }
+#sideInfo .si-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+#sideInfo h3 { font-size: 20px; margin: 10px 0 6px; }
+.si-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.si-tags span { font-size: 10px; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.1); }
+.si-tags .fv { background: rgba(250,204,21,.2); color: #fde047; font-weight: 800; }
+.si-tags .lv { background: rgba(16,185,129,.2); color: #6ee7b7; font-weight: 800; }
+.si-sec { margin-bottom: 9px; }
+.si-sec .t { font-size: 10px; color: rgba(255,255,255,.5); margin-bottom: 3px; }
+.si-sec .v { font-size: 12.5px; line-height: 1.6; background: rgba(255,255,255,.05); border-radius: 8px; padding: 8px 10px; }
+.si-sec.counter .v { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); }
+@keyframes fadein { from { opacity: 0; } }
+/* 弃牌区查看 */
+#discardView { position: fixed; inset: 0; z-index: 95; background: rgba(0,0,0,.8); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; }
+#discardView.show { display: flex; animation: fadein .2s; }
+.dv-box { width: min(880px, 92vw); max-height: 84vh; overflow-y: auto; background: rgba(15,23,42,.96); border: 1px solid rgba(255,255,255,.15); border-radius: 16px; padding: 18px; }
+.dv-title { font-size: 16px; font-weight: 900; margin-bottom: 12px; color: #fbbf24; }
+#bigModal { position: fixed; inset: 0; z-index: 96; background: rgba(0,0,0,.8); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; }
+#bigModal.show { display: flex; animation: fadein .2s; }
+.dlg { display: flex; flex-wrap: wrap; justify-content: center; text-align: center; color: #fff; flex-direction: column; align-items: center; }
+.dlg-close { margin-top: 12px; padding: 8px 22px; border: none; border-radius: 8px; background: #475569; color: #fff; font-weight: 700; cursor: pointer; }
+.dlg-close:hover { background: #64748b; }
+.dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
+.dv-grid img { width: 100%; aspect-ratio: 3/4.2; object-fit: cover; object-position: top; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); cursor: pointer; transition: .15s; }
+.dv-grid img:hover { transform: scale(1.08); border-color: #fde047; }
+/* 右侧玩家列表 */
+#plist { position: fixed; right: 10px; top: 56px; width: 198px; z-index: 40; background: rgba(2,6,23,.86); border: 1px solid rgba(251,191,36,.32); border-radius: 14px; padding: 10px 10px 6px; backdrop-filter: blur(5px); max-height: calc(100vh - 260px); overflow-y: auto; }
+#plist .pl-title { font-size: 12px; color: #fbbf24; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
+.pl-row { position: relative; display: flex; align-items: center; gap: 7px; padding: 7px 8px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,255,255,.05); border: 1px solid transparent; overflow: hidden; }
+.pl-row.cur { border-color: #fbbf24; background: rgba(251,191,36,.14); box-shadow: 0 0 14px rgba(251,191,36,.25); }
+.pl-row.dead { opacity: .4; }
+.pl-row.full { border-color: rgba(244,114,182,.75); background: rgba(244,114,182,.14); }
+.pl-main { flex: 1; min-width: 0; }
+.pl-nm { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-turn { color: #fbbf24; font-size: 10px; font-weight: 800; margin-left: 4px; }
+.pl-stats { font-size: 11px; color: rgba(255,255,255,.72); margin-top: 2px; }
+@keyframes heartfloat { 0% { transform: translateY(6px) scale(.5); opacity: 0; } 22% { opacity: 1; } 100% { transform: translateY(-42px) scale(1.35); opacity: 0; } }
+.pl-hearts { position: absolute; right: 2px; top: 4px; bottom: 0; width: 42px; pointer-events: none; }
+.pl-hearts i { position: absolute; bottom: 2px; font-style: normal; font-size: 13px; animation: heartfloat 1.7s ease-in infinite; text-shadow: 0 0 8px rgba(244,114,182,.9); }
+.dv-empty { color: rgba(255,255,255,.5); font-size: 13px; }
+/* 反击特效 */
+.counter-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(239,68,68,.35), rgba(0,0,0,.72)); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; animation: fadein .15s; }
+.counter-title { font-size: 34px; font-weight: 900; color: #fca5a5; letter-spacing: .25em; text-shadow: 0 0 30px rgba(239,68,68,1); animation: countershake .6s .25s; }
+.counter-big { width: 210px; height: 300px; border-radius: 16px; overflow: hidden; border: 4px solid #ef4444; box-shadow: 0 0 70px rgba(239,68,68,.7); animation: counterin .5s cubic-bezier(.2,.9,.3,1); }
+.counter-big img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.counter-name { font-size: 18px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+@keyframes counterin { 0% { transform: scale(2.2) rotate(8deg); opacity: 0; } 55% { transform: scale(.95) rotate(-2deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+@keyframes countershake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+
+/* 特效层 */
+#fx-layer { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.shuffle-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.65); display: flex; align-items: center; justify-content: center; }
+.shuffle-title { font-size: 44px; font-weight: 900; letter-spacing: .3em; text-shadow: 0 0 30px rgba(251,191,36,.9); animation: shuftitle 1.8s forwards; }
+@keyframes shuftitle { 0% { opacity: 0; transform: scale(.6); } 30% { opacity: 1; transform: scale(1.1); } 45% { transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+.fly-card { position: absolute; left: 50%; top: 46%; width: 72px; height: 100px; border-radius: 10px; border: 2px solid rgba(251,191,36,.6); background: linear-gradient(135deg,#0f766e,#134e4a); animation: flyto .4s ease-in forwards; }
+@keyframes flyto { 0% { transform: translate(-50%,-50%) scale(.7) rotate(-10deg); opacity: 0; } 20% { opacity: 1; } 100% { transform: translate(-50%, calc(-50% + var(--ty,220px))) scale(.4) rotate(10deg); opacity: 0; } }
+.play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; flex-direction: column; align-items: center; justify-content: center; animation: fadein .2s; }
+.play-big { width: 230px; height: 330px; border-radius: 16px; overflow: hidden; border: 4px solid #fde047; box-shadow: 0 0 70px rgba(251,191,36,.55); animation: playcard .8s cubic-bezier(.2,.9,.3,1); }
+.play-big img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+@keyframes playcard { 0% { transform: scale(.15) rotate(-35deg) translateY(-120px); opacity: 0; filter: blur(10px); } 60% { transform: scale(1.08) rotate(4deg); opacity: 1; filter: blur(0); } 100% { transform: scale(1) rotate(0); } }
+.play-name { margin-top: 18px; font-size: 22px; font-weight: 900; text-shadow: 0 2px 10px rgba(0,0,0,.9); }
+.bond-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(251,191,36,.3), rgba(0,0,0,.6)); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; }
+.bond-title { font-size: 40px; font-weight: 900; color: #fde68a; letter-spacing: .25em; text-shadow: 0 0 40px rgba(251,191,36,1); animation: bondtitle 1.6s cubic-bezier(.2,.8,.3,1); }
+.bond-cards { display: flex; gap: 10px; }
+.bond-cards img { width: 90px; height: 126px; border-radius: 10px; border: 3px solid #fde047; box-shadow: 0 0 26px rgba(251,191,36,.6); animation: bondpop .5s backwards; }
+@keyframes bondtitle { 0% { opacity: 0; transform: scale(.4); } 50% { transform: scale(1.18); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes bondpop { from { opacity: 0; transform: translateY(60px) scale(.5); } }
+.win-overlay { position: fixed; inset: 0; z-index: 120; background: rgba(0,0,0,.85); backdrop-filter: blur(10px); display: none; align-items: center; justify-content: center; flex-direction: column; }
+.win-overlay.show { display: flex; }
+.win-emoji { font-size: 80px; animation: bounce 1.2s infinite; }
+.win-name { font-size: 46px; font-weight: 900; color: #fde047; text-shadow: 0 0 50px rgba(251,191,36,.8); margin: 12px 0 4px; animation: wintitle 1s cubic-bezier(.2,.9,.3,1); }
+.win-sub { color: rgba(255,255,255,.8); font-size: 18px; }
+.win-btn { margin-top: 30px; padding: 12px 36px; border: none; border-radius: 12px; background: linear-gradient(90deg,#f59e0b,#ea580c); color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; }
+@keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+@keyframes wintitle { 0% { opacity: 0; transform: scale(.3); } 55% { transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
+.confetti { position: absolute; font-size: 26px; animation: confetti linear infinite; }
+@keyframes confetti { 0% { transform: translateY(-60px) rotate(0); } 100% { transform: translateY(110vh) rotate(680deg); } }
+
+/* 日志 */
+#logbox { position: fixed; left: 10px; bottom: 235px; z-index: 25; width: 250px; max-height: 170px; overflow: hidden; font-size: 11px; color: rgba(255,255,255,.55); pointer-events: none; }
+#logbox div { line-height: 1.7; text-shadow: 0 1px 3px #000; }
+#logbox .hl { color: #fde047; }
+
+/* toast */
+#toasts { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 110; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast { padding: 9px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; background: rgba(15,23,42,.95); box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: toastin .25s; }
+.toast.err { background: rgba(239,68,68,.92); }
+.toast.gold { background: linear-gradient(90deg,#f59e0b,#f97316); color: #fff; }
+@keyframes toastin { from { opacity: 0; transform: translateY(-14px) scale(.9); } }
+
+/* 效果执行面板 */
+#fxpanel { position: fixed; right: 12px; top: 64px; z-index: 60; width: 270px; background: rgba(15,23,42,.96); border: 1px solid rgba(251,191,36,.4); border-radius: 12px; padding: 14px; display: none; }
+#fxpanel.show { display: block; animation: toastin .25s; }
+#fxpanel .t { font-size: 12px; color: #fbbf24; font-weight: 800; margin-bottom: 6px; }
+#fxpanel .d { font-size: 12px; line-height: 1.7; color: rgba(255,255,255,.85); background: rgba(255,255,255,.06); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+#fxpanel .row { display: flex; flex-wrap: wrap; gap: 6px; }
+#fxpanel .row button { flex: 1; min-width: 70px; padding: 7px 4px; border: none; border-radius: 8px; background: #475569; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; }
+#fxpanel .row button:hover { background: #64748b; }
+#fxpanel .done { width: 100%; margin-top: 8px; padding: 8px; border: none; border-radius: 8px; background: linear-gradient(90deg,#f59e0b,#ea580c); font-weight: 900; cursor: pointer; color: #fff; }
+.hint { text-align: center; font-size: 12px; color: rgba(255,255,255,.75); margin-top: 6px; min-height: 18px; }
+.hint.gold { color: #fde047; font-weight: 700; }
+#memberList div { background: rgba(255,255,255,.07); border-radius: 8px; padding: 7px 10px; margin: 4px 0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+#memberList .ml-host { color: #fde047; font-size: 11px; }
+#memberList .ml-off { color: #fca5a5; font-size: 11px; }
+#startBtn:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <div class="menu-box">
+    <div class="menu-logo">🐾</div>
+    <div class="menu-title">加帕里公园</div>
+    <div class="menu-sub">朋友收集 · 联机版</div>
+    <div class="menu-card">
+      <label>你的昵称</label>
+      <input id="nick" maxlength="10" placeholder="输入昵称…" value="">
+      <label style="margin-top:14px">游戏服务器（Render 部署后填，如 wss://xxx.onrender.com）</label>
+      <input id="srvUrl" placeholder="wss://你的服务.onrender.com（本地测试填 ws://localhost:9090）" value="" style="font-size:12px">
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:stretch">
+        <button class="start-btn" id="createBtn" style="flex:1;margin-top:0">创建房间</button>
+        <input id="roomCode" maxlength="4" placeholder="房间码" style="width:86px;text-align:center;text-transform:uppercase;font-size:15px">
+        <button class="start-btn" id="joinBtn" style="flex:1;margin-top:0">加入房间</button>
+      </div>
+      <div id="lobbyBox" style="display:none;margin-top:12px">
+        <div style="font-size:14px;color:#fde047;font-weight:800;text-align:center">房间码 <span id="roomShow" style="font-size:22px;letter-spacing:4px"></span> · 发给朋友一起玩（2~8人）</div>
+        <div id="memberList" style="margin-top:8px"></div>
+        <button class="start-btn" id="startBtn">开始游戏！（需≥2人）</button>
+      </div>
+      <div id="connTip" class="menu-tip" style="color:#fca5a5;min-height:0"></div>
+      <div class="menu-tip">规则：友情值达标并宣告后维持一整轮即获胜 · 角色牌凑羁绊赚友情 · 馒头切断连锁不可被反击 · 事件牌扭转局势 · 可用格&lt;3出局<br>游戏中掉线的玩家会由 AI 自动接管，本机可凭房间码重连续战。</div>
+    </div>
+  </div>
+</div>
+
+<div id="game">
+  <div class="topbar">
+    <b id="tb-th">门槛 25</b>
+    <span id="tb-deck">牌堆 --</span>
+    <span id="tb-disc">弃牌 --</span>
+    <span id="tb-round">回合 --</span>
+    <span class="sp"></span>
+    <button id="btnMenu">返回菜单</button>
+  </div>
+  <div class="table-area">
+    <div class="opponents" id="opponents"></div>
+    <div class="center">
+      <div class="pile">
+        <div class="pile-box"><div class="cb"></div></div>
+        <div class="pile-n" id="deckN">-- 张</div>
+      </div>
+      <div class="resolve-zone" id="rzone"></div>
+      <div class="pile">
+        <div class="pile-box" id="discBox"></div>
+        <div class="pile-n" id="discN">-- 张</div>
+      </div>
+    </div>
+    <div class="me-panel" id="mePanel"></div>
+  </div>
+  <div id="plist"><div class="pl-title">👥 玩家列表</div><div id="plistRows"></div></div>
+  <div class="hand-zone">
+    <div class="hint" id="hint"></div>
+    <div class="hand-row" id="handRow"></div>
+    <div class="btn-row" id="btnRow"></div>
+  </div>
+  <div id="logbox"></div>
+  <div id="toasts"></div>
+  <div id="fxpanel"></div>
+</div>
+
+<div id="sideInfo"></div>
+<div id="discardView"><div class="dv-box"><div class="dv-title">🗑 弃牌区 · 点牌可查看详情，点空白处关闭</div><div id="dvContent"></div></div></div>
+<div id="bigModal"><div class="dv-box"><div id="bmContent"></div></div></div>
+
+<div id="fx-layer"></div>
+<div class="win-overlay" id="winOverlay"></div>
+
+<script>
+// ============ 卡牌数据（自动注入） ============
+const CARDS = [{"id":271,"name":"北方苍鹰","type":"角色牌","race":"鸟类","attr":"林原","fv":5,"lv":2,"bonds":["猛禽战队","掠食者"],"effect":"将任意玩家友情区的1张牌送入弃牌区","counter":"兽族角色使用反击效果是，可以使那张牌无效","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北方苍鹰-p5o5exg282ljgr1z6kn84ebjanaitk.jpg"},{"id":272,"name":"豹变色龙","type":"角色牌","race":"兽类","attr":"林原","fv":3,"lv":3,"bonds":["驼鹿战团","潜行者"],"effect":"自己出局游戏一轮，期间不会受到任何卡牌效果影响，自己不能进行任何行动。","counter":"出现偷取玩家手牌效果时，阻止那次效果，自己可以将那些牌加入手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/豹变色龙-p0qfz72zpydhpktauyjxm8t1t65qsq.jpg"},{"id":273,"name":"板齿犀牛","type":"角色牌","race":"兽类","attr":"沙漠","fv":8,"lv":1,"bonds":["远古生物","重量级"],"effect":"本轮打出沙漠兽族角色牌的玩家，丢弃2张手牌。","counter":"反击效果：当任意玩家达到“亮眼”状态时，将其友情区2张牌送入弃牌区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/板齿犀牛-a8ar5wmtje0byz9xxlrn41jf71uyfr.jpg"},{"id":274,"name":"斑嘴鸭","type":"角色牌","race":"鸟类","attr":"林原","fv":3,"lv":1,"bonds":["领航员","小鸟依人"],"effect":"即时效果： 自己从手牌丢弃1张牌，让任意玩家从牌堆抽1张牌。","counter":"反击效果： 当前角色牌即时效果无效，从弃牌堆将1张与这张牌同羁绊的牌加入手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/斑嘴鸭-uf7qk0hp0keyqiiauck67gdy59a83n.jpg"},{"id":275,"name":"斑鬣狗","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":1,"bonds":["猫狗大战","掠食者"],"effect":"将弃牌区最上方5张牌加入手牌，随后丢弃3张手牌。","counter":"当发动从弃牌区取牌的效果时，那个效果无效。从弃牌区随机抽取1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/斑鬣狗-954cz7pyl2w4g2fhdh7c03yxwc4f99.jpg"},{"id":276,"name":"北极海鹦","type":"角色牌","race":"鸟类","attr":"雪域","fv":3,"lv":1,"bonds":["北极伙伴","海鹦姐妹"],"effect":"自己从牌堆抽1张牌。","counter":"当发动抽牌效果时，那个效果无效。自己抽1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极海鹦-d7qofgvfhu81hxfvzohycpbvc7kaxb.jpg"},{"id":277,"name":"白驯鹿","type":"角色牌","race":"兽类","attr":"雪域","fv":5,"lv":1,"bonds":["鹿角联盟","重量级"],"effect":"自己抽出1+弃牌区【圣诞快乐】数量的牌。","counter":"当有抽出3张以上效果时，那个效果无效。从牌堆、弃牌区将【圣诞快乐】加入手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白驯鹿-zrssbhuee53zqvcdhes0p9kv5hpwhd.jpg"},{"id":278,"name":"白犀牛","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":2,"bonds":["驼鹿战团","重量级"],"effect":"从牌堆抽3张牌，跳过下一个自己回合。","counter":"当任意效果发动时，手上仅剩这张牌，该玩家丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白犀牛-6xwr5iinajac4fd3x88rlv4kzvltm5.jpg"},{"id":279,"name":"白薮猫","type":"角色牌","race":"兽类","attr":"雪域","fv":6,"lv":2,"bonds":["北极伙伴","百变薮猫"],"effect":"选择任意1位玩家，将该玩家友情区的1张牌盖放3回合。","counter":"即时效果发动时，那个效果无效。弃牌区每有1张【薮猫】对方丢1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白薮猫-c0yf9vh9o4uiouzzq2urwacvvervrm.jpg"},{"id":280,"name":"白色霞水母","type":"角色牌","race":"水生类","attr":"海洋","fv":8,"lv":1,"bonds":["施毒者","掠食者"],"effect":"选择任意1位玩家，将该玩家2回合内每回合丢弃1张手牌。","counter":"任意玩家弃牌时，该玩家弃2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白色霞水母-rcaund899zphod7hef11g1ylphrooj.jpg"},{"id":281,"name":"四神·白虎","type":"角色牌","race":"兽类","attr":"雪域","fv":9,"lv":2,"bonds":["四神汇聚","掠食者"],"effect":"当被用作【四神汇聚】放置友情区时，每个回合其他所有玩家丢弃1张手牌","counter":"任意弃牌效果发动时，自己抽出丢弃数量的牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/四神·白虎-8wtgulza7xhc0pr4l7hcsr35hbyuwd.jpg"},{"id":282,"name":"四神·朱雀","type":"角色牌","race":"鸟类","attr":"沙漠","fv":9,"lv":2,"bonds":["四神汇聚","猛禽战队"],"effect":"当被用作【四神汇聚】放置友情区时，每回合选任意玩家丢弃1张友情区牌","counter":"当反击效果发动时，那个效果无效。对方丢弃3张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/四神·朱雀-j487c8s8z4g7j6t5j760ijug1dwcke.jpg"},{"id":283,"name":"四神·青龙","type":"角色牌","race":"兽类","attr":"林原","fv":9,"lv":2,"bonds":["四神汇聚","贤者"],"effect":"当被用作【四神汇聚】放置友情区时，每回合自己额外抽1张牌。","counter":"即时效果发动时，那个效果无效自己抽3张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/四神·青龙-w7yrsprz7d6zmkfvehz6chtw9je3e0.jpg"},{"id":284,"name":"四神·玄武","type":"角色牌","race":"水生类","attr":"海洋","fv":9,"lv":2,"bonds":["四神汇聚","重量级"],"effect":"当被用作【四神汇聚】放置友情区时，每个回合结束自己抽1张牌。","counter":"当任意玩家手牌达到7张以上时，该玩家弃掉所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/四神·玄武-iov5luqtgtrkajlnkqxpksyb3m6ng3.jpg"},{"id":285,"name":"巴布亚企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":3,"lv":0,"bonds":["企鹅偶像","极速前行"],"effect":"选择任意玩家友情区随机1张牌丢弃。自己也丢弃1张牌。","counter":"当任意玩家达成黑牌时，该玩家丢弃1张手牌。这个效果不能被反击。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/巴布亚企鹅-z2vejiid6h0gnne74wcqwrzgly6ard.jpg"},{"id":286,"name":"白洛克鸡","type":"角色牌","race":"鸟类","attr":"林原","fv":3,"lv":1,"bonds":["唤醒晨光","领航员"],"effect":"这张牌可以单独放在友情区。翻开当前所有盖放的牌确认。","counter":"任意玩家弃牌时，自己弃掉1张手牌，将那些牌加入自己手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白洛克鸡-ilnoj47zyq49jankuwrf3o2h9d4to1.jpg"},{"id":287,"name":"白鹈鹕","type":"角色牌","race":"鸟类","attr":"海洋","fv":3,"lv":1,"bonds":["大胃王","掠食者"],"effect":"这张牌可以单独放在友情区。自己抽3张牌，跳过自己下回合抽牌。","counter":"任意弃牌效果发动时，自己将那些牌加入自己手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白鹈鹕-la7uwp9y68fy0r0lwgls278igcq55y.jpg"},{"id":288,"name":"白脸角鸮","type":"角色牌","race":"鸟类","attr":"林原","fv":8,"lv":1,"bonds":["博士","贤者"],"effect":"这张牌可以单独放在友情区。本轮反击牌发动时，每回合自己最多抽1张牌","counter":"任意效果发动时，那个效果无效自己抽1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白脸角鸮-s438mlsbbruxuyjgpo0pqvjm8zhrdv.jpg"},{"id":289,"name":"埃及胡狼","type":"角色牌","race":"兽类","attr":"沙漠","fv":0,"lv":0,"bonds":["死神化身","狼群"],"effect":"这张牌可以单独放在友情区。选择任意1位玩家，丢弃4张牌。","counter":"沙漠属性角色效果发动时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/埃及胡狼-go50pymn7sj6psqxlewq5m0j24tcmo.jpg"},{"id":290,"name":"北极狼","type":"角色牌","race":"兽类","attr":"雪域","fv":5,"lv":2,"bonds":["北极伙伴","狼群"],"effect":"选择任意1位玩家下回合除抽牌阶段外不能抽牌。","counter":"雪域·兽族效果发动时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极狼-kqi6sli6olz44nyjdaj75oydfqizwa.jpg"},{"id":291,"name":"北极兔","type":"角色牌","race":"兽类","attr":"雪域","fv":3,"lv":3,"bonds":["北极伙伴","潜行者"],"effect":"选择任意1位玩家，抽1张牌。","counter":"任意玩家发动雪域属性角色牌效果时，自己偷取该玩家任意1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极兔-wt5eogp02s2snf634s3sdb01zitjqw.jpg"},{"id":292,"name":"北极孔雀","type":"角色牌","race":"鸟类","attr":"雪域","fv":3,"lv":1,"bonds":["北极伙伴","潜行者"],"effect":"选择任意1位玩家，偷取其友情区随机1张牌加入自己手牌。","counter":"当任意玩家手牌被丢弃时，自己偷取该角色1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极孔雀-40xfywb4vctqr0jqdbbj84swq8som7.jpg"},{"id":293,"name":"阿拉伯剑羚","type":"角色牌","race":"兽类","attr":"沙漠","fv":4,"lv":2,"bonds":["羚羚羚","剑客"],"effect":"丢弃牌堆上方3张牌，随后自己抽1张牌。","counter":"当只有自己被选做效果对象时发动，对方丢弃2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/阿拉伯剑羚-ralu8a75a3j62jnz9vwffpnma4uj9s.jpg"},{"id":294,"name":"阿法六线风鸟","type":"角色牌","race":"鸟类","attr":"林原","fv":3,"lv":1,"bonds":["幻影舞者","小鸟依人"],"effect":"本轮只要自己手牌有5张以上时，自己不会被反击效果影响。","counter":"任意效果发动时，从弃牌区将1张与这张牌同剪掉的牌加入手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/阿法六线风鸟-kloj1aeqkqetfigx8fc74kxohqywa7.jpg"},{"id":295,"name":"华美风鸟","type":"角色牌","race":"鸟类","attr":"林原","fv":3,"lv":1,"bonds":["幻影舞者","小鸟依人"],"effect":"本轮只要自己手牌有5张以上时，自己不会被即时效果影响。","counter":"任意效果发动时，查看任意1位玩家手牌，将1张林原·乌族加入自己手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/华美风鸟-xhmjej4u0p2w2672nttyszcsrfb48h.jpg"},{"id":296,"name":"阿德利企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":3,"lv":1,"bonds":["企鹅偶像","领航员"],"effect":"将任意1位玩家随机的1张手牌盖放在其友情区。","counter":"任意效果发动时，自己丢弃1张手牌，选任意1位玩家丢弃1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/阿德利企鹅-avuj0ip7dl7kqbww28gzzamis99jx5.jpg"},{"id":297,"name":"走鹃","type":"角色牌","race":"鸟类","attr":"沙漠","fv":3,"lv":2,"bonds":["小鸟依人","极速前行"],"effect":"将弃牌区2张与这张牌同羁绊的牌加入自己手牌。","counter":"兽族角色牌效果发动时，那个效果无效。这个效果不能被反击。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/走鹃-ncttr65s6nrzrlt1nbkgg3iw27avpc.jpg"},{"id":298,"name":"棕熊","type":"角色牌","race":"兽类","attr":"林原","fv":6,"lv":1,"bonds":["天蓝猎人","熊的力量"],"effect":"本轮不能使用任何抽牌效果的牌。","counter":"林原角色牌效果发动时，自己丢弃3张手牌，对方丢弃4张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/棕熊-gpvr93n059nqsl25ynp36geai2n93w.jpg"},{"id":299,"name":"北极熊","type":"角色牌","race":"兽类","attr":"雪域","fv":6,"lv":2,"bonds":["北极伙伴","熊的力量"],"effect":"选择任意1位友情区有3个角色的玩家，丢弃3张手牌。","counter":"抽牌效果发动时，自己丢弃3张手牌，对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极熊-fkoawdvzhcvdua7z97g336eu12uzin.jpg"},{"id":300,"name":"北极狐","type":"角色牌","race":"兽类","attr":"雪域","fv":5,"lv":2,"bonds":["北极伙伴","狐狸村"],"effect":"选择任意1位玩家，将其随机1张手牌盖放在桌面上，持续3回合。","counter":"当场上有盖放牌时，自己抽取2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北极狐-kdj9qi46e1iuuzc7cztkccod4c7b0u.jpg"},{"id":301,"name":"银狐","type":"角色牌","race":"兽类","attr":"雪域","fv":7,"lv":2,"bonds":["温泉姐妹","狐狸村"],"effect":"选择任意1位玩家和对方玩猜硬币游戏，获胜方抽取3张牌。","counter":"即时效果发动时，选对方随机2张手牌盖放在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/银狐-ldqeab87hk3rrgi6us15kk9eh8nvpc.jpg"},{"id":302,"name":"朱鹮","type":"角色牌","race":"鸟类","attr":"林原","fv":8,"lv":2,"bonds":["中华珍兽","灵魂歌姬"],"effect":"当手牌小于3张时，这张牌使用后可以加入手牌。所有玩家丢弃2张手牌。","counter":"任意玩家说出“歌”以及同音字时，对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/朱鹮-18wcr3t83nge0y2jj86snk5oqgeqcd.jpg"},{"id":303,"name":"中华白海豚","type":"角色牌","race":"水生类","attr":"海洋","fv":7,"lv":2,"bonds":["中华珍兽","海豚联盟"],"effect":"当手牌小于3张时，这张牌使用后可以加入手牌。自己抽3张牌。","counter":"此牌打出同时可使用一张即时效果。即时效果发动时，对方丢弃1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/中华白海豚-vop7jksgiwf54a39l58q8st4a6btgi.jpg"},{"id":304,"name":"豺犬","type":"角色牌","race":"兽类","attr":"林原","fv":6,"lv":2,"bonds":["花丸探险队","猫狗大战"],"effect":"本轮内当自己手牌大于2张时，自己不受到反击效果影响。","counter":"即时效果发动时，那个效果无效。随后将牌堆上方10张牌送入弃牌区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/豺犬-0q98t5nvtqspep33zpx31fgdtdih58.jpg"},{"id":305,"name":"真海豚","type":"角色牌","race":"水生类","attr":"海洋","fv":5,"lv":3,"bonds":["花丸探险队","海豚联盟"],"effect":"当自己手牌大于2张时，自己抽3张牌。","counter":"此牌打出同时可使用一张即时效果。反击效果发动时，对方盖放1张手牌在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/真海豚-y9tq12oy62gwt8idshm0i21akk7ym8.jpg"},{"id":306,"name":"白头海雕","type":"角色牌","race":"鸟类","attr":"林原","fv":8,"lv":3,"bonds":["花丸探险队","猛禽战队"],"effect":"当自己手牌大于2张时，选择任意1位玩家丢2张牌。","counter":"当反击效果发动时，该效果无效。自己抽1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白头海雕-zhtfj8b18k0uy8bav40mtbv8n85n91.jpg"},{"id":307,"name":"狐獴","type":"角色牌","race":"兽类","attr":"沙漠","fv":3,"lv":3,"bonds":["花丸探险队","贤者"],"effect":"当自己手牌大于2张时，选任意1位玩家友情区1张牌丢弃。","counter":"弃牌效果发动时，那个效果无效。自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/狐獴-s8ymjd8blx41stdc5j11t9985ehnmq.jpg"},{"id":308,"name":"狮子","type":"角色牌","race":"兽类","attr":"沙漠","fv":7,"lv":1,"bonds":["花丸探险队","掠食者"],"effect":"当自己手牌大于2张时，其他所有玩家丢弃1张手牌。","counter":"弃牌效果发动时，其他所有玩家弃掉2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/狮子-eaqicl9g1sn5y5g8jqxg3luvv6c573.jpg"},{"id":309,"name":"长尾虎猫","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":3,"bonds":["模仿达人","潜行者"],"effect":"这张牌可以单独放在友情区。选择弃牌区任意1张角色牌，这张牌拥有同样效果。","counter":"自己被对方效果弃牌时，偷取对方2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/长尾虎猫-5iqxai7njgbv9vi7tt2uw544ll3enz.jpg"},{"id":310,"name":"东北虎","type":"角色牌","race":"兽类","attr":"雪域","fv":8,"lv":1,"bonds":["中华珍兽","百兽之王"],"effect":"当手牌小于3张时，这张牌可以加入手牌。自己和任意1位玩家丢弃4张手牌。","counter":"任意效果发动时，当自己手牌大于任意玩家时，跳过该玩家下一个回合。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/东北虎-jmvtv0bbhsciizqqcsy6x47xm806ga.jpg"},{"id":311,"name":"大熊猫","type":"角色牌","race":"兽类","attr":"林原","fv":8,"lv":3,"bonds":["中华珍兽","熊的力量"],"effect":"当手牌小于3张时，这张牌可以加入手牌。自己出局1轮，期间不受影响。","counter":"任意玩家达到“亮眼”状态时，自己丢弃3张手牌，对方出局1轮。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/大熊猫-d5ko9nv85vyhpzu821pqqzcitwb89f.jpg"},{"id":312,"name":"黑头白鹮","type":"角色牌","race":"鸟类","attr":"雪域","fv":8,"lv":2,"bonds":["中华珍兽","静息者"],"effect":"当手牌小于3张时，这张牌可以加入手牌。跳过任意玩家下个回合。","counter":"任意玩家没有打出任何牌时，对方丢弃2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/黑头白鹮-gmb2pnyxkm9g86nt7f7cpmmxmxnye0.jpg"},{"id":313,"name":"丹顶鹤","type":"角色牌","race":"鸟类","attr":"雪域","fv":8,"lv":1,"bonds":["中华珍兽","静息者"],"effect":"当手牌小于3张时，这张牌可以加入手牌。所有玩家抽1张牌。","counter":"任意玩家没有打出任何牌时，自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/丹顶鹤-4k9099m5qm14yx60h9hjgeg5qwnp4r.jpg"},{"id":314,"name":"雪鸮","type":"角色牌","race":"鸟类","attr":"雪域","fv":6,"lv":1,"bonds":["猛禽战队","静息者"],"effect":"将自己1张手牌和任意玩家1张手牌交换。如果触发反击效果，则自己抽1张牌。","counter":"任意玩家没有打出任何牌时，对方展示手牌，自己选择其中1张丢弃。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/雪鸮-0vlj0n6bqbwz9snyu93fb10zli72y9.jpg"},{"id":315,"name":"鲸头鹮","type":"角色牌","race":"鸟类","attr":"林原","fv":0,"lv":0,"bonds":["驼鹿战团","静息者"],"effect":"从自己手牌直接将已有羁绊放置在友情区，跳过自己下个回合。","counter":"任意玩家没有打出任何牌时，对方友情区随机1张牌返回对方手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/鲸头鹮-hs72ymw552100iaypplgnyghsgtnva.jpg"},{"id":316,"name":"川金丝猴","type":"角色牌","race":"兽类","attr":"林原","fv":8,"lv":3,"bonds":["中华珍兽","天蓝猎人"],"effect":"当手牌小于3张时，这张牌可以加入手牌。任意玩家出局1轮。","counter":"任意效果发动时，那个效果无效本轮不能使用任何弃牌。偷取效果的牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/川金丝猴-ddr9zads87pqztw54m1g3ru7gwtdfh.jpg"},{"id":317,"name":"家猫","type":"角色牌","race":"兽类","attr":"沙漠","fv":3,"lv":3,"bonds":["家有萌宠","猫狗大战"],"effect":"随机选择1位玩家抽1张牌，本轮内该玩家不能使用抽卡效果。","counter":"即时效果发动时，那个效果无效。将牌堆最上方3张牌分发给任意3位玩家。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/家猫-unbb0cdkrgo1dnpyjgw4x0myq7kc85.jpg"},{"id":318,"name":"家犬","type":"角色牌","race":"兽类","attr":"雪域","fv":3,"lv":3,"bonds":["家有萌宠","猫狗大战"],"effect":"随机选择1位玩家抽1张牌，本轮内该玩家不能使用弃牌·偷取效果。","counter":"即时效果发动时，那个效果无效。将弃牌区最上方3张牌分发给任意3位玩家。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/家犬-1n526629bq1kbsajn8fqv3rzia6zer.jpg"},{"id":319,"name":"白鼬","type":"角色牌","race":"兽类","attr":"雪域","fv":3,"lv":2,"bonds":["北极伙伴","潜行者"],"effect":"随机选择1位玩家抽1张牌或丢弃1张手牌。自己也要有同样的行动。","counter":"当发动抽牌效果时，那个效果无效。自己偷取该玩家随机1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/白鼬-hhcyshgix4k7ua4cavy68wvwoql5go.jpg"},{"id":320,"name":"鬓海豹","type":"角色牌","race":"水生类","attr":"海洋","fv":5,"lv":2,"bonds":["北极伙伴","重量级"],"effect":"选择任意1位玩家抽1张牌，如果此时对方手牌多于自己，对方丢弃3张手牌","counter":"丢弃效果发动时，那个效果无效对方丢弃相同数量的手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/鬓海豹-yp0jnvo86kz6jrsmn4ald2zqb34j20.jpg"},{"id":321,"name":"竖琴海豹","type":"角色牌","race":"水生类","attr":"海洋","fv":3,"lv":2,"bonds":["北极伙伴","灵魂歌姬"],"effect":"选择任意1位玩家，本轮只能用唱歌方式说话，否则丢弃4张手牌。","counter":"当有音乐响起可以发动，其他所有玩家丢弃1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/竖琴海豹-xiyt2hz0zr6jfqlwmtp7s5ezjjb2jd.jpg"},{"id":322,"name":"月兔","type":"角色牌","race":"兽类","attr":"雪域","fv":6,"lv":2,"bonds":["月宫神兔","领航员"],"effect":"这张牌可以单独放在友情区。3秒钟后最后模仿兔子的玩家丢弃2张手牌。","counter":"任意效果发动时，自己弃掉1张手牌，偷取任意1位玩家2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/月兔-ot3gcjjhwfyrf0i7img47t9rb5qlkp.jpg"},{"id":323,"name":"游隼","type":"角色牌","race":"鸟类","attr":"林原","fv":5,"lv":3,"bonds":["猛禽战队","极速前行"],"effect":"丢弃自己3张手牌，选择任意1位玩家丢弃随机3张手牌。这个效果不能反击","counter":"反击效果发动时，那个效果无效偷取对方1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/游隼-odersqkvu7xsyau3lws72j5lwqvw3z.jpg"},{"id":324,"name":"异化薮猫","type":"角色牌","race":"兽类","attr":"沙漠","fv":9,"lv":2,"bonds":["百变薮猫","静息者"],"effect":"选择任意2名玩家本轮不能出即时效果牌。自己不能使用反击效果牌。","counter":"任意玩家没有打出任何牌时，直接结束本轮，开始自己的回合。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/异化薮猫-d9qo7ufhrlo2kdirw7yr76xyj76pac.jpg"},{"id":325,"name":"野山羊","type":"角色牌","race":"兽类","attr":"沙漠","fv":3,"lv":2,"bonds":["青青草原","静息者"],"effect":"本轮自己友情区存在3张以下牌时，对方不能使用反击效果牌。","counter":"任意玩家没有打出任何牌时，将自己友情区1张牌盖放在对方的友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/野山羊-ys03n2fgret1tqr6fdlacq8a67351s.jpg"},{"id":326,"name":"野槌蛇","type":"角色牌","race":"兽类","attr":"沙漠","fv":9,"lv":1,"bonds":["传说之物","静息者"],"effect":"这张牌可以单独放在友情区。这张牌是最后1张手牌时，自己抽5张牌。","counter":"任意玩家没有打出任何牌时，投掷一枚硬币，猜对对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/野槌蛇-d6kfo5uhg9cygk0e3rqk7zasomn5ri.jpg"},{"id":327,"name":"眼镜王蛇","type":"角色牌","race":"兽类","attr":"林原","fv":7,"lv":2,"bonds":["蟒蛇联盟","施毒者"],"effect":"选择任意1位玩家本轮每次有玩家使用林原·兽族角色牌时，丢弃1张手牌。","counter":"任意效果发动时，对方需丢弃1张林原·兽族角色，否则效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/眼镜王蛇-j5zuxz0hs33rkrypp8roet0xe6zc06.jpg"},{"id":328,"name":"太攀蛇","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":3,"bonds":["蟒蛇联盟","施毒者"],"effect":"选择任意1位玩家本轮每次有玩家使用沙漠·兽族角色牌时，丢弃1张手牌。","counter":"任意效果发动时，对方需丢弃1张沙漠·兽族角色，否则效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/太攀蛇-4vcchkw4jzafo6y6vgaxuvfkt8fp4t.jpg"},{"id":329,"name":"黑曼巴蛇","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":1,"bonds":["蟒蛇联盟","施毒者"],"effect":"选择任意1位玩家本轮每次有玩家使用反击效果，对方丢弃1张手牌。","counter":"当只针对自己的效果发动时，自己可丢弃任意手牌，对方必须丢弃相同数量。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/黑曼巴蛇-ld6z872zdi0os31kz5oi39pedvjas7.jpg"},{"id":330,"name":"非洲岩蟒","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":2,"bonds":["蟒蛇联盟","好斗者"],"effect":"选择任意1位玩家丢弃自己指定属性1张牌，如果没有则丢弃3张手牌。","counter":"自己被反击时，该效果无效，对方随机丢弃2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/非洲岩蟒-gdmkdudv9lkz6ytvsoa78kpf5kczo6.jpg"},{"id":331,"name":"黑薮猫","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":1,"bonds":["百变薮猫","好斗者"],"effect":"丢弃所有玩家手上的沙漠属性角色牌，然后抽出丢弃数量相同的牌。","counter":"自己被反击时，该效果无效，对方抽1张牌，如果不是沙漠属性角色牌，丢弃全部手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/黑薮猫-4l6cxwh9wm0h8b65m7knxs7wi5luq9.jpg"},{"id":332,"name":"雪豹","type":"角色牌","race":"兽类","attr":"雪域","fv":7,"lv":2,"bonds":["藏区朋友","豹豹来袭"],"effect":"选择任意1位玩家，对方抽3张牌。随后对方需将1张手牌交于自己。","counter":"任意效果发动时，那个效果无效。随后视作自己打出，再次触发。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/雪豹-2flnahu9rscs36w3jn4uiojvv147bd.jpg"},{"id":333,"name":"小爪水獭","type":"角色牌","race":"兽类","attr":"海洋","fv":3,"lv":1,"bonds":["獭诺西","乐天派"],"effect":"这张牌可以单独放在友情区。这张牌在友情区时，每轮这张牌的友情值+1。","counter":"当自己被其他玩家效果弃牌·偷取时，自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/小爪水獭-tjl1t4j3dppstms2s0bz4a7qf9qjw6.jpg"},{"id":334,"name":"小熊猫","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":2,"bonds":["中华珍兽","乐天派"],"effect":"当手牌少于3张时，这张牌可以加入手牌。自己抽1张牌，随后丢弃2张牌。","counter":"当自己被其他玩家效果弃牌·偷取时，对方丢弃2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/小熊猫-n77jk26vi216l3fhv4r5uiqu3g1xhz.jpg"},{"id":335,"name":"小食蚁兽","type":"角色牌","race":"兽类","attr":"林原","fv":3,"lv":2,"bonds":["虚张声势","静息者"],"effect":"这张牌可以单独放在友情区。自己抽6张牌，下个回合结束后，丢弃6张手牌","counter":"任意玩家没有打出任何牌时，自己抽4张牌，回合结束时丢弃3张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/小食蚁兽-nrpeml93n3slbbpg2ey8pdu8atcw0p.jpg"},{"id":336,"name":"幸运兽","type":"角色牌","race":"兽类","attr":"海洋","fv":3,"lv":1,"bonds":["领航员","静息者"],"effect":"丢弃自己1张手牌，从牌堆上方5张牌中选择1张加入手牌。","counter":"任意玩家没有打出任何牌时，可将这张牌友情值*2放置在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/幸运兽-8gxiaa190musv2n4tfu77rnce6djbd.jpg"},{"id":337,"name":"沙狐","type":"角色牌","race":"兽类","attr":"沙漠","fv":4,"lv":2,"bonds":["狐狸村","乐天派"],"effect":"将这张牌盖放在自己的友情区，随后自己抽2张牌。","counter":"当自己被其他玩家效果弃牌·偷取时，将这张牌友情值*2放置在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/沙狐-o50jmuxbtbryynoudh1bn3oo5jhoay.jpg"},{"id":338,"name":"网纹长颈鹿","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":3,"bonds":["名推理","乐天派"],"effect":"选择任意1位玩家1张手牌进行猜测属性·种族。正确2个，将那张牌加入自己手牌同时丢弃对方1张手牌。正确1个，丢弃那张手牌。错误，自己丢弃1张手牌。","counter":"当自己被其他玩家效果弃牌。偷取时，对方丢弃自己指定属性或种族的1张手牌。没有则自己抽1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/网纹长颈鹿-7mv1kk14vn50zhv58pfawz2t5heanb.jpg"},{"id":339,"name":"王企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":7,"lv":3,"bonds":["企鹅偶像","乐天派"],"effect":"将自己与任意1位玩家友情区的1张牌互换。","counter":"当自己被其他玩家效果弃牌·偷取时，丢弃对方友情区1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/王企鹅-xrmi9j6o1xcua1crfxbpq7rfjvdv6g.jpg"},{"id":340,"name":"跳岩企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":4,"lv":2,"bonds":["企鹅偶像","好斗者"],"effect":"自己友情区的牌小于4张时，可将手牌1张角色牌放置在友情区。","counter":"自己被反击时，那个效果无效，将对方友情区1张牌加入自己手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/跳岩企鹅-8stgorkc3kxppbopc266mcz4h9c4fd.jpg"},{"id":341,"name":"帝企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":5,"lv":1,"bonds":["企鹅偶像","静息者"],"effect":"任意玩家友情区的牌小于4张时将该玩家友情区所有牌丢弃。","counter":"任意玩家没有打出任何牌时，将对方友情区的1张牌盖放。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/帝企鹅-zdvmcy420ewjjkdepi6hj020xiccdc.jpg"},{"id":342,"name":"洪堡企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":4,"lv":2,"bonds":["企鹅偶像","家有萌宠"],"effect":"弃牌区每有一种【企鹅】，将相等数量的场上友情区的牌返回持有者手牌。","counter":"任意效果发动时，随机选择1位玩家抽1张牌，本轮内该玩家不能使用反击效果的牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/洪堡企鹅-qrj93eevrqnzq24olou0tpqz8nw3c6.jpg"},{"id":343,"name":"皇家企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":6,"lv":3,"bonds":["企鹅偶像","灵魂歌姬"],"effect":"将全场友情区的牌都变为3张。不够3张不用增加。","counter":"有音乐响起时，选择任意1位玩家将弃牌区最上方2张牌盖放在其友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/皇家企鹅-p0w59vvqtt1q7m8sobshokfjen375r.jpg"},{"id":344,"name":"鸵鸟","type":"角色牌","race":"鸟类","attr":"沙漠","fv":5,"lv":1,"bonds":["领航员","潜行者"],"effect":"丢弃自己1张手牌，可查看牌堆上方1-10张牌，随后选取其中1张加入自己手牌，剩余按照喜欢顺序返回牌堆最上面。","counter":"任意玩家友情区放置牌时，自己偷取对方1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/鸵鸟-kit1y3uo9xz4hvkw0w3064h0zioy6h.jpg"},{"id":345,"name":"兔狲","type":"角色牌","race":"兽类","attr":"雪域","fv":6,"lv":3,"bonds":["藏区朋友","好斗者"],"effect":"选择任意1位玩家，将牌堆底部3张牌加入手牌，随后对方需将1张手牌交给自己。","counter":"自己被反击时，那个效果无效。将牌堆底部1张牌盖放在对方友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/兔狲-ue3hnfocmh2otusw18j0t9343u67zr.jpg"},{"id":346,"name":"汤姆逊瞪羚","type":"角色牌","race":"兽类","attr":"沙漠","fv":4,"lv":1,"bonds":["羚羚羚","乐天派"],"effect":"丢弃牌堆上方3张牌，丢弃任意1位玩家1张手牌。","counter":"当自己被其他玩家效果弃牌·偷取时，选择任意1位玩家出局1轮。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/汤姆逊瞪羚-7djq2li3q00gf6wpqdqd357iyx1n6y.jpg"},{"id":347,"name":"苏利羊驼","type":"角色牌","race":"兽类","attr":"林原","fv":3,"lv":3,"bonds":["青青草原","家有萌宠"],"effect":"本轮自己友情区存在3张以下牌时，对方不能使用弃牌效果牌。","counter":"任意玩家抽牌时，对方抽1张牌本轮内该玩家不能在友情区放置牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/苏利羊驼-qi93t7udcgm9ct7vo1mv2lemxq8rqy.jpg"},{"id":348,"name":"薮猫","type":"角色牌","race":"兽类","attr":"林原","fv":6,"lv":2,"bonds":["百变薮猫","乐天派"],"effect":"自己友情区每有1张林原属性角色牌，自己抽1张牌。跳过自己下一回合。","counter":"当自己被其他玩家效果弃牌·偷取时，与自己最近的玩家和自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/薮猫-6oscl81svo6q2abd8yd6h59awwo7n9.jpg"},{"id":349,"name":"斯特拉海牛","type":"角色牌","race":"水生类","attr":"海洋","fv":8,"lv":1,"bonds":["远古生物","漂流者"],"effect":"本轮打出洋流·水生族角色牌的玩家，丢弃2张牌。","counter":"任意效果发动时，将这张卡交给自己下一位玩家。对方和下一位玩家丢弃2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/斯特拉海牛-jccmdv2dfbqtswy57sy3z43hltwgwp.jpg"},{"id":350,"name":"水鼠耳蝠","type":"角色牌","race":"兽类","attr":"海洋","fv":7,"lv":1,"bonds":["水面声呐","静息者"],"effect":"这张牌可以单独放在友情区。查看1位玩家手牌，偷取其中1张加入自己手牌","counter":"任意玩家没有打出任何牌时，查看对方手牌，丢弃其中2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/水鼠耳蝠-ao58u46w5g6va1uizlk8pmn4zt83as.jpg"},{"id":351,"name":"双峰骆驼","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":2,"bonds":["青青草原","漂流者"],"effect":"本轮自己友情区存在3张以下牌时，对方不能使用抽牌效果牌。","counter":"任意效果发动时，将这张卡交给任意1位玩家。对方和该玩家将1张手牌交于自己。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/双峰骆驼-48quopvag3yfx63wyg6lo95z4zwt3c.jpg"},{"id":352,"name":"山原水鸡","type":"角色牌","race":"鸟类","attr":"海洋","fv":3,"lv":2,"bonds":["领航员","小鸟依人"],"effect":"丢弃1张手牌，随后自己丢弃1张友情区的牌。","counter":"与这张卡属性·种族·羁绊相同的牌打出时，跳过对方下一个回合。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/山原水鸡-kjx72w6eushz5yegebhs25jcrwxm2p.jpg"},{"id":353,"name":"沙丘猫","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":1,"bonds":["猫狗大战","乐天派"],"effect":"随机抽取牌堆3张牌加入自己手牌，随后自己丢弃1张手牌。","counter":"当自己被其他玩家效果弃牌·偷取时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/沙丘猫-gz7l30m2cu0oc83w63fanxm6im21vj.jpg"},{"id":354,"name":"人面鱼","type":"角色牌","race":"水生类","attr":"海洋","fv":4,"lv":1,"bonds":["远古生物","乐天派"],"effect":"本轮在友情区放置牌的玩家，抽1张牌。","counter":"当自己被其他玩家效果弃牌·偷取时，自己丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/人面鱼-n1lhlqiad0ndlwc8nwf9yrt9pavuxb.jpg"},{"id":355,"name":"平原斑马","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":2,"bonds":["青青草原","好斗者"],"effect":"本轮自己友情区存在3张以下牌时，自己不能弃牌。","counter":"自己被反击时，那个效果无效。自己丢弃2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/平原斑马-czwklh3ml2jedun5yk6k8ujsmrhiub.jpg"},{"id":356,"name":"狍鹿","type":"角色牌","race":"兽类","attr":"雪域","fv":3,"lv":1,"bonds":["鹿角联盟","潜行者"],"effect":"当玩家有3张以上手牌时，丢弃2张手牌。","counter":"自己被偷取时，将那个效果对象转移给另外1位玩家。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/狍鹿-hmobm8ean1pho9ciyt0y3oovlwxiit.jpg"},{"id":357,"name":"狞猫","type":"角色牌","race":"兽类","attr":"林原","fv":6,"lv":2,"bonds":["掠食者","潜行者"],"effect":"将弃牌区1张牌加入自己手牌，随后选择任意1位玩家丢弃1张手牌。","counter":"任意效果发动时，偷取对方2张手牌，随后丢弃自己1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/狞猫-fdnhanjs4m11vmam50s1n8fzmk9ija.jpg"},{"id":358,"name":"南非穿山甲","type":"角色牌","race":"兽类","attr":"沙漠","fv":5,"lv":2,"bonds":["守护者","重量级"],"effect":"自己抽1张牌，本轮自己不能被任何即时效果影响。","counter":"当有玩家偷取其他玩家2张以上牌时，对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/南非穿山甲-1ajjl003k67v2b3ql8sh5j4l101hef.jpg"},{"id":359,"name":"穿山甲＆犰狳","type":"角色牌","race":"兽类","attr":"沙漠","fv":4,"lv":3,"bonds":["名推理","守护者"],"effect":"猜测牌堆最上方1张角色牌的属性·种族，猜对其他全部玩家丢弃2张手牌。如果不是角色牌，则将该牌丢弃继续猜测。","counter":"反击效果发动时，该玩家本轮不再受到即时效果影响。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/穿山甲＆犰狳-n5vsgn1iscnsr6vd4alnkni4pdkvpk.jpg"},{"id":360,"name":"蜜獾","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":3,"bonds":["生死看淡","好斗者"],"effect":"这张牌可以单独放在友情区。自己手牌少于任意玩家时，自己丢弃所有手牌所有其他玩家丢弃相同数量的牌。","counter":"自己被反击时，那个效果无效。自己和对方丢弃全部手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/蜜獾-x9wq6s6jjrhu7c9603dt2izn82h7jf.jpg"},{"id":361,"name":"孟加拉白虎","type":"角色牌","race":"兽类","attr":"林原","fv":0,"lv":0,"bonds":["百兽之王","好斗者"],"effect":"自己手牌多于任意1位玩家时，偷取对方2张手牌。","counter":"自己被反击时，那个效果无效。对方丢弃在场玩家数量的手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/孟加拉白虎-86b94yzznjqf30mvoswtsu3mjpwvcd.jpg"},{"id":362,"name":"美洲红鹮","type":"角色牌","race":"鸟类","attr":"林原","fv":4,"lv":2,"bonds":["灵魂歌手","静息者"],"effect":"选择1位玩家，本轮只能用唱歌方式说话，否则丢弃3张手牌。","counter":"任意玩家没有打出任何牌时，对方抽5张牌，随后丢弃6张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/美洲红鹮-mq0u2n10quo82o4gmydavvhkc82zg6.jpg"},{"id":363,"name":"美洲河狸","type":"角色牌","race":"兽类","attr":"海洋","fv":3,"lv":4,"bonds":["守护者","乐天派"],"effect":"本轮自己以外玩家不会被反击，但自己下回合可以出牌2次。","counter":"当自己被其他玩家效果弃牌·偷取时，自己和任意1位玩家抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/美洲河狸-02nirpvjyggd5gl5amnzmig8tj8mll.jpg"},{"id":364,"name":"美洲豹","type":"角色牌","race":"兽类","attr":"海洋","fv":6,"lv":1,"bonds":["漂流者","豹豹来袭"],"effect":"将这张牌交于任意1位玩家，对方丢弃3张手牌。","counter":"临时效果发动时，那个效果无效随后视作自己打出，再次触发。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/美洲豹-ukjhxu6po8fchqz1h13tia2pu5uuvk.jpg"},{"id":365,"name":"梅花鹿","type":"角色牌","race":"兽类","attr":"林原","fv":3,"lv":2,"bonds":["鹿角联盟","青青草原"],"effect":"当玩家友情区有2张以上牌时，抽2张牌。","counter":"自己友情区存在3张以下牌时，偷取任意1位玩家2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/梅花鹿-40m6mtzhhz73zftlhfhruyygq24jyz.jpg"},{"id":366,"name":"罗德侯鲸","type":"角色牌","race":"水生类","attr":"海洋","fv":8,"lv":1,"bonds":["远古生物","重量级"],"effect":"本轮发动弃牌·偷取效果角色牌的玩家，需将1张牌交于自己。","counter":"任意玩家回合结束时，对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/罗德侯鲸-456mxyd2ceh36cgejeirzgfgwqwxy7.jpg"},{"id":367,"name":"鸬鹚","type":"角色牌","race":"鸟类","attr":"海洋","fv":3,"lv":1,"bonds":["漂流者","极速前行"],"effect":"这张卡交于下一位玩家，自己再进行1回合。","counter":"抽牌效果发动时，对方丢弃2张手牌。这个效果不能被反击。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/鸬鹚-yu5kfs6mxbd4v8ghcfk9vokkq0ps3u.jpg"},{"id":368,"name":"琉璃金刚鹦鹉","type":"角色牌","race":"鸟类","attr":"海洋","fv":8,"lv":2,"bonds":["海盗船长","剑客"],"effect":"这张牌可以单独放在友情区。偷取任意1位玩家所有手牌。跳过自己下回合。","counter":"当只有自己被选做效果对象时，偷取对方所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/琉璃金刚鹦鹉-vdezstw8kzdyrmbhiyd9qhsmuqrsmf.jpg"},{"id":369,"name":"鬣犬","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":1,"bonds":["天蓝猎人","好斗者"],"effect":"本轮不能使用任何反击效果的牌。","counter":"自己被反击时，该效果无效。跳过对方下个回合。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/鬣犬-a0bnc75imo82nhx7yoarddtxjk511v.jpg"},{"id":370,"name":"猎豹","type":"角色牌","race":"兽类","attr":"林原","fv":6,"lv":3,"bonds":["极速前行","豹豹来袭"],"effect":"选择任意1位玩家抽取3张牌，如果手牌在6张以上时，对方弃掉所有手牌。这个效果不能被反击。","counter":"反击效果发动时，那个效果无效随后视作自己打出，再次触发。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/猎豹-otdncrf35oycf0xvig3s0st4hsl8k8.jpg"},{"id":371,"name":"丽纹龙蜥","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":3,"bonds":["中华珍兽","潜行者"],"effect":"当手牌小于3张时，这张牌可以加入手牌。丢弃场上所有盖放的牌。","counter":"反击效果针对反击效果发动时，偷取其他所有玩家1张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/丽纹龙蜥-yo80xizw3rbk9o76k27ibiir6l6ut0.jpg"},{"id":372,"name":"蓝脸鲣鸟","type":"角色牌","race":"鸟类","attr":"海洋","fv":4,"lv":3,"bonds":["极速前行","漂流者"],"effect":"将自己以外任意2位玩家的手牌互换。这个效果不能反击。","counter":"当抽牌效果发动时，把这张牌交于任意1位玩家，该玩家抽出相同数量的牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/蓝脸鲣鸟-q4o8tcdzd267eyrouc1eqwu3ryc6qt.jpg"},{"id":373,"name":"蓝鲸","type":"角色牌","race":"水生类","attr":"海洋","fv":8,"lv":1,"bonds":["重量级","漂流者"],"effect":"选择任意1位手牌在5张以上的玩家，对方丢弃所有手牌。","counter":"当弃牌效果发动时，把这张牌交于任意1位玩家，该玩家弃掉相同数量手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/蓝鲸-c6ola67x5sap3mpd3o06tjvruf4xf8.jpg"},{"id":374,"name":"宽吻海豚","type":"角色牌","race":"水生类","attr":"海洋","fv":5,"lv":3,"bonds":["海豚联盟","守护者"],"effect":"此牌打出同时可使用一张即时效果。场上所有玩家手牌补充·弃置为7张。","counter":"任意玩家弃牌时，该玩家抽取丢弃数量的牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/宽吻海豚-8gh9p29hn8wzczjhqorjv1vaszdq6m.jpg"},{"id":375,"name":"郊狼","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":2,"bonds":["漂流者","狼群"],"effect":"将这张牌交于任意1位玩家，对方丢弃1张友情区的牌。","counter":"抽牌·弃牌效果发动时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/郊狼-y9obyggi8zlapu5v5wkj7w9xut9oil.jpg"},{"id":376,"name":"剑齿虎","type":"角色牌","race":"兽类","attr":"林原","fv":8,"lv":2,"bonds":["远古生物","剑客"],"effect":"本轮任意玩家将牌放置友情区时将友情区1张牌盖放。","counter":"当只有自己被选做效果对象时发动，将对方随机2张手牌盖放在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/剑齿虎-95z5py426yuj1vgxvayxowuyt0nfoe.jpg"},{"id":377,"name":"加州海獭","type":"角色牌","race":"兽类","attr":"海洋","fv":5,"lv":3,"bonds":["漂流者","乐天派"],"effect":"将这张牌交于任意1位玩家，随后将任意玩家友情区1张牌丢弃。","counter":"当自己被其他玩家效果弃牌·偷取时，将任意1位玩家友情区1张牌丢弃。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/加州海獭-vuepmz2ab9zov9az3m2aqaiwyuu7ni.jpg"},{"id":378,"name":"加州海狮","type":"角色牌","race":"水生类","attr":"海洋","fv":6,"lv":2,"bonds":["家有萌宠","乐天派"],"effect":"选择任意1位玩家抽1张牌，随后本轮该玩家不能动，否则丢弃2张手牌。","counter":"当自己被其他玩家效果弃牌·偷取时，偷取任意1位玩家1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/加州海狮-hdip2c0ii1lu6zy3n77ymuxtc9hw5q.jpg"},{"id":379,"name":"浣熊","type":"角色牌","race":"兽类","attr":"林原","fv":3,"lv":2,"bonds":["名推理","潜行者"],"effect":"猜测任意1位玩家手牌是否存在某属性·种族角色牌。猜对跳过对方回合。","counter":"任意玩家弃牌时，自己偷取对方2张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/浣熊-4yhrqierl8nnpqy4yagxtqkguozdsp.jpg"},{"id":380,"name":"美西螈","type":"角色牌","race":"水生类","attr":"海洋","fv":5,"lv":3,"bonds":["远古生物","家有萌宠"],"effect":"本轮任意玩家在抽牌阶段以外抽牌时，自己抽1张牌。","counter":"抽牌效果发动时，对方抽1张牌跳过对方下个回合。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/美西螈-3ujwfwqexoscfo9gjomj0pbgqd8bme.jpg"},{"id":381,"name":"虎鲸","type":"角色牌","race":"水生类","attr":"海洋","fv":7,"lv":2,"bonds":["海豚联盟","掠食者"],"effect":"此牌打出的同时可以使用一张即时效果。全部手牌小于4张的玩家出局3回合。","counter":"任意玩家弃牌时，选择任意1位玩家丢弃全部手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/虎鲸-0qcwnaffg61629mnxz9hif8x0upldy.jpg"},{"id":382,"name":"厚企鹅","type":"角色牌","race":"鸟类","attr":"雪域","fv":8,"lv":2,"bonds":["远古生物","企鹅偶像"],"effect":"本轮打出雪域·乌族角色牌的玩家，丢弃2张牌。","counter":"任意玩家偷取其他玩家2张以上牌时，丢弃对方友情区3张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/厚企鹅-7b4vs5368xttuk37wae6n4uguvu5vl.jpg"},{"id":383,"name":"北狐","type":"角色牌","race":"兽类","attr":"雪域","fv":8,"lv":2,"bonds":["温泉姐妹","狐狸村"],"effect":"选择任意1位玩家和对方猜拳，获胜者从牌堆抽3张牌。","counter":"即时效果发动时，那个效果无效随后将场上盖放牌全部丢弃。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/北狐-0mi8knuzsr7imvk67zb9prfmiiiu76.jpg"},{"id":384,"name":"赤狐","type":"角色牌","race":"兽类","attr":"林原","fv":4,"lv":1,"bonds":["青青草原","狐狸村"],"effect":"本轮自己友情区存在3张以下牌时，当回合玩家需选择1张牌盖放在友情区","counter":"任意玩家盖放卡牌时，将弃牌区最上方2张牌盖放在对方的友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/赤狐-o9fn47suptoc0hs16ncjg66bbovc0r.jpg"},{"id":385,"name":"黑白海豚","type":"角色牌","race":"水生类","attr":"海洋","fv":5,"lv":1,"bonds":["海豚联盟","乐天派"],"effect":"此牌打出同时可使用一张即时效果。选任意1位玩家抽1张牌，随后随机丢弃对方1张手牌。","counter":"当自己被其他玩家效果弃牌·偷取时，将对方随机1张手牌盖放在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/黑白海豚-xte9jus4mekpi6l7qfcddnbinrpn3q.jpg"},{"id":386,"name":"海鸥","type":"角色牌","race":"鸟类","attr":"海洋","fv":5,"lv":1,"bonds":["整点薯条","领航员"],"effect":"这张牌可以单独放在友情区。本轮玩家打出的即时效果牌都加入自己手牌。","counter":"有玩家打出牌时，弃掉自己1张手牌，偷取对方1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/海鸥-4tgfycpgqin9xlqpjxc2ukwzy23i7k.jpg"},{"id":387,"name":"高原山羊","type":"角色牌","race":"兽类","attr":"雪域","fv":6,"lv":2,"bonds":["藏区朋友","漂流者"],"effect":"选择任意1位玩家，丢弃其全部手牌，并抽取丢弃数量的牌，随后将1张手牌交于自己","counter":"其他任意玩家只剩1张手牌时，把这张牌交于对方，对方抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/高原山羊-hhql9ijwym2opzz1grhnh6zn3lm4bf.jpg"},{"id":388,"name":"非洲象","type":"角色牌","race":"兽类","attr":"沙漠","fv":7,"lv":2,"bonds":["重量级","贤者"],"effect":"选择任意1位友情区牌少于自己的玩家，对方丢弃全部手牌。","counter":"弃牌·偷取效果发动时，那个效果无效。自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/非洲象-troqey3jn84ud9vsc7bzukyneq9xaf.jpg"},{"id":389,"name":"非洲金狼","type":"角色牌","race":"兽类","attr":"沙漠","fv":4,"lv":1,"bonds":["青青草原","狼群"],"effect":"本轮自己友情区存在3张以下牌时，自己每回合将1张手牌放置在友情区。","counter":"鸟族角色牌效果发动时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/非洲金狼-viztdvrd2165ongvfnr5rdp69qt1nx.jpg"},{"id":390,"name":"飞鱼","type":"角色牌","race":"水生类","attr":"海洋","fv":0,"lv":2,"bonds":["外星来客","远古生物"],"effect":"这张牌可以单独放在友情区。这张牌的友情值等于当前自己手牌数*2。自己抽3张牌。","counter":"反击效果发动时，那个效果无效本轮出牌的玩家丢弃1张手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/飞鱼-eeh9gg1a1oy2u7o37y2nhyqcrcgl53.jpg"},{"id":391,"name":"耳廓狐","type":"角色牌","race":"兽类","attr":"沙漠","fv":3,"lv":2,"bonds":["名推理","狐狸村"],"effect":"选择自己手牌中1张角色牌，随后让任意1位玩家猜测属性·种族。猜对抽3张牌，猜错丢弃3张手牌。","counter":"任意效果发动时，自己和其他任意1位玩家将1张手牌盖放在友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/耳廓狐-srr1xoiq8zdzryonzzkxl9i4ix5pvm.jpg"},{"id":392,"name":"大耳狐","type":"角色牌","race":"兽类","attr":"沙漠","fv":6,"lv":2,"bonds":["大耳朵","狐狸村"],"effect":"这张牌可以单独放在友情区。场上全部盖放的牌正面朝上放置在原处。","counter":"任意玩家弃牌时，将对方弃置的牌盖放在对方的友情区。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/大耳狐-2a82n2l7todz1biaspr22txxp1i9gi.jpg"},{"id":393,"name":"簇绒海鹦","type":"角色牌","race":"鸟类","attr":"海洋","fv":5,"lv":3,"bonds":["海鹦姐妹","领航员"],"effect":"自己从牌堆抽2张牌。","counter":"让玩家出局的效果发动时，丢弃自己1张手牌，自己抽5张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/簇绒海鹦-s1lre2l9tdlzabf10drupkphwiymxx.jpg"},{"id":394,"name":"叉角羚","type":"角色牌","race":"兽类","attr":"林原","fv":5,"lv":3,"bonds":["羚羚羚","极速前行"],"effect":"丢弃牌堆上面3张牌，将任意1位玩家友情区的1张牌盖放。","counter":"反击效果发动时，那个效果无效并且对方丢弃3张手牌。跳过自己下个回合这个效果不能反击。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/叉角羚-yk4u0yw0lw5so0lbojo26bvkhkir1e.jpg"},{"id":395,"name":"藏狐","type":"角色牌","race":"兽类","attr":"沙漠","fv":7,"lv":3,"bonds":["藏区朋友","静息者"],"effect":"让任意1位玩家偷取除自己外其他1位玩家3张手牌，随后需将1张手牌交于自己。","counter":"任意玩家没有打出任何牌时，对方本轮需蒙住眼睛继续游戏。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/藏狐-dnjlt1hzhl0pn7zb8tcw2zqq1gm1km.jpg"},{"id":396,"name":"不飞鸟","type":"角色牌","race":"鸟类","attr":"雪域","fv":8,"lv":1,"bonds":["远古生物","掠食者"],"effect":"本轮打出林原·兽族角色牌的玩家，丢弃2张手牌。","counter":"任意玩家弃牌时，自己抽2张牌如这个效果没被反击，则额外抽3张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/不飞鸟-9lpx5fh2vxjwl420dymk45onnbe8p9.jpg"},{"id":397,"name":"雕鸮","type":"角色牌","race":"鸟类","attr":"林原","fv":8,"lv":1,"bonds":["助手","贤者"],"effect":"这张牌可以单独放在友情区。本轮每回合自己都可以打出1张即时效果牌。","counter":"弃牌·偷取效果发动时，那个效果无效。自己抽2张牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/雕鸮-syuvuh31eecixy01rmmahabeuw4gqp.jpg"},{"id":398,"name":"灰狼","type":"角色牌","race":"兽类","attr":"雪域","fv":8,"lv":2,"bonds":["名推理","狼群"],"effect":"每位玩家2秒内立刻猜测现在所有手牌·友情区牌数总和。最接近抽5张牌。","counter":"雪域或林原角色牌效果发动时，那个效果无效。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/灰狼-jfe2b3s43viqis0iqrxf2j27c6c53z.jpg"},{"id":399,"name":"短吻鳄","type":"角色牌","race":"兽类","attr":"海洋","fv":6,"lv":1,"bonds":["掠食者","好斗者"],"effect":"丢弃任意1位玩家2张手牌，如对方场上有盖牌，则额外偷取对方1张手牌。","counter":"自己被反击时，那个效果无效。对方出局1轮。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/短吻鳄-1c18x9st5iyru6ikzr1c8f2zjhy5lm.jpg"},{"id":400,"name":"驼鹿","type":"角色牌","race":"兽类","attr":"林原","fv":7,"lv":2,"bonds":["驼鹿战团","重量级"],"effect":"自己和任意玩家交换手牌，跳过自己下一个回合。","counter":"反击效果发动时，对方丢弃所有手牌。","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/驼鹿-n1epgkcnmzixm19vk1rgbjqo048m60.jpg"},{"id":401,"name":"豆沙味加帕里馒头","type":"加帕里馒头","race":"","attr":"","fv":5,"lv":0,"bonds":[],"effect":"自己抽2张牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/豆沙味加帕里馒头-3pq6gqcuk2iyitdw8l8v7jffb11q8v.jpg"},{"id":402,"name":"抹茶味加帕里馒头","type":"加帕里馒头","race":"","attr":"","fv":5,"lv":0,"bonds":[],"effect":"弃置场上任意1张牌","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/抹茶味加帕里馒头-g6j1xhocs18457k9xhaswrgqp2tfyf.jpg"},{"id":403,"name":"奶油味加帕里馒头","type":"加帕里馒头","race":"","attr":"","fv":5,"lv":0,"bonds":[],"effect":"将自己1张手牌盖放在任意1位玩家的友情区。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/奶油味加帕里馒头-ijuu51v7jmuu7le88xynubx2wf5qje.jpg"},{"id":404,"name":"草莓味加帕里馒头","type":"加帕里馒头","race":"","attr":"","fv":5,"lv":0,"bonds":[],"effect":"当前卡牌发动效果无效。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/草莓味加帕里馒头-a6lt64wap4c2kl7vsaglxoc8t1drst.jpg"},{"id":405,"name":"香芋味加帕里馒头","type":"加帕里馒头","race":"","attr":"","fv":5,"lv":0,"bonds":[],"effect":"丢弃任意1位玩家随机1张手牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/香芋味加帕里馒头-p4c1i1mebb6iwy035662hk2xs4glq1.jpg"},{"id":406,"name":"圣诞快乐","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"自己抽出场上玩家数量的牌，随后将该数量-1的牌，由自己分发给在场的每位玩家。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/圣诞快乐-1ufgialfyc1kw2kds3nvnv081gf3q1.jpg"},{"id":407,"name":"月夜访客","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"将牌堆上方在场玩家数量的牌盖放在桌面上，每个回合准备阶段，当前回合玩家随机抽选1张，并发动该效果，且效果对象视为所有玩家。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/月夜访客-rfijydwu96am548vadx8u85h2bax1e.jpg"},{"id":408,"name":"收获之秋","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"自己将全部手牌盖放在桌面上，跳过每回合的抽牌阶段，将牌堆最上方1张牌盖放在场上，直到自己选择将盖放的牌加入手牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/收获之秋-i7g5sxpo0xp2zent1j2naiq0icmij1.jpg"},{"id":409,"name":"圣诞快乐","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"自己抽出场上玩家数量的牌，随后将该数量-1的牌，由自己分发给在场的每位玩家。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/圣诞快乐-1ufgialfyc1kw2kds3nvnv081gf3q1.jpg"},{"id":410,"name":"聚会盛宴","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"将牌堆上方的牌抽出在场玩家数量，将顺序打乱，随后由自己开始按顺序每个玩家随机抽选其中1张牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/聚会盛宴-jyhynhfo87krzo3xukbhb3hw60djb1.jpg"},{"id":411,"name":"月夜访客","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"将牌堆上方在场玩家数量的牌盖放在桌面上，每个回合准备阶段，当前回合玩家随机抽选1张，并发动该效果，且效果对象视为所有玩家。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/月夜访客-rfijydwu96am548vadx8u85h2bax1e.jpg"},{"id":412,"name":"收获之秋","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"自己将全部手牌盖放在桌面上，跳过每回合的抽牌阶段，将牌堆最上方1张牌盖放在场上，直到自己选择将盖放的牌加入手牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/收获之秋-i7g5sxpo0xp2zent1j2naiq0icmij1.jpg"},{"id":413,"name":"互帮互助","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"和任意1位玩家绑定【合作关系】，之后的2轮里，双方互相公开信息，并且可以在各自回合交换手牌，双方不能互相连锁反击牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/互帮互助-1ffiluc3by6y6lt1roouem27q0opo9.jpg"},{"id":414,"name":"即兴调味","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"所有玩家随机选择1张手牌中的角色牌，随后同时展示。触发所有凑成羁绊角色牌的效果，且效果对象视为所有玩家。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/即兴调味-d8ybplwiyt1hwd74kuwmw28qc2zyj5.jpg"},{"id":415,"name":"馒头分享","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"检查所有玩家的手牌，将手牌中所有的加帕里馒头放置在桌面上，所有玩家共享桌面放置的加帕里馒头提供的友情值。馒头可被效果丢弃。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/馒头分享-st3r6liue5aypekbtf4c3kpb7095c7.jpg"},{"id":416,"name":"美食品鉴","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"将场上放置的所有加帕里馒头的效果触发，且所有的加帕里馒头效果均视作由自己发动。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/美食品鉴-rdkcxfeup20nyvizv5l5pxj9jdbnrk.jpg"},{"id":417,"name":"闪亮登场","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"本回合可以额外再打出1张角色牌，且该角色牌的效果对象视作所有玩家。随后自己进入“亮眼”状态，若被丢弃·偷取牌，则状态消失。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/闪亮登场-mo4t3gsoratdcjkj401wxjjijt5sw4.jpg"},{"id":418,"name":"超声波","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"查看并选择任意1位玩家手牌中的1张牌，与自己手中可凑成羁绊的所有牌放置在自己的友情区，并触发那张牌的效果视作自己打出。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/超声波-wsv0pg14vrgc50y8qnqbpbg3b8b496.jpg"},{"id":419,"name":"狩猎游戏","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"选择任意1位玩家，接下来自己和对方进行3轮手牌中任意1张角色牌展示，根据属性克制取胜。（林原→雪域→洋流→沙漠→林原）","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/狩猎游戏-yes38xcziys8ung7ysbje7m6lgujaz.jpg"},{"id":420,"name":"幸运爆破","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"所有玩家依顺序猜测牌堆最上方1张牌的属性（非角色牌放置牌组最下方），正确抽3张牌，错误丢弃2张手牌。猜测过的牌送至弃牌区。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/幸运爆破-031blj4gin3lgxv7awbxxvunzojk6g.jpg"},{"id":421,"name":"雪域冲击","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"丢弃自己1张手牌，所有玩家友情区从牌堆的最上方盖放1张牌。如果丢弃2张手牌且都是雪域属性角色，改为其他所有玩家盖放2张牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/雪域冲击-74r5r6tip956dhr1x9kmcesw4i4sy6.jpg"},{"id":422,"name":"长空巡猎","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"查看所有玩家手牌，每有1张鸟族角色牌，该玩家丢弃手牌或友情区任意1张牌，每名玩家最多丢弃2张。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/长空巡猎-uvjv4mu8vtm3bdn8r8ya8iettpgbn3.jpg"},{"id":423,"name":"明暗交锋","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"所有玩家将1张手牌盖放在桌面上，本轮任意效果发动时，盖放牌如可以反击，则玩家抽3张牌。本轮结束后未使用的盖放牌返回手卡。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/明暗交锋-ppjxmlyu5f7x4v2cccv78ngo5bu7ek.jpg"},{"id":424,"name":"加州海滨","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"所有玩家展示自己手牌1张洋流属性的角色牌，并放置在各自友情区，并抽2张牌。如果玩家手牌没有洋流角色，则不触发任何效果。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/加州海滨-e25cjsyl7429yhpaqsr2jmkk8z1a5u.jpg"},{"id":425,"name":"绯羽绝唱","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"展示自己1张手牌，随后丢弃所有手牌，让任意1位玩家丢弃所有手牌。若展示的手牌为【朱鹮】，该玩家直接出局。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/绯羽绝唱-khn150yit1i4i1i8x1z3t6bl3hfb6e.jpg"},{"id":426,"name":"疑案推理","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"所有玩家按顺序盖放1张手牌在桌面，然后玩家进行描述，按照顺序下一位玩家猜测对方是否说谎，答对抽3张牌，答错丢弃2张手牌。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/疑案推理-ujwi1wl4lj9qg0ihnm69j8ny3r2g5m.jpg"},{"id":427,"name":"花丸探险队","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"指定任意1位玩家去猜测牌堆最上方1张牌的属性，猜对自己和该玩家抽4张牌，猜错两人丢弃2张手牌。当双方合计有2张以上【花丸探险队】羁绊角色时，则直接视为猜测正确。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/花丸探险队-95rpsv7joo6zbmg4mar1pya06j27sh.jpg"},{"id":428,"name":"春日眺鸢","type":"事件牌","race":"","attr":"","fv":0,"lv":0,"bonds":[],"effect":"选择任意1位玩家，对方抽6张牌。随后只要该玩家手牌在5张以上，就不能打出任何牌。直到手牌在5张以下时该效果才能结束。","counter":"","img":"https://s3plus.meituan.net/mcopilot-pub/nocode_image/default/春日眺鸢-l9idcr4tcro8ftmerzte1q7an4cthg.jpg"}];
+const EFFECTS = (function(){ const __w = typeof window!=="undefined"?window:globalThis; // 卡牌效果定义表：EFFECTS[id] = { s:solo强制, steps(ctx)=>[[type,arg]...], run(ctx,api) }
+// 步骤类型: t/t2=选玩家  h,n=选自己手牌n张  hv,n=看目标手牌选n张  coin=猜硬币  rps=猜拳
+//          ar=猜牌堆顶属性+种族  a=选属性  deckpick,n=看牌堆顶n张选1
+(function(){
+const T = {};
+function E(id, d){ T[id] = d; }
+const hasSolo = e => /单独(放置|放在)友情区|单独放在/.test(e||'');
+
+// ===== 角色牌 270-400 =====
+E(271,{steps:c=>[['t']],run:(a,c)=>{a.zoneDiscardR(c.t);}});
+E(272,{run:(a,c)=>{a.skip(c.actor,1);a.protect(c.actor,'all',1);a.note('出局1轮且免疫所有效果');}});
+E(273,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).some(x=>x==='沙漠兽类'));if(ts.length){ts.forEach(p=>a.discardR(p.id,2));}else a.note('本轮无人打出沙漠兽族牌，无效果');}});
+E(274,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.discardC(c.actor,c.h);a.draw(c.t,1);}});
+E(275,{run:(a,c)=>{a.reclaim(5);a.note('已回收弃牌区5张，请弃3张手牌');}});
+E(276,{run:(a,c)=>{a.draw(c.actor,1);}});
+E(277,{run:(a,c)=>{const n=a.discardedName('圣诞快乐');a.draw(c.actor,1+n);a.note('弃牌区圣诞快乐×'+n);}});
+E(278,{run:(a,c)=>{a.draw(c.actor,3);a.skip(c.actor,1);}});
+E(279,{steps:c=>[['t']],run:(a,c)=>{a.coverZoneR(c.t,3);}});
+E(280,{steps:c=>[['t']],run:(a,c)=>{a.poison(c.t,1,2);}});
+E(281,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
+E(282,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
+E(283,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
+E(284,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
+E(285,{steps:c=>[['t'],['h',1]],run:(a,c)=>{a.zoneDiscardR(c.t);a.discardC(c.actor,c.h);}});
+E(286,{s:1,run:(a,c)=>{a.flipAllCovered();}});
+E(287,{s:1,run:(a,c)=>{a.draw(c.actor,3);a.restrict(c.actor,'noDraw',1);}});
+E(288,{s:1,run:(a,c)=>{a.mark(c.actor,'counterDraw',1);}});
+E(289,{s:1,steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t,4);}});
+E(290,{steps:c=>[['t']],run:(a,c)=>{a.restrict(c.t,'noEffectDraw',1);}});
+E(291,{steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,1);}});
+E(292,{steps:c=>[['t']],run:(a,c)=>{a.zoneStealR(c.t||c.actor,c.actor);}});
+E(293,{run:(a,c)=>{a.mill(3);a.draw(c.actor,1);}});
+E(294,{run:(a,c)=>{a.protect(c.actor,'counter',1);}});
+E(295,{run:(a,c)=>{a.protect(c.actor,'instant',1);}});
+E(296,{steps:c=>[['t']],run:(a,c)=>{a.coverHandToZone(c.t);}});
+E(297,{run:(a,c)=>{a.reclaimBonded(c.actor,2);}});
+E(298,{run:(a,c)=>{a.restrict(c.actor,'noDrawFx',1);}});
+E(299,{steps:c=>[['t',pid=>P(pid).slots.filter(s=>s.inst).length>=3]],run:(a,c)=>{a.discardR(c.t,3);}});
+E(300,{steps:c=>[['t']],run:(a,c)=>{a.coverHandAside(c.t,3);}});
+E(301,{steps:c=>[['t'],['coin']],run:(a,c)=>{if(c.coin){a.draw(c.actor,3);}else{a.draw(c.t,3);}}});
+E(302,{ret3:1,run:(a,c)=>{a.allOthers(c.actor,p=>a.discardR(p,2));}});
+E(303,{ret3:1,run:(a,c)=>{a.draw(c.actor,3);}});
+E(304,{run:(a,c)=>{a.protect(c.actor,'counter',1);}});
+E(305,{steps:c=>P(c.actor).hand.length>2?[]:[],run:(a,c)=>{if(a.handCount(c.actor)>2)a.draw(c.actor,3);else a.note('手牌≤2，效果未触发');}});
+E(306,{steps:c=>P(c.actor).hand.length>2?[['t']]:[],run:(a,c)=>{a.discardR(c.t,2);}});
+E(307,{steps:c=>P(c.actor).hand.length>2?[['t']]:[],run:(a,c)=>{a.zoneDiscardR(c.t);}});
+E(308,{run:(a,c)=>{if(a.handCount(c.actor)>2){a.allOthers(c.actor,p=>a.discardR(p,1));}else a.note('手牌≤2，效果未触发');}});
+E(309,{s:1,run:(a,c)=>{a.copyFromDiscard(c.actor);}});
+E(310,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.discardR(c.actor,4);a.discardR(c.t,4);}});
+E(311,{ret3:1,run:(a,c)=>{a.skip(c.actor,1);}});
+E(312,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.skip(c.t,1);}});
+E(313,{ret3:1,run:(a,c)=>{a.allPlayers(p=>a.draw(p.id,1));}});
+E(314,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.swapWithTarget(c.actor,c.h[0],c.t);}});
+E(315,{run:(a,c)=>{a.selfBondToZone(c.actor);a.skip(c.actor,1);}});
+E(316,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.skip(c.t,1);a.note(c.t+' 出局1轮');}});
+E(317,{run:(a,c)=>{const p=a.randomPlayer(x=>x!==c.actor);if(p){a.draw(p,1);a.restrict(p,'noDrawFx',1);}}});
+E(318,{run:(a,c)=>{const p=a.randomPlayer(x=>x!==c.actor);if(p){a.draw(p,1);a.restrict(p,'noStealDiscard',1);}}});
+E(319,{steps:c=>[['coin']],run:(a,c)=>{const p=a.randomPlayer(x=>x!==c.actor);if(!p)return;if(c.coin){a.draw(p,1);a.draw(c.actor,1);}else{a.discardR(p,1);a.discardR(c.actor,1);}}});
+E(320,{steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,1);if(a.handCount(c.t)>a.handCount(c.actor))a.discardR(c.t,3);}});
+E(321,{steps:c=>[['t']],run:(a,c)=>{a.singCheck(c.t||c.actor,4);}});
+E(322,{s:1,steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t,2);}});
+E(323,{noCnt:1,steps:c=>[['h',3],['t']],run:(a,c)=>{a.discardC(c.actor,c.h);a.discardR(c.t,3);}});
+E(324,{steps:c=>[['t'],['t2']],run:(a,c)=>{a.restrict(c.t,'noInstant',1);a.restrict(c.t2,'noInstant',1);a.restrict(c.actor,'noCounter',1);}});
+E(325,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.global('noCounter',c.actor);else a.note('友情区>3张，效果未触发');}});
+E(326,{s:1,run:(a,c)=>{if(a.handCount(c.actor)===0)a.draw(c.actor,5);else a.note('非最后1张手牌，无抽牌');}});
+E(327,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punish林原兽族',1);}});
+E(328,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punish沙漠兽族',1);}});
+E(329,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punishCounter',1);}});
+E(330,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.discardC(c.actor,c.h);a.discardR(c.t,1);}});
+E(331,{run:(a,c)=>{a.purgeAttrAll('沙漠','角色牌');}});
+E(332,{steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.draw(c.t,3);a.give(c.t,c.actor,c.hv[0]);}});
+E(333,{s:1,grow:1,run:()=>{}});
+E(334,{ret3:1,steps:c=>[['h',2]],run:(a,c)=>{a.draw(c.actor,1);a.discardC(c.actor,c.h);}});
+E(335,{s:1,run:(a,c)=>{a.draw(c.actor,6);a.pending(c.actor,6);}});
+E(336,{steps:c=>[['h',1],['deckpick',5]],run:(a,c)=>{a.discardC(c.actor,c.h);if(c.picked)a.gainPicked(c.actor,c.picked);}});
+E(337,{run:(a,c)=>{a.selfPlaceCovered();a.draw(c.actor,2);}});
+E(338,{steps:c=>[['t'],['guessHand']],run:(a,c)=>{a.guessHandResolve(c);}});
+E(339,{steps:c=>[['t']],run:(a,c)=>{a.swapZoneR(c.actor,c.t);}});
+E(340,{run:(a,c)=>{if(a.zoneCount(c.actor)<4)a.placeFromHand(c.actor);else a.note('友情区≥4张，无法放置');}});
+E(341,{steps:c=>[['t',pid=>{const p=typeof P==='function'?P(pid):null;return !p||p.slots.filter(s=>s.inst).length<4;}]],run:(a,c)=>{a.zoneClear(c.t);}});
+E(342,{run:(a,c)=>{a.penguinReturn();}});
+E(343,{run:(a,c)=>{a.zoneFillTo3();}});
+E(344,{steps:c=>[['h',1],['deckpick',5]],run:(a,c)=>{a.discardC(c.actor,c.h);if(c.picked)a.gainPicked(c.actor,c.picked);}});
+E(345,{steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.fromBottom(3);a.give(c.t,c.actor,c.hv[0]);}});
+E(346,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.discardR(c.t,1);}});
+E(347,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.global('noDiscardFx',c.actor);else a.note('友情区>3张，效果未触发');}});
+E(348,{run:(a,c)=>{const n=a.zoneAttrCount(c.actor,'林原');if(n>0)a.draw(c.actor,n);a.skip(c.actor,1);}});
+E(349,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).includes('海洋水生类'));if(ts.length)ts.forEach(p=>a.discardR(p.id,2));else a.note('本轮无人打出洋流水生族牌');}});
+E(350,{s:1,steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.viewHand(c.t);a.stealC(c.t,c.actor,c.hv);}});
+E(351,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.global('noDrawFx',c.actor);else a.note('友情区>3张，效果未触发');}});
+E(352,{steps:c=>[['h',1]],run:(a,c)=>{a.discardC(c.actor,c.h);a.zoneDiscardSelf(c.actor);}});
+E(353,{run:(a,c)=>{a.draw(c.actor,3);a.pickDiscard1(c.actor);}});
+E(354,{run:(a,c)=>{a.global('placeDraw',c.actor);}});
+E(355,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.protect(c.actor,'noSelfDiscard',1);}});
+E(356,{run:(a,c)=>{a.players().filter(p=>p.alive&&a.handCount(p.id)>=3).forEach(p=>a.discardR(p.id,2));}});
+E(357,{steps:c=>[['t']],run:(a,c)=>{a.reclaim(1);a.discardR(c.t,1);}});
+E(358,{run:(a,c)=>{a.draw(c.actor,1);a.protect(c.actor,'instant',1);}});
+E(359,{steps:c=>[['ar']],run:(a,c)=>{a.guessTopResolve(c,2,pid=>a.allOthers(pid,q=>a.discardR(q,2)));}});
+E(360,{s:1,run:(a,c)=>{const rich=a.players().some(p=>p.alive&&p.id!==c.actor&&a.handCount(p.id)>a.handCount(c.actor));if(rich){const n=a.handCount(c.actor);a.discardAll(c.actor);a.allOthers(c.actor,p=>a.discardR(p,n));}else a.note('自己手牌并不少，无效果');}});
+E(361,{steps:c=>[['t']],run:(a,c)=>{if(a.handCount(c.actor)>a.handCount(c.t))a.stealR(c.t,c.actor,2);else a.note('对方手牌不少于你，无效果');}});
+E(362,{steps:c=>[['t']],run:(a,c)=>{a.singCheck(c.t||c.actor,3);}});
+E(363,{run:(a,c)=>{a.global('noCounter',c.actor);a.extra(c.actor,1);}});
+E(364,{steps:c=>[['t']],run:(a,c)=>{a.takePlayedCard(c.t);a.discardR(c.t,3);}});
+E(365,{run:(a,c)=>{if(a.zoneCount(c.actor)>=2)a.draw(c.actor,2);else a.note('友情区<2张，无效果');}});
+E(366,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&p.id!==c.actor&&a.track(p.id,'instant'));ts.forEach(p=>a.giveRandom(p,c.actor));}});
+E(367,{steps:c=>[['t']],run:(a,c)=>{a.takePlayedCard(c.t);a.extra(c.actor,1);}});
+E(368,{s:1,steps:c=>[['t']],run:(a,c)=>{a.stealAll(c.t,c.actor);a.skip(c.actor,1);}});
+E(369,{run:(a,c)=>{a.protect(c.actor,'counter',1);}});
+E(370,{noCnt:1,steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,3);if(a.handCount(c.t)>=6)a.discardAll(c.t);}});
+E(371,{ret3:1,run:(a,c)=>{a.clearAllCovered();}});
+E(372,{noCnt:1,steps:c=>[['t'],['t2',pid=>pid!==c.t]],run:(a,c)=>{a.swapHands(c.t,c.t2);}});
+E(373,{steps:c=>[['t',pid=>P(pid).hand.length>=5]],run:(a,c)=>{a.discardAll(c.t);}});
+E(374,{run:(a,c)=>{a.allPlayers(p=>a.setTo7(p.id));}});
+E(375,{steps:c=>[['t'],['t2',pid=>pid!==c.t]],run:(a,c)=>{a.takePlayedCard(c.t);a.zoneDiscardR(c.t2);}});
+E(376,{run:(a,c)=>{a.global('placeCover',c.actor);}});
+E(377,{steps:c=>[['t'],['t2',pid=>pid!==c.t]],run:(a,c)=>{a.takePlayedCard(c.t);a.zoneDiscardR(c.t2);}});
+E(378,{steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,1);a.restrict(c.t,'noAct',1);}});
+E(379,{steps:c=>[['t'],['a']],run:(a,c)=>{const ok=a.targetHasAttr(c.t,c.attr);if(ok){a.skip(c.t,1);a.note('猜对！跳过其下回合');}else a.note('猜错了，无效果');}});
+E(380,{run:(a,c)=>{a.mark(c.actor,'drawHook',1);}});
+E(381,{run:(a,c)=>{a.players().filter(p=>p.alive&&a.handCount(p.id)<4).forEach(p=>{a.skip(p.id,3);a.note(p.name+' 手牌<4，出局3回合');});}});
+E(382,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).includes('雪域鸟类'));if(ts.length)ts.forEach(p=>a.discardR(p.id,2));else a.note('本轮无人打出雪域鸟族牌');}});
+E(383,{steps:c=>[['t'],['rps']],run:(a,c)=>{if(c.rps)a.draw(c.actor,3);else a.draw(c.t,3);}});
+E(384,{steps:c=>[['h',1]],run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.coverChosenToZone(c.actor,c.h[0]);else a.note('友情区>3张，无效果');}});
+E(385,{steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,1);a.discardR(c.t,1);}});
+E(386,{s:1,run:(a,c)=>{a.global('seagull',c.actor);}});
+E(387,{steps:c=>[['t'],['hv',1]],run:(a,c)=>{const n=a.handCount(c.t);a.discardAll(c.t);a.draw(c.t,n);a.give(c.t,c.actor,c.hv[0]);}});
+E(388,{steps:c=>[['t',pid=>P(pid).slots.filter(s=>s.inst).length<P(c.actor).slots.filter(s=>s.inst).length]],run:(a,c)=>{a.discardAll(c.t);}});
+E(389,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.mark(c.actor,'autoPlace',1);else a.note('友情区>3张，无效果');}});
+E(390,{s:1,fvX2Hand:1,run:(a,c)=>{a.draw(c.actor,3);}});
+E(391,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.guessMyCard(c,c.h[0]);}});
+E(392,{s:1,run:(a,c)=>{a.flipAllCovered();}});
+E(393,{run:(a,c)=>{a.draw(c.actor,2);}});
+E(394,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.coverZoneR(c.t,3);}});
+E(395,{steps:c=>[['t'],['t2',pid=>pid!==c.t&&pid!==c.actor]],run:(a,c)=>{a.stealR(c.t2||c.actor,c.t||c.actor,3);a.giveRandom(c.t||c.actor,c.actor);}});
+E(396,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).includes('林原兽类'));if(ts.length)ts.forEach(p=>a.discardR(p.id,2));else a.note('本轮无人打出林原兽族牌');}});
+E(397,{s:1,run:(a,c)=>{a.mark(c.actor,'extraPlayRound',1);}});
+E(398,{steps:c=>[['guessTotal']],run:(a,c)=>{a.guessTotalResolve(c);}});
+E(399,{steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t||c.actor,2);if(a.hasCovered(c.t||c.actor))a.stealR(c.t||c.actor,c.actor,1);}});
+E(400,{steps:c=>[['t']],run:(a,c)=>{a.swapHands(c.actor,c.t);a.skip(c.actor,1);}});
+
+// ===== 馒头牌 401-405 =====
+E(401,{run:(a,c)=>{a.draw(c.actor,2);}});
+E(402,{steps:c=>[['t']],run:(a,c)=>{a.zoneDiscardR(c.t);}});
+E(403,{steps:c=>[['h',1]],run:(a,c)=>{a.coverChosenToZone(c.actor,c.h[0]);}});
+E(404,{run:()=>{}});
+E(405,{steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t,1);}});
+
+// ===== 事件牌 406-428 =====
+E(406,{evt:1,run:(a,c)=>{a.xmas(c.actor);}});
+E(407,{evt:1,run:(a,c)=>{a.moonlight(c.actor);}});
+E(408,{evt:1,run:(a,c)=>{a.harvest(c.actor);}});
+E(409,{evt:1,run:(a,c)=>{a.xmas(c.actor);}});
+E(410,{evt:1,run:(a,c)=>{a.partyFeast(c.actor);}});
+E(411,{evt:1,run:(a,c)=>{a.moonlight(c.actor);}});
+E(412,{evt:1,run:(a,c)=>{a.harvest(c.actor);}});
+E(413,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.partner(c.actor,c.t||c.actor);}});
+E(414,{evt:1,run:(a,c)=>{a.improvSeasoning(c.actor);}});
+E(415,{evt:1,run:(a,c)=>{a.bunShare(c.actor);}});
+E(416,{evt:1,run:(a,c)=>{a.bunFeast(c.actor);}});
+E(417,{evt:1,run:(a,c)=>{a.extra(c.actor,1);a.protect(c.actor,'shiny',1);a.note('本回合可额外打出1张角色牌');}});
+E(418,{evt:1,steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.ultrasound(c,c.t,c.hv[0]);}});
+E(419,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.huntGame(c.actor,c.t||c.actor);}});
+E(420,{evt:1,run:(a,c)=>{a.luckyBlast(c.actor);}});
+E(421,{evt:1,steps:c=>[['h',1]],run:(a,c)=>{a.snowImpact(c.actor,c.h);}});
+E(422,{evt:1,run:(a,c)=>{a.skyHunt(c.actor);}});
+E(423,{evt:1,run:(a,c)=>{a.lightDark(c.actor);}});
+E(424,{evt:1,run:(a,c)=>{a.californiaBeach(c.actor);}});
+E(425,{evt:1,steps:c=>[['h',1],['t']],run:(a,c)=>{a.finiteSong(c.actor,c.h[0],c.t);}});
+E(426,{evt:1,run:(a,c)=>{a.deduction(c.actor);}});
+E(427,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.flowerExpedition(c,c.t||c.actor);}});
+E(428,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,6);a.mark(c.t,'lockHand5',2);}});
+
+__w.EFFECTS = T;
+__w.EFFECTS.hasSolo = hasSolo;
+})();
+ return __w.EFFECTS; })();
+const CM = {}; CARDS.forEach(c => CM[c.id] = c);
+const cid = inst => Number(String(inst).split('#')[0]);
+const cardOf = inst => CM[cid(inst)] || { id:0, name:'？', type:'角色牌', race:'', attr:'', fv:0, lv:0, bonds:[], effect:'', counter:'' };
+// 反击条件匹配：带属性/种族限制的反击牌只能反制符合条件的角色效果（如埃及胡狼只能无效沙漠属性角色效果）
+function counterFits(cc, tc) {
+  if (!cc || !cc.counter) return false;
+  const txt = String(cc.counter).replace(/\s/g,'');
+  const tAttr = (tc && tc.attr) || '', tRace = (tc && tc.race) || '';
+  // 属性·种族组合，如「雪域·兽族效果发动时」
+  const m2 = txt.match(/(雪域|沙漠|林原|海洋)·(兽族|鸟族)效果发动/);
+  if (m2) return tAttr === m2[1] && tRace.startsWith(m2[2].charAt(0));
+  // 属性限制，如「沙漠属性角色效果发动时」「林原角色牌效果发动时」「雪域或林原角色牌效果发动时」「任意玩家发动雪域属性角色牌效果时」
+  const m1 = txt.match(/(雪域|沙漠|林原|海洋)((?:或|、)(?:雪域|沙漠|林原|海洋))*(?:属性)?角色牌?效果(?:发动)?时?/);
+  if (m1) return m1[0].split(/(?:属性)?角色牌?效果(?:发动)?时?/)[0].split(/或|、/).indexOf(tAttr) > -1;
+  // 种族限制，如「兽族角色牌效果发动时」「鸟族角色牌效果发动时」
+  const m3 = txt.match(/(兽族|鸟族)角色牌?效果发动/);
+  if (m3) return tRace.startsWith(m3[1].charAt(0));
+  return true;
+}
+const AVATARS = ['🐱','🦊','🐺','🦉','🐬','🦌','🐻','🦜'];
+const AI_NAMES = ['薮猫小翼','浣熊阿棕','企鹅波波','狐狸雪雪','河狸小木','水獭泡泡'];
+
+// ============ 状态 ============
+let S = null;          // 游戏状态
+let myId = 'me';
+let selInst = null;    // 选中的手牌
+let mode = null;       // place | bond-hand | discard-limit | fx-target
+let bondSel = [];      // 羁绊多选
+let timer505 = null;   // 结算倒计时
+let aiTimers = [];
+
+// ============ 联机层（房主权威：房主浏览器跑全部游戏逻辑，服务器只转发） ============
+const NET = { ws:null, room:null, pid:null, token:null, hostPid:null, members:[], on:false, started:false, quiet:false };
+let HOST = false;          // 本机是否房主
+let rzLeft = 0;            // 结算窗口剩余秒（房主维护，随快照广播）
+let fxAskTo = null;        // 房主：等待远程玩家回答的效果步骤 {pid, st, payload, deckTop, timer}
+let fxAskStep = null;      // 客户端：当前待答的效果步骤
+let pubT = null;           // publishState 防抖
+let rzLocal = null;        // 客户端本地倒计时刷UI
+function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function srvUrl() { const el = document.getElementById('srvUrl'); return (el && el.value.trim()) || localStorage.getItem('kp_srv') || ''; }
+function netConnect(done, fail) {
+  const url = srvUrl();
+  if (!/^wss?:\/\//.test(url)) { fail('请先填写服务器地址（wss://…，本地测试 ws://localhost:9090）'); return; }
+  let ws;
+  try { ws = new WebSocket(url); } catch(e) { fail('无法创建连接：'+e.message); return; }
+  NET.ws = ws;
+  ws.onopen = () => done();
+  ws.onerror = () => { if (ws.readyState !== 1) fail('连接服务器失败，请检查地址'); };
+  ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch(_) { return; } try { netMsg(m); } catch(err) { console.error('netMsg', err); } };
+  ws.onclose = () => { if (NET.on && !NET.quiet && NET.started) toast('⚠ 与服务器断开连接','err'); };
+}
+function netSend(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
+function sendAct(a, v) { netSend({ t:'act', a, v: v||{} }); }
+function connTip(msg) { const el = document.getElementById('connTip'); if (el) el.textContent = msg||''; }
+function getNick() { const n = document.getElementById('nick').value.trim() || ('朋友'+Math.floor(Math.random()*90+10)); localStorage.setItem('kp_nick', n); return n; }
+function renderMemberList() {
+  const ml = document.getElementById('memberList');
+  if (!ml) return;
+  ml.innerHTML = NET.members.map(x => '<div><span>'+(x.pid===NET.pid?'👤':'👥')+' '+esc(x.name)+'</span><span>'+(x.pid===NET.hostPid?'<span class="ml-host">房主</span>':'')+(x.offline?'<span class="ml-off"> · 掉线</span>':'')+'</span></div>').join('');
+  const sb = document.getElementById('startBtn');
+  const isHost = NET.pid === NET.hostPid;
+  sb.style.display = isHost ? 'block' : 'none';
+  const online = NET.members.filter(x=>!x.offline).length;
+  sb.disabled = online < 2;
+  sb.textContent = '开始游戏！（当前 '+online+'/8 人 · 需≥2人）';
+}
+function netMsg(m) {
+  if (m.t === 'err') { connTip(m.msg); toast(m.msg, 'err'); return; }
+if (m.t === 'joined') {
+NET.on = true; NET.room = m.room; NET.pid = m.pid; NET.token = m.token; NET.hostPid = m.host; NET.members = m.members || []; NET.started = !!m.started;
+HOST = (m.pid === m.host); // 以服务器判定为准，防止残留的幽灵房主标志
+    localStorage.setItem('kp_srv', srvUrl());
+    localStorage.setItem('kp_tok_'+m.room, m.token);
+    document.getElementById('lobbyBox').style.display = 'block';
+    document.getElementById('roomShow').textContent = m.room;
+    renderMemberList();
+    if (m.started) { // 断线重连
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('game').style.display = 'block';
+      toast('已重新连接对局','gold');
+    }
+    return;
+  }
+  if (m.t === 'lobby') {
+    NET.members = m.members; NET.hostPid = m.host;
+    renderMemberList();
+    if (HOST && S) { syncAiFlags(); publishState(); }
+    return;
+  }
+  if (m.t === 'starting') {
+    if (HOST) return;
+    NET.started = true;
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('game').style.display = 'block';
+    setHint('房主已开始游戏，等待发牌…','gold');
+    return;
+  }
+  if (m.t === 'act') { if (HOST) applyAct(m.from, m.a, m.v); return; }
+  if (m.t === 'g') { if (!HOST && m.d && m.d.k === 'evt') clientEvt(m.d); return; }
+  if (m.t === 'gto') {
+    if (HOST || m.to !== NET.pid) return;
+    const d = m.d || {};
+    if (d.k === 'snap') applySnap(d.s);
+    else if (d.k === 'fxAsk') clientFxAsk(d.step);
+    else if (d.k === 'reveal') clientReveal(d);
+    return;
+  }
+  if (m.t === 'bye') { if (HOST) onMemberLeft(m.pid); else toast('有玩家掉线，AI 已接管','err'); return; }
+  if (m.t === 'hostlost') { toast('⚠ 房主断线，对局无法继续','err'); showHostLost(); return; }
+}
+
+const ATTRS = ['林原','沙漠','雪域','海洋'];
+const RACES = ['兽类','鸟类','水生类'];
+const RACE_TAG = { '兽类':'amber', '鸟类':'sky', '水生类':'cyan' };
+function isSoloCard(card) { if (card.type==='加帕里馒头') return true; const d = EFFECTS[card.id]; return !!(d && d.s) || EFFECTS.hasSolo(card.effect); }
+function shuffle(a) { a = a.slice(); for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function P(id) { return S.players.find(p => p.id === id); }
+function cur() { return P(S.order[S.turnIdx]); }
+function zoneFv(p) { let v=0; p.slots.forEach(s=>{ if(s.inst && s.faceUp) v += (s.fvOverride!=null?s.fvOverride:(cardOf(s.inst).fv||0)) + (s.bonus||0); }); return v + S.tableBuns.reduce((s,i)=>s+(cardOf(i).fv||0),0); }
+function usable(p) { return p.slots.filter(s=>!s.locked&&!s.inst).length; }
+function log(text, hl) {
+  if (NET.on && !HOST) return; // 客户端日志由快照同步
+  if (S) { S.logArr = S.logArr || []; S.logArr.push({ text, hl: !!hl }); if (S.logArr.length > 40) S.logArr.shift(); }
+  const lb = document.getElementById('logbox'); const d = document.createElement('div'); if (hl) d.className='hl'; d.textContent = text; lb.appendChild(d); while (lb.children.length>9) lb.removeChild(lb.firstChild);
+}
+function toast(text, kind) {
+  if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'toast', text:String(text), g:kind||'' } });
+  const t = document.createElement('div'); t.className='toast'+(kind?' '+kind:''); t.textContent=text; const box=document.getElementById('toasts'); box.appendChild(t); setTimeout(()=>t.remove(), 2600);
+}
+
+// ============ 开局（联机：从房间成员构建玩家） ============
+function startGameMp(members) {
+  myId = NET.pid;
+  NET.started = true;
+  const players = members.map(x => ({ id: x.pid, name: x.name, ai: !!x.offline, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} }));
+  // 牌库
+  const deck = []; let seq = 0;
+  CARDS.forEach(c => {
+    if (c.type === '角色牌') { deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++)); }
+    else if (c.type === '事件牌') deck.push(c.id+'#'+(seq++));
+    else for (let k=0;k<6;k++) deck.push(c.id+'#'+(seq++));
+  });
+  S = { players, order: shuffle(players.map(p=>p.id)), turnIdx: 0, phase: 'draw',
+    deck: shuffle(deck), discard: [], actionUsed: false, eventUsed: false,
+    resolve: null, threshold: players.length >= 5 ? 30 : 25, turns: 0, winner: null,
+    roundNo: 0, gflags: {}, tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: [] };
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+  showShuffle(() => {
+    // 发牌
+    let dealAnims = [];
+    for (let r=0;r<5;r++) for (const pid of S.order) { const inst = S.deck.pop(); P(pid).hand.push(inst); dealAnims.push({to:pid, card:inst}); }
+    playDealAnims(dealAnims, () => {
+      log('🎲 洗牌完成，公共牌堆 '+S.deck.length+' 张', true);
+      log('每人5张起始手牌 · 胜利门槛 '+S.threshold+' 友情值');
+      render();
+      toast('游戏开始！'+cur().name+' 先手', 'gold');
+      publishState();
+      nextTurnBegin();
+    });
+  });
+}
+function mkSlots() { return Array.from({length:7},()=>({inst:null,faceUp:true,locked:false})); }
+
+// ============ 回合流程 ============
+function nextTurnBegin() {
+  clearTimers();
+  selInst = null; mode = null; bondSel = [];
+  const c = cur();
+  // 出局（skip）处理
+  if (c.skip > 0) {
+    c.skip--;
+    log('⏭ '+c.name+' 出局中，跳过本回合');
+    toast(c.name+' 出局中，跳过回合');
+    S.turns++;
+    let idx = S.turnIdx;
+    for (let k=0;k<S.order.length;k++) { idx = (idx+1)%S.order.length; if (P(S.order[idx]).alive) break; }
+    S.turnIdx = idx;
+    S.phase = 'draw'; S.actionUsed = false; S.eventUsed = false;
+    const alive = S.order.filter(id=>P(id).alive);
+    if (alive.length <= 1) { doWin(P(alive[0])); return; }
+    nextTurnBegin();
+    return;
+  }
+  // 月夜访客桌面牌
+  if (S.tableStack.length) {
+    const inst = S.tableStack.splice(Math.floor(Math.random()*S.tableStack.length),1)[0];
+    const cd = cardOf(inst);
+    toast('🌙 月夜访客：'+c.name+' 翻开了「'+cd.name+'」！','gold');
+    log('🌙 桌面牌发动：'+c.name+' 抽1张，其他玩家各弃1张');
+    const me = P(myId);
+    S.players.filter(p=>p.alive&&p.id!==c.id).forEach(p=>{ for(let i=0;i<1&&p.hand.length;i++) S.discard.push(p.hand.splice(Math.floor(Math.random()*p.hand.length),1)[0]); });
+    const gi = S.deck.pop(); if (gi) c.hand.push(gi);
+    S.discard.push(inst);
+  }
+  render();
+  // 回合开始效果：毒/自动放置/额外出牌/桌面馒头提示
+  if (c.poison) {
+    for (let i=0;i<c.poison.per && c.hand.length;i++) { const inst=c.hand.splice(Math.floor(Math.random()*c.hand.length),1)[0]; S.discard.push(inst); }
+    log('☠ 白色霞水母毒素：'+c.name+' 弃了 '+c.poison.per+' 张');
+    c.poison.turns--; if (c.poison.turns<=0) c.poison = null;
+  }
+  if (c.flags.mark.autoPlace) {
+    const roles = c.hand.filter(h=>cardOf(h).type==='角色牌');
+    if (roles.length && usable(c)>0) { const best = roles.sort((x,y)=>cardOf(y).fv-cardOf(x).fv)[0]; place(c.id, best, freeSlotIdx(c), true); log('🐺 非洲金狼：'+c.name+' 自动放置了「'+cardOf(best).name+'」'); }
+  }
+  if (c.extraPlayNext) { c.extraPlay += c.extraPlayNext; c.extraPlayNext = 0; }
+  if (c.flags.mark.extraPlayRound) c.extraPlay += 1;
+  if (c.ai) { aiTimers.push(setTimeout(()=>aiTurn(c), 900)); }
+  else { toast('轮到你了，请抽牌', 'gold'); if (S.tableBuns.length) toast('桌面有馒头可领取（见按钮）'); }
+}
+function doDraw(pid) {
+  const p = P(pid);
+  // 收获之秋：跳过抽牌，改用牌堆顶盖放
+  if (p.harvest) {
+    const gi = S.deck.pop(); if (gi) p.harvest.covered.push(gi);
+    p.harvest.turns--;
+    log('🍂 收获之秋：'+p.name+' 跳过抽牌，牌堆顶1张盖放');
+    if (p.harvest.turns <= 0) {
+      p.hand.push(...p.harvest.stack, ...p.harvest.covered);
+      log('🍂 '+p.name+' 收回了全部盖放的手牌');
+      p.harvest = null;
+    }
+    S.phase = 'action'; S.actionUsed = false; S.eventUsed = false;
+    render();
+    if (p.ai) aiTimers.push(setTimeout(()=>aiAction(p), 800));
+    return;
+  }
+  const inst = S.deck.pop();
+  if (inst) { p.hand.push(inst); flyCard(pid===myId?'me':'ai', ()=>{}); log(p.name+' 抽了1张牌'); }
+  S.phase = 'action'; S.actionUsed = false; S.eventUsed = false;
+  render();
+  if (p.ai) aiTimers.push(setTimeout(()=>aiAction(p), 800));
+}
+// 打出角色/事件牌
+function playCard(pid, instId) {
+  const p = P(pid); const card = cardOf(instId);
+  rmHand(p, instId);
+  p.track.attrs.push((card.attr||'')+(card.race||''));
+  p.track.instant = true;
+  S.counterDrawUsed = false;
+  S.resolve = { kind: card.type==='事件牌'?'event':'instant', card: instId, initiator: pid, chain: [], bunUsed: 0, claimed: false };
+  // 惩罚标记（327/328）
+  S.players.forEach(pp => {
+    if (!pp.alive) return;
+    const mk = pp.flags.mark;
+    if (mk['punish林原兽类'] && card.attr==='林原' && card.race==='兽类') { punishDiscard(pp); }
+    if (mk['punish沙漠兽类'] && card.attr==='沙漠' && card.race==='兽类') { punishDiscard(pp); }
+  });
+  showPlayFX(card, p.name, () => {
+    log('⚡ '+p.name+' 打出「'+card.name+'」', true);
+    render();
+    resolveWindow();
+  });
+}
+function punishDiscard(p) { if (p.hand.length) { const inst=p.hand.splice(Math.floor(Math.random()*p.hand.length),1)[0]; S.discard.push(inst); toast('☠ '+p.name+' 触发惩罚标记，弃1张','err'); log('☠ '+p.name+' 弃1张（惩罚标记）'); } }
+// 打出馒头
+function playBun(pid, instId) {
+  const p = P(pid); const card = cardOf(instId);
+  rmHand(p, instId);
+  if (S.resolve && !S.resolve.claimed) {
+    // 馒头截断连锁：立即结算，不能再发动任何卡牌
+    S.resolve.chain.push({card:instId, by:pid, kind:'bun'}); S.resolve.bunUsed++;
+    log('🍞 '+p.name+' 吃下馒头「'+card.name+'」切断连锁！不能再发动任何卡牌', true);
+    toast('🍞 馒头截断连锁，立即结算！','gold');
+    clearTimer(); mode = null; bondSel = []; selInst = null; setHint('');
+    showPlayFX(card, p.name, () => { render(); if (S.resolve) startEffect(); });
+    return;
+  }
+  S.resolve = { kind:'bun', card: instId, initiator: pid, chain: [], bunUsed: 1, claimed: false }; log('🍞 '+p.name+' 打出馒头「'+card.name+'」');
+  showPlayFX(card, p.name, () => { render(); if (!S.resolve) return; resolveWindow(); });
+}
+// 放置到友情区
+function place(pid, instId, slotIdx, faceUp) {
+  const p = P(pid); const card = cardOf(instId);
+  rmHand(p, instId);
+  const s = p.slots[slotIdx];
+  s.inst = instId; s.faceUp = faceUp !== false;
+  // 飞鱼：放置时友情值=手牌数×2
+  if (card.id === 390) s.fvOverride = p.hand.length * 2;
+  log('📥 '+p.name+' 将「'+card.name+'」'+(s.faceUp?'放置':'盖放')+'在友情区');
+  // 人面鱼 / 剑齿虎 全局标记
+  const gf = S.gflags;
+  if (gf.placeDraw && gf.placeDraw.rounds > 0 && gf.placeDraw.pid !== pid) { const gi=S.deck.pop(); if(gi){p.hand.push(gi); log('🐟 人面鱼：'+p.name+' 抽1张');} }
+  if (gf.placeCover && gf.placeCover.rounds > 0) {
+    const occ = p.slots.filter(x=>x.inst&&x.faceUp);
+    if (occ.length) { const t=occ[Math.floor(Math.random()*occ.length)]; t.faceUp=false; t.coverTurns=2; log('🐯 剑齿虎：'+p.name+' 盖放1张友情区牌'); }
+  }
+  render();
+}
+function rmHand(p, instId) { const i = p.hand.indexOf(instId); if (i>-1) p.hand.splice(i,1); }
+
+// ============ 羁绊判定（同一羁绊≥2张） ============
+function sharedBond(playedCard, handIds) {
+  if (!handIds || handIds.length < 1) return null;
+  for (const b of (playedCard.bonds||[])) {
+    if (handIds.every(h => (cardOf(h).bonds||[]).includes(b))) return b;
+  }
+  return null;
+}
+function isBondCand(inst) {
+  if (!S.resolve || S.resolve.initiator === myId) return false;
+  const played = cardOf(S.resolve.card);
+  if (!played || played.type !== '角色牌' || S.resolve.claimed) return false;
+  const bondSet = new Set(played.bonds||[]);
+  return (cardOf(inst).bonds||[]).some(b=>bondSet.has(b));
+}
+// AI 找最优羁绊组合（打出牌+若干手牌同属一个羁绊，总数≥2）
+function bestBondCombo(ai, played) {
+  let best = null;
+  for (const b of (played.bonds||[])) {
+    const cands = ai.hand.filter(h => (cardOf(h).bonds||[]).includes(b));
+    for (let k = cands.length; k >= 1; k--) {
+      const combo = cands.slice(0, k);
+      if (usable(ai) < combo.length + 1) continue;
+      const fv = combo.reduce((s,h)=>s+(cardOf(h).fv||0),0) + (played.fv||0);
+      if (!best || fv > best.fv) best = { bond: b, handIds: combo, fv };
+      break; // 该羁绊下最多张
+    }
+  }
+  return best;
+}
+
+// ============ 结算窗口（联机统一：人类出牌→AI先反应；其余人类玩家有60s反应窗口） ============
+function resolveWindow() {
+  const r = S.resolve; if (!r) return;
+  const initiator = P(r.initiator);
+  if (!initiator.ai) aiReactToHuman();          // 人类出牌 → AI 玩家立即反应（反击/羁绊）
+  if (!S.resolve) { publishState(); return; }
+  if (S.resolve.claimed) { render(); publishState(); return; }  // 已被羁绊收集，doClaim 里继续结算
+  const waiting = S.players.filter(p => p.alive && !p.ai && p.id !== r.initiator);
+  if (S.resolve.chain.some(ch=>ch.kind==='counter')) {
+    // 已有反击 → 开启连锁反应窗口（可反击反击 / 馒头截断 / 结算）
+    startResolveCountdown(30); render();
+  } else if (!waiting.length) { startEffect(); } // 没有其他人类玩家 → 直接结算
+  else { startResolveCountdown(60); render(); }
+  publishState();
+}
+function aiReactToHuman() {
+  const r = S.resolve; if (!r) return;
+  if (r.kind === 'event' || r.kind === 'bun') return;
+  const card = cardOf(r.card);
+  const def = EFFECTS[card.id];
+  for (const ai of S.players.filter(p=>p.ai && p.alive)) {
+    if (!S.resolve || S.resolve.claimed) break;
+    // AI 羁绊收集（优先于反击）
+    if (card.type === '角色牌' && !def2noCnt(def)) {
+      const combo = bestBondCombo(ai, card);
+      if (combo && Math.random() < 0.8) { doClaim(ai.id, combo.handIds); continue; }
+    }
+    // AI 反击（25%，且有反击牌）
+    if (Math.random() < 0.25 && ai.counters < 2 && !def2noCnt(def)) {
+      const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), card));
+      if (cIdx > -1) {
+const cInst = ai.hand[cIdx]; rmHand(ai, cInst); ai.counters++;
+r.chain.push({card:cInst, by:ai.id, kind:'counter'});
+toast(ai.name+' 发动反击「'+cardOf(cInst).name+'」！', 'err');
+log('🛡 '+ai.name+' 反击「'+cardOf(cInst).name+'」', true);
+showCounterFX(cardOf(cInst), ai.name);
+runCounterText(ai.id, cInst, r.initiator);
+      }
+    }
+  }
+  render();
+  if (S.resolve && !S.resolve.claimed && S.resolve.chain.some(ch=>ch.kind==='counter')) aiReactToCounter();
+}
+function def2noCnt(def){ return !!(def && def.noCnt); }
+// AI 连锁反击：对连锁末尾的反击牌再反击（可多级）
+function aiReactToCounter() {
+  const r = S.resolve; if (!r || r.claimed) return;
+  if (r.kind==='event' || r.kind==='bun') return;
+  let guard = 0, reacted = true;
+  while (reacted && guard++ < 6) {
+    reacted = false;
+    const lastCnt = (r.chain.length && r.chain[r.chain.length-1].kind==='counter') ? r.chain[r.chain.length-1] : null;
+    if (!lastCnt) break;
+    const lastCard = cardOf(lastCnt.card);
+    for (const ai of S.players.filter(p=>p.ai && p.alive && p.id!==lastCnt.by)) {
+      if (!S.resolve || S.resolve.claimed) break;
+      if (Math.random() < 0.2 && ai.counters < 2) {
+        const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), lastCard));
+        if (cIdx > -1) {
+          const cInst = ai.hand[cIdx]; rmHand(ai, cInst); ai.counters++;
+          r.chain.push({card:cInst, by:ai.id, kind:'counter'});
+          toast(ai.name+' 连锁反击「'+cardOf(cInst).name+'」！', 'err');
+          log('🛡 '+ai.name+' 连锁反击「'+cardOf(cInst).name+'」', true);
+          showCounterFX(cardOf(cInst), ai.name);
+          runCounterText(ai.id, cInst, lastCnt.by);
+          reacted = true;
+        }
+      }
+    }
+  }
+}
+// 反击文本轻量执行（数字版适配）
+function runCounterText(pid, cInst, targetId) {
+  const card = cardOf(cInst); const txt = card.counter || '';
+  const me = P(pid); const t = P(targetId);
+  if (/自己抽(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n;i++){const g=S.deck.pop(); if(g) me.hand.push(g);} log('🛡 反击结算：'+me.name+' 抽了'+n+'张'); }
+  else if (/(?:对方|丢弃对方|对方丢弃) (\d+)张|对方丢弃(\d+)张/.test(txt)) { const n=+(RegExp.$1||RegExp.$2); for(let i=0;i<n&&t.hand.length;i++) S.discard.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); log('🛡 反击结算：'+t.name+' 被弃置'+n+'张'); }
+  else if (/偷取对方(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n&&t.hand.length;i++) me.hand.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); log('🛡 反击结算：'+me.name+' 偷取'+n+'张'); }
+  else log('🛡 反击文本：'+txt);
+  render();
+}
+function startResolveCountdown(sec) {
+  clearTimer();
+  rzLeft = sec;
+  updateRzTimer(rzLeft); publishState();
+  timer505 = setInterval(() => {
+    rzLeft--; updateRzTimer(rzLeft); publishState();
+    if (rzLeft <= 0) { clearTimer(); if (S.resolve) { startEffect(); } }
+  }, 1000);
+}
+function clearTimer() { if (timer505) { clearInterval(timer505); timer505 = null; } rzLeft = 0; }
+function clearTimers() { clearTimer(); aiTimers.forEach(clearTimeout); aiTimers = []; }
+function updateRzTimer(left) { const el = document.getElementById('rzTimer'); if (el) el.textContent = left > 0 ? left+'s' : ''; }
+
+function doClaim(pid, handIds) {
+  const r = S.resolve; if (!r || r.claimed) return;
+  const p = P(pid); const played = cardOf(r.card);
+  const bond = sharedBond(played, handIds);
+  if (!bond) { toast('所选手牌与打出的牌没有共同羁绊','err'); return; }
+  const all = [r.card, ...handIds];
+  for (const h of handIds) rmHand(p, h);
+  let si = 0, gained = 0, maxLv = 0;
+  for (const inst of all) {
+    while (p.slots[si].inst || p.slots[si].locked) si++;
+    if (si >= 7) break;
+    p.slots[si].inst = inst; p.slots[si].faceUp = true; gained += cardOf(inst).fv||0;
+    maxLv = Math.max(maxLv, cardOf(inst).lv||0); si++;
+  }
+  r.claimed = true;
+  // 规则8.2：羁绊达成按组合中最大幸运值抽牌
+  for (let i=0;i<maxLv;i++){ const g=S.deck.pop(); if(g) p.hand.push(g); }
+  showBondFX(all, p.name, () => {
+    log('✨ '+p.name+' 羁绊「'+bond+'」达成！友情值 +'+gained+'，抽'+maxLv+'张', true);
+    if (pid === myId) toast('羁绊「'+bond+'」达成！+', 'gold');
+    doSettle();
+  });
+}
+function doSettle() {
+  const r = S.resolve; if (!r) return;
+  clearTimer();
+  if (!r.claimed) {
+    // 连锁的反击牌后发先至 → 原效果无效
+    if (r.chain.length) {
+      for (let i = r.chain.length-1; i>=0; i--) log('⚡ 连锁（后发先至）：'+P(r.chain[i].by).name+' 的「'+cardOf(r.chain[i].card).name+'」');
+      if (r.chain.some(ch=>ch.kind==='counter')) log('⚠ 原效果被反击无效');
+    }
+    for (const ch of r.chain) S.discard.push(ch.card);
+    if (r.taken) { P(r.taken).hand.push(r.card); }
+    else if (r.table) { S.tableStack.push(r.card); }
+    else S.discard.push(r.card);
+  } else {
+    r.chain.forEach(ch => S.discard.push(ch.card));
+  }
+S.resolve = null;
+closeFxPanel(); mode = null; bondSel = []; setHint('');
+render();
+log('结算完成');
+const c = cur();
+if (S.phase === 'action' && c && !c.ai) render();
+// AI 打出牌结算完后，推进其回合（否则游戏会卡住）
+const c2 = cur();
+if (S.phase === 'action' && c2 && c2.ai && !S.winner) {
+const pid = c2.id;
+aiTimers.push(setTimeout(() => { if (S && S.phase==='action' && !S.resolve && !S.winner && cur().id===pid) endTurn(pid); }, 800));
+}
+}
+// 人类主动结算（联机：任何玩家可提前结束反应窗口）
+function humanSettle() { if (!S.resolve) return; if (!HOST && NET.on) { sendAct('settle'); return; } startEffect(); }
+
+// ============ 效果引擎 PFX ============
+let PFX = null;
+let fxMode = null;
+function startEffect() {
+  const r = S.resolve;
+  if (!r || r.claimed) { doSettle(); return; }
+  const card = cardOf(r.card);
+  const def = EFFECTS[card.id];
+  clearTimer();
+  if (r.chain.some(ch=>ch.kind==='counter')) { log('「'+card.name+'」效果被反击无效'); doSettle(); return; }
+  if (!def || !def.run) { log('「'+card.name+'」无自动效果，按卡面文字结算'); doSettle(); return; }
+  const ctx = { actor: r.initiator, played: r.card, h: [], hv: [], t: null, t2: null, coin: null, rps: null, ar: null, attr: null, picked: null, guess: null };
+  let steps = [];
+  try { steps = def.steps ? def.steps(ctx) : []; } catch(e) { steps = []; }
+  PFX = { def, ctx, steps, i: 0 };
+  fxStep();
+}
+function fxStep() {
+  if (!PFX) return;
+  render();
+  if (PFX.i >= PFX.steps.length) { finishEffect(); return; }
+  const st = PFX.steps[PFX.i];
+  const actor = P(PFX.ctx.actor);
+  if (actor.ai) { aiResolveStep(st); return; }
+  if (actor.id === myId) { humanPromptStep(st); return; }   // 房主自己操作
+  mpAskStep(st);                                            // 远程人类玩家 → 发询问，等待回答
+}
+function fxAdvance() { if (PFX) { PFX.i++; fxStep(); } }
+// --- 远程玩家效果步骤：发 fxAsk，限时45s，超时AI代答 ---
+function clearFxAskTimer() { if (fxAskTo && fxAskTo.timer) { clearTimeout(fxAskTo.timer); fxAskTo.timer = null; } }
+function mpAskStep(st) {
+  const ctx = PFX.ctx;
+  const card = cardOf(ctx.played);
+  const type = st[0], arg = st[1];
+  const payload = { type, cardId: card.id, n: (type==='hv') ? (arg||1) : (arg||0) };
+  fxAskTo = { pid: ctx.actor, st, payload: null, deckTop: null, timer: null };
+  if (type === 't' || type === 't2') { /* 客户端从快照里自己选玩家 */ }
+  else if (type === 'h') { /* 客户端自己的手牌可见 */ }
+  else if (type === 'hv') { const t = P(ctx.t); payload.tName = t ? t.name : ''; payload.cards = (t ? t.hand : []).map(x => cardOf(x).id); }
+  else if (type === 'deckpick') { const n = arg || 5; fxAskTo.deckTop = S.deck.slice(-n).reverse(); payload.cards = fxAskTo.deckTop.map(x => cardOf(x).id); }
+  else if (type === 'guessHand') { const t = P(ctx.t); payload.tName = t ? t.name : ''; payload.count = t ? t.hand.length : 0; }
+  fxAskTo.payload = payload;
+  netSend({ t:'gto', to: ctx.actor, d:{ k:'fxAsk', step: payload } });
+  render();
+  fxAskTo.timer = setTimeout(() => fxAskTimeout(), 45000);
+}
+function fxAskTimeout() {
+  if (!fxAskTo || !PFX) return;
+  const st = fxAskTo.st; const who = P(fxAskTo.pid);
+  clearFxAskTimer(); fxAskTo = null;
+  toast((who?who.name:'玩家')+' 操作超时，自动处理');
+  aiResolveStep(st);
+}
+function applyFxAnswer(v) {
+  if (!PFX || !fxAskTo) return;
+  const ctx = PFX.ctx;
+  const st = fxAskTo.st; const type = st[0];
+  const deckTop = fxAskTo.deckTop;
+  clearFxAskTimer(); fxAskTo = null;
+  v = v || {};
+  if (type === 't') ctx.t = v.t;
+  else if (type === 't2') ctx.t2 = v.t;
+  else if (type === 'h') ctx.h = normInsts(P(ctx.actor), v.ids);
+  else if (type === 'hv') { const t = P(ctx.t); ctx.hv = (v.idx||[]).map(i => t ? t.hand[i] : null).filter(Boolean); }
+  else if (type === 'coin') ctx.coin = !!v.v;
+  else if (type === 'rps') {
+    const opts = ['石头','剪刀','布'];
+    const aiPick = opts[Math.floor(Math.random()*3)];
+    const win = (v.v==='石头'&&aiPick==='剪刀')||(v.v==='剪刀'&&aiPick==='布')||(v.v==='布'&&aiPick==='石头');
+    ctx.rps = win;
+    toast((P(ctx.t)?P(ctx.t).name:'对方')+' 出了 '+aiPick+' → '+(win?'成功':'失败'));
+    log('✊ 猜拳：'+P(ctx.actor).name+' 出'+v.v+'，对方出'+aiPick+' → '+(win?'胜':'负'));
+  }
+  else if (type === 'ar') ctx.ar = { a: v.a, r: v.r };
+  else if (type === 'a') ctx.attr = v.a;
+  else if (type === 'deckpick') ctx.picked = (v.i != null && v.i >= 0 && deckTop) ? deckTop[v.i] : null;
+  else if (type === 'guessHand') { const t = P(ctx.t); ctx.guess = { inst: (t && v.idx != null && v.idx >= 0 && v.idx < t.hand.length) ? t.hand[v.idx] : null, a: v.a, r: v.r }; }
+  else if (type === 'guessTotal') ctx.guess = v.n;
+  fxAdvance();
+}
+function finishEffect() {
+  const { def, ctx } = PFX;
+  const api = makeAPI(ctx.actor, ctx);
+  try { def.run(api, ctx); } catch(e) { log('效果执行异常：'+e.message); console.error(e); }
+  PFX = null;
+  closeFxPanel(); mode = null; fxMode = null; bondSel = []; setHint('');
+  render();
+  doSettle();
+}
+// --- AI 自动解析步骤 ---
+function aiResolveStep(st) {
+  const ctx = PFX.ctx;
+  const type = st[0], arg = st[1];
+  const others = S.players.filter(p=>p.alive && p.id!==ctx.actor);
+  const pickFrom = (filter) => {
+    let cands = others.filter(p => !filter || filter(p.id));
+    if (!cands.length) cands = others;
+    if (!cands.length) cands = [P(ctx.actor)];
+    // AI 优先打人类，其次随机
+    const hum = cands.find(p=>!p.ai);
+    const pick = hum || cands[Math.floor(Math.random()*cands.length)];
+    return pick ? pick.id : ctx.actor;
+  };
+  if (type==='t') ctx.t = pickFrom(arg);
+  else if (type==='t2') { let ex = ctx.t; ctx.t2 = pickFrom(pid=>pid!==ex); }
+  else if (type==='h') { const n = Math.min(arg, P(ctx.actor).hand.length); ctx.h = P(ctx.actor).hand.slice(0,n); }
+  else if (type==='hv') { const t=P(ctx.t); const n=Math.min(arg||1, t?t.hand.length:0); ctx.hv = t ? t.hand.slice(0,n) : []; }
+  else if (type==='coin') ctx.coin = Math.random()<0.5;
+  else if (type==='rps') ctx.rps = Math.random()<0.5;
+  else if (type==='ar') ctx.ar = { a: ATTRS[Math.floor(Math.random()*4)], r: RACES[Math.floor(Math.random()*3)] };
+  else if (type==='a') ctx.attr = ATTRS[Math.floor(Math.random()*4)];
+  else if (type==='deckpick') { ctx.picked = S.deck[S.deck.length-1]; }
+  else if (type==='guessHand') ctx.guess = { inst: P(ctx.t)?P(ctx.t).hand[0]:null, a: ATTRS[Math.floor(Math.random()*4)], r: RACES[Math.floor(Math.random()*3)] };
+  else if (type==='guessTotal') ctx.guess = 3;
+  PFX.i++; setTimeout(fxStep, 300);
+}
+// --- 人类引导式步骤 UI ---
+function humanPromptStep(st) {
+  const ctx = PFX.ctx;
+  const type = st[0], arg = st[1];
+  const el = document.getElementById('fxpanel');
+  const card = cardOf(ctx.played);
+  let html = '<div class="t">⚡「'+card.name+'」效果</div><div class="d">'+(card.effect||'')+'</div>';
+  if (type==='t' || type==='t2') {
+    mode = 'fx-target'; fxMode = type==='t' ? 'pickT' : 'pickT2';
+    html += '<div class="t">选择目标玩家</div><div class="d">点击上方任意玩家的头像区域（含自己）</div>';
+    setHint('👉 点击一位玩家的头像作为目标','gold');
+  } else if (type==='h') {
+    mode = 'fx-hand'; bondSel = [];
+    html += '<div class="t">选择自己 '+arg+' 张手牌</div><button class="done" onclick="fxHandConfirm()">确认选择</button>';
+    setHint('👉 在手牌区点选 '+arg+' 张牌后确认','gold');
+  } else if (type==='hv') {
+    showHandModal(P(ctx.t), arg||1, true);
+    return;
+  } else if (type==='coin') {
+    html += '<div class="t">猜硬币</div><div class="row"><button onclick="fxCoin(1)">🪙 正面</button><button onclick="fxCoin(0)">反面</button></div>';
+  } else if (type==='rps') {
+    html += '<div class="t">猜拳</div><div class="row"><button onclick="fxRps(\'石头\')">✊ 石头</button><button onclick="fxRps(\'剪刀\')">✌ 剪刀</button><button onclick="fxRps(\'布\')">✋ 布</button></div>';
+  } else if (type==='ar') {
+    html += '<div class="t">猜牌堆顶角色牌</div><div class="t">属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxArA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="fxArR" style="display:none;margin-top:6px"><div class="t">种族</div><div class="row">'+RACES.map(r=>'<button onclick="fxArR(\''+r+'\')">'+r+'</button>').join('')+'</div></div>';
+    setHint('👉 猜牌堆最上方角色牌的属性和种族','gold');
+  } else if (type==='a') {
+    html += '<div class="t">选择1个属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxAttr(\''+a+'\')">'+a+'</button>').join('')+'</div>';
+  } else if (type==='deckpick') {
+    showDeckPickModal(arg||5);
+    return;
+  } else if (type==='guessHand') {
+    showGuessHandModal(P(ctx.t));
+    return;
+  } else if (type==='guessTotal') {
+    html += '<div class="t">猜全场手牌总数</div><div class="row">'+[0,1,2,3,4,5,6,7,8,9,10].map(n=>'<button onclick="fxTotal('+n+')">'+n+'</button>').join('')+'</div>';
+  }
+  el.innerHTML = html;
+  el.classList.add('show');
+  render();
+}
+function fxPickTarget(pid) {
+  if (fxAskStep) { sendAct('fx', fxAskStep.type==='t' ? {t:pid} : {t:pid}); endClientFx(); return; }
+  if (!PFX) return;
+  if (fxMode==='pickT') PFX.ctx.t = pid; else if (fxMode==='pickT2') PFX.ctx.t2 = pid;
+  mode = null; fxMode = null;
+  fxAdvance();
+}
+function fxHandConfirm() {
+  if (fxAskStep) {
+    if (bondSel.length !== (fxAskStep.n||1)) { toast('需要选择 '+(fxAskStep.n||1)+' 张','err'); return; }
+    sendAct('fx', { ids: bondSel.slice() }); endClientFx(); return;
+  }
+  if (!PFX) return;
+  const st = PFX.steps[PFX.i]; const need = st[1];
+  if (bondSel.length !== need) { toast('需要选择 '+need+' 张','err'); return; }
+  PFX.ctx.h = bondSel.slice();
+  mode = null; bondSel = [];
+  fxAdvance();
+}
+function fxCoin(v) { if (fxAskStep) { sendAct('fx',{v: v?1:0}); endClientFx(); return; } if(!PFX)return; PFX.ctx.coin = !!v; fxAdvance(); }
+function fxRps(v) {
+  if (fxAskStep) { sendAct('fx',{v}); endClientFx(); return; }
+  if(!PFX)return;
+  const t = P(PFX.ctx.t); const opts=['石头','剪刀','布'];
+  const aiPick = opts[Math.floor(Math.random()*3)];
+  const win = (v==='石头'&&aiPick==='剪刀')||(v==='剪刀'&&aiPick==='布')||(v==='布'&&aiPick==='石头');
+  PFX.ctx.rps = win;
+  toast('对方出了 '+aiPick+' → '+(win?'你赢了！':'你输了'));
+  log('✊ 猜拳：你出'+v+'，'+(t?t.name:'对方')+'出'+aiPick+' → '+(win?'胜':'负'));
+  fxAdvance();
+}
+let arA = null;
+function fxArA(a) { arA = a; document.getElementById('fxArR').style.display='block'; }
+function fxArR(r) { if (fxAskStep) { sendAct('fx',{a:arA, r}); arA=null; endClientFx(); return; } if(!PFX)return; PFX.ctx.ar = { a: arA, r }; arA=null; fxAdvance(); }
+function fxAttr(a) { if (fxAskStep) { sendAct('fx',{a}); endClientFx(); return; } if(!PFX)return; PFX.ctx.attr = a; fxAdvance(); }
+function fxTotal(n) { if (fxAskStep) { sendAct('fx',{n}); endClientFx(); return; } if(!PFX)return; PFX.ctx.guess = n; fxAdvance(); }
+function closeFxPanel() { const el=document.getElementById('fxpanel'); if(el) el.classList.remove('show'); if (mode==='fx-target'||mode==='fx-hand') { mode=null; fxMode=null; } }
+// 查看/选择目标手牌弹窗
+function closeBigModal() { document.getElementById('bigModal').classList.remove('show'); }
+function showHandModal(t, n, steal) {
+  const d = document.getElementById('bmContent');
+  let cards = t.hand.map((inst,i)=>{
+    const c = cardOf(inst);
+    return '<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxHvPick('+i+')"><img src="'+c.img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+' ❤'+c.fv+'</div></div>';
+  }).join('');
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">'+t.name+' 的手牌（'+t.hand.length+'张）'+(steal?' · 点选 '+n+' 张':'')+'</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:60vh;overflow-y:auto">'+cards+'</div><button class="dlg-close" onclick="closeHvModal()">关闭</button></div>';
+  d.classList.add('show');
+  window._hvNeed = n;
+}
+function fxHvPick(i) {
+  if (fxAskStep) {
+    if (!window._hvSel) window._hvSel = [];
+    if (!window._hvSel.includes(i)) window._hvSel.push(i);
+    if (window._hvSel.length >= (window._hvNeed||1)) { sendAct('fx', { idx: window._hvSel.slice() }); window._hvSel = null; endClientFx(); }
+    return;
+  }
+  if (!PFX) { closeBigModal(); return; }
+  if (!PFX.ctx.hv.includes(P(PFX.ctx.t).hand[i])) PFX.ctx.hv.push(P(PFX.ctx.t).hand[i]);
+  if (PFX.ctx.hv.length >= (window._hvNeed||1)) { closeBigModal(); fxAdvance(); }
+}
+function closeHvModal() {
+  if (fxAskStep) { sendAct('fx', { idx: [] }); endClientFx(); return; }
+  closeBigModal(); if (PFX) fxAdvance();
+}
+function showDeckPickModal(n) {
+  const top = S.deck.slice(-n).reverse();
+  const d = document.getElementById('bmContent');
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">牌堆顶 '+n+' 张 · 点选1张加入手牌</div><div style="display:flex;flex-wrap:wrap;justify-content:center">'+top.map((inst,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxDeckPick('+i+')"><img src="'+cardOf(inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+cardOf(inst).name+'</div></div>').join('')+'</div><button class="dlg-close" onclick="fxDeckPick(-1)">不选，直接结算</button></div>';
+  d.classList.add('show');
+  window._deckTop = top;
+}
+function fxDeckPick(i) {
+  if (fxAskStep) { sendAct('fx', { i: i }); endClientFx(); return; }
+  if (PFX) { PFX.ctx.picked = i>=0 ? window._deckTop[i] : null; }
+  closeBigModal();
+  if (PFX) fxAdvance();
+}
+function showGuessHandModal(t) {
+  const d = document.getElementById('bmContent');
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:16px;font-weight:900;margin-bottom:10px">猜 '+t.name+' 的1张手牌：先点1张，再猜属性·种族</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:40vh;overflow-y:auto">'+t.hand.map((inst,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxGhPick('+i+')"><img src="'+cardOf(inst).img+'" style="width:80px;height:112px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"></div>').join('')+'</div><div id="ghBtns" style="display:none"><div style="font-size:13px;margin:8px">属性</div><div class="row" style="display:flex;gap:6px">'+ATTRS.map(a=>'<button onclick="fxGhA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="ghR" style="display:none;margin-top:6px"><div style="font-size:13px;margin:8px">种族</div><div style="display:flex;gap:6px">'+RACES.map(r=>'<button onclick="fxGhR(\''+r+'\')">'+r+'</button>').join('')+'</div></div></div><button class="dlg-close" onclick="closeHvModal()">放弃</button></div>';
+  d.classList.add('show');
+}
+let ghA=null;
+function fxGhPick(i) {
+  if (fxAskStep) { window._ghIdx = i; document.getElementById('ghBtns').style.display='block'; return; }
+  if(!PFX)return; PFX.ctx.guess={inst:P(PFX.ctx.t).hand[i]}; document.getElementById('ghBtns').style.display='block';
+}
+function fxGhA(a){ ghA=a; document.getElementById('ghR').style.display='block'; }
+function fxGhR(r) {
+  if (fxAskStep) { sendAct('fx',{idx: window._ghIdx!=null?window._ghIdx:-1, a:ghA, r}); ghA=null; window._ghIdx=null; endClientFx(); return; }
+  if(!PFX)return; PFX.ctx.guess.a=ghA; PFX.ctx.guess.r=r; ghA=null; closeBigModal(); fxAdvance();
+}
+// ============ 客户端：效果询问 UI（由房主 fxAsk 消息驱动） ============
+function endClientFx() {
+  fxAskStep = null;
+  closeFxPanel(); closeBigModal();
+  mode = null; fxMode = null; bondSel = []; setHint('');
+  window._hvSel = null;
+  render();
+}
+function clientFxAsk(step) {
+  fxAskStep = step;
+  const card = CM[step.cardId] || cardOf(0);
+  const el = document.getElementById('fxpanel');
+  let html = '<div class="t">⚡「'+card.name+'」效果</div><div class="d">'+(card.effect||'')+'</div>';
+  if (step.type === 't' || step.type === 't2') {
+    mode = 'fx-target'; fxMode = step.type==='t' ? 'pickT' : 'pickT2';
+    html += '<div class="t">选择目标玩家</div><div class="d">点击上方任意玩家的头像区域（含自己）</div>';
+    setHint('👉 点击一位玩家的头像作为目标','gold');
+  } else if (step.type === 'h') {
+    mode = 'fx-hand'; bondSel = [];
+    html += '<div class="t">选择自己 '+step.n+' 张手牌</div><button class="done" onclick="fxHandConfirm()">确认选择</button>';
+    setHint('👉 在手牌区点选 '+step.n+' 张牌后确认','gold');
+  } else if (step.type === 'coin') {
+    html += '<div class="t">猜硬币</div><div class="row"><button onclick="fxCoin(1)">🪙 正面</button><button onclick="fxCoin(0)">反面</button></div>';
+  } else if (step.type === 'rps') {
+    html += '<div class="t">猜拳</div><div class="row"><button onclick="fxRps(\'石头\')">✊ 石头</button><button onclick="fxRps(\'剪刀\')">✌ 剪刀</button><button onclick="fxRps(\'布\')">✋ 布</button></div>';
+  } else if (step.type === 'ar') {
+    html += '<div class="t">猜牌堆顶角色牌</div><div class="t">属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxArA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="fxArR" style="display:none;margin-top:6px"><div class="t">种族</div><div class="row">'+RACES.map(r=>'<button onclick="fxArR(\''+r+'\')">'+r+'</button>').join('')+'</div></div>';
+    setHint('👉 猜牌堆最上方角色牌的属性和种族','gold');
+  } else if (step.type === 'a') {
+    html += '<div class="t">选择1个属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxAttr(\''+a+'\')">'+a+'</button>').join('')+'</div>';
+  } else if (step.type === 'guessTotal') {
+    html += '<div class="t">猜全场手牌总数</div><div class="row">'+[0,1,2,3,4,5,6,7,8,9,10].map(n=>'<button onclick="fxTotal('+n+')">'+n+'</button>').join('')+'</div>';
+  } else if (step.type === 'hv') { clientHvModal(step); return; }
+  else if (step.type === 'deckpick') { clientDeckPickModal(step); return; }
+  else if (step.type === 'guessHand') { clientGuessModal(step); return; }
+  el.innerHTML = html;
+  el.classList.add('show');
+  render();
+}
+function clientHvModal(step) {
+  const d = document.getElementById('bmContent');
+  const cards = (step.cards||[]).map((id,i)=>{
+    const c = CM[id] || cardOf(0);
+    return '<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxHvPick('+i+')"><img src="'+c.img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+' ❤'+c.fv+'</div></div>';
+  }).join('');
+  d.innerHTML = '<div class="dlg"><div style="font-size:18px;font-weight:900;margin-bottom:10px">'+esc(step.tName||'对方')+' 的手牌（'+(step.cards||[]).length+'张）· 点选 '+(step.n||1)+' 张</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:60vh;overflow-y:auto">'+cards+'</div><button class="dlg-close" onclick="closeHvModal()">放弃</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+  window._hvNeed = step.n || 1; window._hvSel = [];
+}
+function clientDeckPickModal(step) {
+  const d = document.getElementById('bmContent');
+  const cards = (step.cards||[]).map((id,i)=>{
+    const c = CM[id] || cardOf(0);
+    return '<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxDeckPick('+i+')"><img src="'+c.img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+'</div></div>';
+  }).join('');
+  d.innerHTML = '<div class="dlg"><div style="font-size:18px;font-weight:900;margin-bottom:10px">牌堆顶 '+(step.cards||[]).length+' 张 · 点选1张加入手牌</div><div style="display:flex;flex-wrap:wrap;justify-content:center">'+cards+'</div><button class="dlg-close" onclick="fxDeckPick(-1)">不选，直接结算</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+}
+function clientGuessModal(step) {
+  const d = document.getElementById('bmContent');
+  const cards = Array.from({length: step.count||0}, (_,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxGhPick('+i+')"><div style="width:80px;height:112px;border-radius:8px;border:2px solid rgba(255,255,255,.4);background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:22px">🂠</div></div>').join('');
+  d.innerHTML = '<div class="dlg"><div style="font-size:16px;font-weight:900;margin-bottom:10px">猜 '+esc(step.tName||'对方')+' 的1张手牌：先点1张（背面），再猜属性·种族</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:40vh;overflow-y:auto">'+cards+'</div><div id="ghBtns" style="display:none"><div style="font-size:13px;margin:8px">属性</div><div class="row" style="display:flex;gap:6px">'+ATTRS.map(a=>'<button onclick="fxGhA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="ghR" style="display:none;margin-top:6px"><div style="font-size:13px;margin:8px">种族</div><div style="display:flex;gap:6px">'+RACES.map(r=>'<button onclick="fxGhR(\''+r+'\')">'+r+'</button>').join('')+'</div></div></div><button class="dlg-close" onclick="closeHvModal()">放弃</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+}
+// 客户端：接收房主广播的特效/提示事件
+function clientEvt(d) {
+  if (d.e === 'toast') { toast(d.text, d.g||''); return; }
+  if (d.e === 'play') { showPlayFX(CM[d.card] || cardOf(0), d.name||'', ()=>{}); return; }
+  if (d.e === 'bond') { showBondFX(d.cards||[], d.name||'', ()=>{}); return; }
+  if (d.e === 'counter') { showCounterFX(CM[d.card] || cardOf(0), d.name||''); return; }
+  if (d.e === 'shuffle') { showShuffle(()=>{}); return; }
+  if (d.e === 'deal') { playDealAnims(Array.from({length: d.n||0}, (_,i)=>({to: i%2?myId:'x'})), ()=>{}); return; }
+}
+// 客户端：定向亮牌（查看手牌效果）
+function clientReveal(d) {
+  const el = document.getElementById('bmContent');
+  const cards = (d.cards||[]).map(id=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px"><img src="'+c.img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+' ❤'+c.fv+'</div></div>'; }).join('');
+  el.innerHTML = '<div class="dlg"><div style="font-size:18px;font-weight:900;margin-bottom:10px">'+esc(d.name||'对方')+' 的手牌（'+(d.cards||[]).length+'张）</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:60vh;overflow-y:auto">'+cards+'</div><button class="dlg-close" onclick="closeBigModal()">关闭</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+}
+
+// ============ 效果 API 原语 ============
+function reshuffleDeck() {
+  if (S.deck.length || !S.discard.length) return;
+  S.deck = shuffle(S.discard); S.discard = [];
+  toast('弃牌区洗回牌堆','gold'); log('♻ 牌堆耗尽，弃牌区重新洗切');
+}
+function drawCards(pid, n) {
+  const p = P(pid); let got = 0;
+  for (let i=0;i<n;i++) {
+    if (!S.deck.length) reshuffleDeck();
+    const inst = S.deck.pop(); if (!inst) break;
+    p.hand.push(inst); got++;
+  }
+  if (got) { log(p.name+' 抽了 '+got+' 张牌'); if (pid===myId) flyCard('me', ()=>{}); }
+  render();
+}
+function randomSplice(arr) { return arr.length ? arr.splice(Math.floor(Math.random()*arr.length),1)[0] : null; }
+function discardFrom(pid, n) {
+  const p = P(pid); let done = 0;
+  for (let i=0;i<n && p.hand.length;i++) { S.discard.push(randomSplice(p.hand)); done++; }
+  if (done) log(p.name+' 被弃置 '+done+' 张手牌');
+  render();
+}
+function makeAPI(actorId, ctx) {
+  const ID = x => (x && typeof x==='object' && typeof x.id==='string') ? x.id : x;
+  const A = {
+    // 基础
+    players: () => S.players.filter(p=>p.alive),
+    allPlayers: fn => S.players.filter(p=>p.alive).forEach(fn),
+    allOthers: (pid, fn) => S.players.filter(p=>p.alive&&p.id!==pid).forEach(fn),
+    randomPlayer: f => { const c=S.players.filter(p=>p.alive&&(!f||f(p.id))); return c.length?c[Math.floor(Math.random()*c.length)].id:null; },
+    nextPlayer: pid => { const i=S.order.indexOf(pid); for(let k=1;k<=S.order.length;k++){const q=P(S.order[(i+k)%S.order.length]); if(q.alive&&q.id!==pid) return q.id;} return pid; },
+    handCount: pid => P(pid).hand.length,
+    zoneCount: pid => P(pid).slots.filter(s=>s.inst).length,
+    zoneAttrCount: (pid,attr) => P(pid).slots.filter(s=>s.inst&&cardOf(s.inst).attr===attr).length,
+    track: (pid, key) => { const t = P(ID(pid)).track; return key==='instant' ? t.instant : t.attrs; },
+    note: t => { log('ℹ '+t); },
+    discardedName: nm => S.discard.concat(S.tableStack).filter(i=>cardOf(i).name===nm).length,
+    viewHand: pid => { const t = P(pid); if (actorId === myId) showHandModal(t, 0, false); else if (!P(actorId).ai) netSend({t:'gto', to:actorId, d:{k:'reveal', name:t.name, cards:t.hand.map(x=>cardOf(x).id)}}); log('查看了 '+t.name+' 的手牌'); },
+    targetHasAttr: (pid, attr) => P(pid).hand.some(h=>cardOf(h).attr===attr) || P(pid).slots.some(s=>s.inst&&cardOf(s.inst).attr===attr),
+    // 抽/弃/偷/给
+    draw: (pid,n) => drawCards(pid,n),
+    discardR: (pid,n) => discardFrom(pid,n),
+    discardC: (pid,insts) => { const p=P(pid); (insts||[]).forEach(inst=>{ rmHand(p,inst); S.discard.push(inst); }); log(p.name+' 弃置了 '+(insts||[]).length+' 张手牌'); render(); },
+    discardAll: pid => { const p=P(pid); p.hand.forEach(i=>S.discard.push(i)); const n=p.hand.length; p.hand=[]; log(p.name+' 弃置全部手牌（'+n+'张）'); render(); },
+    mill: n => { for(let i=0;i<n&&S.deck.length;i++) S.discard.push(S.deck.pop()); log('牌堆顶 '+n+' 张进入弃牌区'); render(); },
+    fromBottom: n => { const p=P(actorId); let got=0; for(let i=0;i<n&&S.deck.length;i++){ p.hand.unshift(S.deck.shift()); got++; } log(p.name+' 从牌堆底摸了 '+got+' 张'); render(); },
+    gainPicked: (pid,inst) => { if(!inst) return; const di=S.deck.indexOf(inst); if(di>-1) S.deck.splice(di,1); P(pid).hand.push(inst); log(P(pid).name+' 从牌堆顶选取了「'+cardOf(inst).name+'」加入手牌'); render(); },
+    reclaim: n => { const p=P(actorId); let got=0; for(let i=0;i<n&&S.discard.length;i++){ p.hand.push(S.discard.pop()); got++; } log(p.name+' 从弃牌区回收了 '+got+' 张'); render(); },
+    reclaimBonded: (pid,n) => { const p=P(pid); const cands=S.discard.filter(i=>{ const b=cardOf(i).bonds||[]; return p.slots.some(s=>s.inst&&(cardOf(s.inst).bonds||[]).some(x=>b.includes(x))); }); let got=0; for(let i=0;i<n&&cands.length;i++){ const inst=cands.splice(Math.floor(Math.random()*cands.length),1)[0]; const di=S.discard.indexOf(inst); if(di>-1){ S.discard.splice(di,1); p.hand.push(inst); got++; } } log(p.name+' 回收了 '+got+' 张同羁绊牌'); render(); },
+    copyFromDiscard: pid => { const roles=S.discard.filter(i=>cardOf(i).type==='角色牌'); if(!roles.length){A.note('弃牌区没有角色牌');return;} const best=roles.sort((a,b)=>cardOf(b).fv-cardOf(a).fv)[0]; S.discard.splice(S.discard.indexOf(best),1); P(pid).hand.push(best); log('🦎 变色龙复制了「'+cardOf(best).name+'」'); render(); },
+    stealR: (from,to,n) => { const f=P(from),t=P(to); let got=0; for(let i=0;i<n&&f.hand.length;i++){ t.hand.push(randomSplice(f.hand)); got++; } log(t.name+' 偷取了 '+f.name+' '+got+' 张手牌'); render(); },
+    stealC: (from,to,insts) => { const f=P(from),t=P(to); (insts||[]).filter(Boolean).forEach(inst=>{ rmHand(f,inst); t.hand.push(inst); }); log(t.name+' 偷取了 '+f.name+' '+(insts||[]).length+' 张指定手牌'); render(); },
+    stealAll: (from,to) => { const f=P(from),t=P(to); const n=f.hand.length; t.hand.push(...f.hand); f.hand=[]; log(t.name+' 偷取了 '+f.name+' 全部手牌（'+n+'张）'); render(); },
+    give: (from,to,inst) => { if(!inst) return; const f=P(from); rmHand(f,inst); P(to).hand.push(inst); log(f.name+' 将1张手牌交给 '+P(to).name); render(); },
+    giveRandom: (from,to) => { const f=P(from); const inst=randomSplice(f.hand); if(inst){ P(to).hand.push(inst); log(f.name+' 将1张随机手牌交给 '+P(to).name); } render(); },
+    swapHands: (a,b) => { const x=P(a),y=P(b); const tmp=x.hand; x.hand=y.hand; y.hand=tmp; log(x.name+' 与 '+y.name+' 手牌互换'); render(); },
+    swapWithTarget: (pid,inst,tid) => { if(!inst) return; const p=P(pid),t=P(tid); rmHand(p,inst); const back=randomSplice(t.hand); t.hand.push(inst); if(back) p.hand.push(back); log(p.name+' 与 '+t.name+' 交换了1张手牌'); render(); },
+    // 友情区
+    zoneDiscardR: pid => { const p=P(pid); let n=0; p.slots.forEach(s=>{ if(s.inst){ S.discard.push(s.inst); s.inst=null; s.fvOverride=null; n++; } }); log(p.name+' 友情区 '+n+' 张牌被丢弃'); render(); },
+    zoneDiscardSelf: pid => { const p=P(pid); const idx=p.slots.findIndex(s=>s.inst); if(idx>-1){ S.discard.push(p.slots[idx].inst); p.slots[idx].inst=null; log(p.name+' 丢弃了友情区1张牌'); } render(); },
+    zoneClear: pid => { const p=P(pid); let n=0; p.slots.forEach(s=>{ if(s.inst){ S.discard.push(s.inst); s.inst=null; n++; } }); log(p.name+' 友情区被清空（'+n+'张）'); render(); },
+    zoneStealR: (from,to) => { const f=P(from),t=P(to); const idx=f.slots.findIndex(s=>s.inst); if(idx>-1){ const inst=f.slots[idx].inst; f.slots[idx].inst=null; const free=t.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ t.slots[free].inst=inst; log(t.name+' 夺走了 '+f.name+' 友情区的「'+cardOf(inst).name+'」'); } else S.discard.push(inst); } render(); },
+    swapZoneR: (a,b) => { const x=P(a),y=P(b); const ix=x.slots.findIndex(s=>s.inst); const iy=y.slots.findIndex(s=>s.inst); if(ix>-1&&iy>-1){ const tmp=x.slots[ix].inst; x.slots[ix].inst=y.slots[iy].inst; y.slots[iy].inst=tmp; log(x.name+' 与 '+y.name+' 友情区1张牌互换'); } render(); },
+    coverZoneR: (pid,n) => { const p=P(pid); let n2=0; for(let i=0;i<n;i++){ const gi=S.deck.pop(); if(!gi) break; const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0){ S.discard.push(gi); break; } p.slots[free]={inst:gi,faceUp:false,coverTurns:2}; n2++; } log(p.name+' 友情区被盖放 '+n2+' 张牌'); render(); },
+    coverHandToZone: pid => { const p=P(pid); const inst=randomSplice(p.hand); if(inst){ const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst,faceUp:false,coverTurns:2}; log(p.name+' 1张手牌被盖放在友情区'); } else p.hand.push(inst); } render(); },
+    coverHandAside: (pid,n) => { const p=P(pid); for(let i=0;i<n&&p.hand.length;i++){ const inst=randomSplice(p.hand); if(inst){ p.slots.forEach(s=>{ if(s.inst===inst) s.inst=null; }); S.aside.push({pid,inst}); } } log(p.name+' 的 '+n+' 张手牌被移出游戏'); render(); },
+    coverChosenToZone: (pid,inst) => { if(!inst) return; const p=P(pid); rmHand(p,inst); const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst,faceUp:false,coverTurns:2}; log(p.name+' 将1张手牌盖放在友情区'); } render(); },
+    selfPlaceCovered: () => { const p=P(actorId); const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst:ctx.played,faceUp:false,coverTurns:2}; if(S.resolve) S.resolve.taken=null; log(p.name+' 将本牌盖放在自己友情区'); } render(); },
+    flipAllCovered: () => { let n=0; S.players.forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ s.faceUp=true; s.coverTurns=null; n++; } })); log('翻开全场所有盖放的牌（'+n+'张）'); render(); },
+    clearAllCovered: () => { S.players.forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ S.discard.push(s.inst); s.inst=null; } })); log('丢弃场上所有盖放的牌'); render(); },
+    hasCovered: pid => P(pid).slots.some(s=>s.inst&&!s.faceUp),
+    penguinReturn: () => { const n=S.discard.filter(i=>cardOf(i).name.includes('企鹅')).length; let done=0; S.players.forEach(p=>{ while(done<n){ const idx=p.slots.findIndex(s=>s.inst&&s.faceUp); if(idx<0) break; p.hand.push(p.slots[idx].inst); p.slots[idx].inst=null; done++; } }); log('🐧 企鹅回巢：'+done+' 张友情区牌回到持有者手牌'); render(); },
+    zoneFillTo3: () => { S.players.forEach(p=>{ const cnt=p.slots.filter(s=>s.inst).length; for(let i=cnt;i<3;i++){ const gi=S.deck.pop(); if(!gi) break; const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0) break; p.slots[free]={inst:gi,faceUp:true}; } }); log('🐧 全场友情区补足至3张'); render(); },
+    setTo7: pid => { const p=P(pid); while(p.hand.length<7&&S.deck.length) p.hand.push(S.deck.pop()); while(p.hand.length>7) S.discard.push(randomSplice(p.hand)); log(p.name+' 手牌调整为7张'); render(); },
+    placeFromHand: pid => { const p=P(pid); const roles=p.hand.filter(h=>cardOf(h).type==='角色牌'); if(roles.length){ const best=roles.sort((a,b)=>cardOf(b).fv-cardOf(a).fv)[0]; const free=freeSlotIdx(p); if(free>-1) place(pid,best,free,true); } },
+    selfBondToZone: pid => { const p=P(pid); const played=cardOf(ctx.played); for(const b of (played.bonds||[])){ const cands=p.hand.filter(h=>(cardOf(h).bonds||[]).includes(b)); if(cands.length){ const inst=cands[0]; rmHand(p,inst); const free=freeSlotIdx(p); if(free>-1) place(pid,inst,free,true); break; } } },
+    takePlayedCard: pid => { if(S.resolve){ S.resolve.taken = pid; } },
+    pickDiscard1: pid => { const p=P(pid); if(p.hand.length){ const inst=randomSplice(p.hand); S.discard.push(inst); log(p.name+' 弃置了1张手牌'); } render(); },
+    purgeAttrAll: (attr) => { let n=0; S.players.forEach(p=>p.slots.forEach(s=>{ if(s.inst&&cardOf(s.inst).attr===attr){ S.discard.push(s.inst); s.inst=null; n++; } })); log('清除全场'+attr+'属性友情区牌 '+n+' 张'); render(); },
+    // 控制/标记
+    skip: (pid,n) => { const p=P(pid); p.skip += n; log('⏭ '+p.name+' 出局 '+n+' 回合'); },
+    restrict: (pid,key,n) => { const p=P(pid); p.flags.restrict[key]=(p.flags.restrict[key]||0)+n; log('🚫 '+p.name+' 获得 '+key+' 限制'); },
+    protect: (pid,key,n) => { const p=P(pid); p.flags.protect[key]=(p.flags.protect[key]||0)+n; log('🛡 '+p.name+' 获得保护：'+key); },
+    mark: (pid,key,n) => { const p=P(pid); p.flags.mark[key]=(p.flags.mark[key]||0)+n; log('🏷 '+p.name+' 获得标记：'+key); },
+    global: (key,pid) => { S.gflags[key] = { pid, rounds: 1 }; log('🌐 全局效果：'+key); },
+    poison: (pid,per,turns) => { P(pid).poison = { per, turns }; log('☠ '+P(pid).name+' 中毒（每回合弃'+per+'张，'+turns+'回合）'); },
+    pending: (pid,n) => { P(pid).pendDiscard = (P(pid).pendDiscard||0)+n; log('⏳ '+P(pid).name+' 下回合结束需弃 '+P(pid).pendDiscard+' 张'); },
+    extra: (pid,n) => { const p=P(pid); p.extraPlayNext=(p.extraPlayNext||0)+n; log('➕ '+p.name+' 下回合可额外出 '+n+' 张牌'); },
+    // 小游戏
+    singCheck: (pid,n) => { log('🎤 '+P(pid).name+' 被要求唱歌（数字版：跳过表演）'); if(P(pid).ai) discardFrom(pid,0); },
+    guessTopResolve: (c,n,okFn) => {
+      let top = S.deck[S.deck.length-1];
+      if (!top) { A.note('牌堆为空'); return; }
+      let tc = cardOf(top);
+      while (tc.type!=='角色牌') { S.discard.push(S.deck.pop()); if(!S.deck.length){A.note('牌堆为空');return;} top = S.deck[S.deck.length-1]; tc = cardOf(top); }
+      const ok = c.ar && c.ar.a===tc.attr && c.ar.r===tc.race;
+      toast((ok?'猜对了！':'猜错了')+'（实际：'+tc.attr+tc.race+'）', ok?'gold':'err');
+      S.discard.push(S.deck.pop());
+      if (ok) okFn(c.actor);
+    },
+    guessHandResolve: c => {
+      const t=P(c.t); if(!t||!c.guess) return;
+      if(!c.guess.inst || !t.hand.includes(c.guess.inst)){ A.note('对方手牌已空，无法猜牌'); return; }
+      const tc=cardOf(c.guess.inst);
+      const hits=(c.guess.a===tc.attr?1:0)+(c.guess.r===tc.race?1:0);
+      toast('猜测结果：'+hits+'个正确（实际 '+tc.attr+tc.race+'）', hits===2?'gold':'');
+      if (hits===2) { rmHand(t,c.guess.inst); P(c.actor).hand.push(c.guess.inst); discardFrom(c.t,1); log('🎉 猜对2个：偷取成功+对方弃1张'); }
+      else if (hits===1) { rmHand(t,c.guess.inst); S.discard.push(c.guess.inst); log('猜对1个：那张手牌被弃置'); }
+      else discardFrom(c.actor,1);
+      render();
+    },
+    guessMyCard: (c,inst) => {
+      if(!inst){ A.note('没有可猜的牌'); return; }
+      const tc=cardOf(inst); const t=P(c.t);
+      const hit=Math.random()<0.4;
+      if (hit) { drawCards(c.actor,2); log('🎴 '+P(c.actor).name+' 猜「'+tc.name+'」被抽走 → 猜中，抽2张'); }
+      else { const back=randomSplice(t.hand); if(back) S.discard.push(back); log('🎴 猜错：'+t.name+' 丢弃1张手牌'); }
+      render();
+    },
+    guessTotalResolve: c => {
+      const total=S.players.filter(p=>p.alive).reduce((s,p)=>s+p.hand.length,0);
+      const ok=c.guess===total;
+      toast('全场手牌共 '+total+' 张 → '+(ok?'猜对！':'猜错'), ok?'gold':'err');
+      if (ok) drawCards(c.actor,2); else discardFrom(c.actor,1);
+    },
+    // ===== 事件牌助手 =====
+    xmas: pid => { const n=S.players.filter(p=>p.alive).length; drawCards(pid,n); const p=P(pid); const others=S.players.filter(q=>q.alive&&q.id!==pid); for(let i=0;i<n-1;i++){ const inst=randomSplice(p.hand); if(!inst) break; (others[i%others.length]||p).hand.push(inst); } log('🎄 '+p.name+' 抽'+n+'张并分发'+(n-1)+'张'); render(); },
+    moonlight: pid => { const n=Math.min(S.players.filter(p=>p.alive).length, S.deck.length); for(let i=0;i<n;i++){ S.tableStack.push(S.deck.pop()); } if(S.resolve) S.resolve.table=true; log('🌙 '+n+' 张牌盖放在桌面（月夜访客）'); },
+    harvest: pid => { const p=P(pid); p.harvest = { stack: p.hand.slice(), covered: [], turns: 3 }; p.hand=[]; log('🍂 '+p.name+' 手牌盖放桌面，3回合内每回合用牌堆顶1张替换，之后收回'); },
+    partyFeast: pid => { const alive=S.players.filter(p=>p.alive); const n=alive.length; const pool=[]; for(let i=0;i<n;i++){ const g=S.deck.pop(); if(g) pool.push(g); } shuffle(pool); alive.forEach(p=>{ const inst=pool.pop(); if(inst) p.hand.push(inst); }); log('🎉 聚会盛宴：每人随机分得1张'); render(); },
+    partner: (pid,tid) => { S.partner={a:pid,b:tid,rounds:2}; A.viewHand(tid); log('🤝 '+P(pid).name+' 与 '+P(tid).name+' 绑定合作关系（2轮）'); },
+    improvSeasoning: pid => { const reveals=S.players.filter(p=>p.alive).map(p=>{ const roles=p.hand.filter(h=>cardOf(h).type==='角色牌'); const inst=roles.length?roles[Math.floor(Math.random()*roles.length)]:null; return {p,inst}; }); let bonus=0; for(let i=0;i<reveals.length;i++)for(let j=i+1;j<reveals.length;j++){ const a=reveals[i],b=reveals[j]; if(a.inst&&b.inst){ const bs=new Set(cardOf(a.inst).bonds||[]); if((cardOf(b.inst).bonds||[]).some(x=>bs.has(x))){ drawCards(a.p.id,2); drawCards(b.p.id,2); bonus++; } } } log('🎭 即兴调味：'+(bonus?bonus+' 对羁绊触发，各抽2张':'无羁绊触发')); },
+    bunShare: pid => { let n=0; S.players.forEach(p=>{ const buns=p.hand.filter(h=>cardOf(h).type==='加帕里馒头'); buns.forEach(b=>{ rmHand(p,b); S.tableBuns.push(b); n++; }); }); log('🍞 馒头分享：'+n+' 张馒头放桌面，全员共享其友情值'); render(); },
+    bunFeast: pid => { const n=S.tableBuns.length; S.tableBuns.forEach(inst=>{ const d=EFFECTS[cid(inst)]; if(d&&d.run){ try{ d.run(makeAPI(pid,{actor:pid,played:inst}), {actor:pid,played:inst}); }catch(e){} } }); S.tableBuns=[]; log('🍽 美食品鉴：触发桌面全部 '+n+' 张馒头效果'); render(); },
+    ultrasound: (c,tid,inst) => { if(!inst){ A.note('对方手牌为空'); return; } const p=P(c.actor); const tc=cardOf(inst); const bonded=p.hand.filter(h=>(cardOf(h).bonds||[]).some(b=>(tc.bonds||[]).includes(b))); const all=[inst,...bonded]; let placed=0; all.forEach(x=>{ rmHand(p,x); const free=freeSlotIdx(p); if(free>-1){ place(c.actor,x,free,true); placed++; } }); log('📡 超声波：与「'+tc.name+'」凑羁绊的 '+placed+' 张牌放入友情区'); render(); },
+    huntGame: (pid,tid) => { const p=P(pid),t=P(tid); let w=0,l=0; const cyc={'林原':'雪域','雪域':'海洋','海洋':'沙漠','沙漠':'林原'}; for(let r=0;r<3;r++){ const pi=p.hand.filter(h=>cardOf(h).type==='角色牌'); const ti=t.hand.filter(h=>cardOf(h).type==='角色牌'); if(!pi.length||!ti.length) break; const pc=cardOf(pi[Math.floor(Math.random()*pi.length)]); const tc=cardOf(ti[Math.floor(Math.random()*ti.length)]); if(cyc[pc.attr]===tc.attr) w++; else if(cyc[tc.attr]===pc.attr) l++; } toast('狩猎游戏 3轮：'+w+'胜 '+l+'负', w>l?'gold':''); if(w>l){ discardFrom(tid,2); log('🏹 狩猎游戏：'+P(pid).name+' 获胜，'+P(tid).name+' 弃2张'); } else if(l>w){ discardFrom(pid,2); log('🏹 狩猎游戏：'+P(tid).name+' 获胜'); } },
+    luckyBlast: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const top=S.deck[S.deck.length-1]; if(!top) return; const tc=cardOf(top); let guess; if(p.id===myId){ guess=window.__luckyGuess; } else guess=ATTRS[Math.floor(Math.random()*4)]; guess=guess||ATTRS[Math.floor(Math.random()*4)]; const ok=guess===tc.attr; toast((p.id===myId?'你':p.name)+' 猜'+guess+' → 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); if(ok) drawCards(p.id,3); else discardFrom(p.id,2); S.discard.push(S.deck.pop()); }); window.__luckyGuess=null; log('💣 幸运爆破结算完成'); },
+    snowImpact: (pid,h) => { const p=P(pid); (h||[]).forEach(inst=>{ rmHand(p,inst); S.discard.push(inst); }); const both=(h||[]).length>=2&&(h||[]).every(i=>cardOf(i).attr==='雪域'&&cardOf(i).type==='角色牌'); if(both){ S.players.filter(q=>q.alive&&q.id!==pid).forEach(q=>coverZoneR2(q.id,2)); log('❄ 雪域冲击强化：其他玩家友情区盖放2张'); } else { S.players.filter(q=>q.alive).forEach(q=>coverZoneR2(q.id,1)); log('❄ 雪域冲击：全场友情区盖放1张'); } },
+    skyHunt: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const birds=Math.min(2,p.hand.filter(h=>cardOf(h).race==='鸟类'&&cardOf(h).type==='角色牌').length); for(let i=0;i<birds;i++){ const fromHand=Math.random()<0.5&&p.hand.length; if(fromHand) discardFrom(p.id,1); else { const idx=p.slots.findIndex(s=>s.inst); if(idx>-1){ S.discard.push(p.slots[idx].inst); p.slots[idx].inst=null; } } } }); log('🦅 长空巡猎结算完成'); render(); },
+    lightDark: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const cand=p.hand.filter(h=>cardOf(h).counter); if(cand.length){ const inst=cand[0]; rmHand(p,inst); S.aside.push({pid:p.id,inst,lightDark:true}); } }); log('🌓 明暗交锋：各玩家1张反击牌盖放桌面'); },
+    californiaBeach: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const oc=p.hand.find(h=>cardOf(h).attr==='海洋'&&cardOf(h).type==='角色牌'); if(oc){ rmHand(p,oc); const free=freeSlotIdx(p); if(free>-1) place(p.id,oc,free,true); drawCards(p.id,2); } }); log('🏖 加州海滨结算完成'); },
+    finiteSong: (pid,inst,tid) => { if(!inst) return; const p=P(pid),t=P(tid); rmHand(p,inst); const shown=cardOf(inst); p.hand.forEach(i=>S.discard.push(i)); p.hand=[]; if(shown.name.includes('朱鹮')){ t.alive=false; t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; toast('🎤 绯羽绝唱！'+t.name+' 直接出局','err'); log('💀 '+t.name+' 被绯羽绝唱淘汰'); } else { t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; log('🎤 绯羽绝唱：双方弃全部手牌'); } render(); },
+    deduction: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const ok=Math.random()<0.5; if(ok) drawCards(p.id,3); else discardFrom(p.id,2); }); log('🔍 疑案推理：全员猜谎结算完成'); },
+    flowerExpedition: (c,tid) => { const both=S.players.filter(p=>[c.actor,tid].includes(p.id)); const flowerN=both.reduce((s,p)=>s+p.hand.filter(h=>(cardOf(h).bonds||[]).includes('花丸探险队')).length+p.slots.filter(x=>x.inst&&(cardOf(x.inst).bonds||[]).includes('花丸探险队')).length,0); let ok=flowerN>=2; if(!ok){ const top=S.deck[S.deck.length-1]; if(top){ const tc=cardOf(top); let guess; if(tid===myId){ guess=window.__flowerGuess; } else guess=ATTRS[Math.floor(Math.random()*4)]; guess=guess||ATTRS[Math.floor(Math.random()*4)]; ok=guess===tc.attr; toast('花丸探险：猜'+guess+' 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); S.discard.push(S.deck.pop()); } } else toast('花丸探险队羁绊≥2，直接成功！','gold'); if(ok){ drawCards(c.actor,4); drawCards(tid,4); } else { discardFrom(c.actor,2); discardFrom(tid,2); } window.__flowerGuess=null; },
+  };
+  function coverZoneR2(pid,n){ A.coverZoneR(pid,n); }
+  // 参数归一化代理：效果定义可能传玩家对象或 pid，统一转 pid；空 pid 回退 actor
+  const PID_FIRST = new Set(['draw','discardR','discardC','discardAll','stealR','stealC','stealAll','give','swapHands','zoneDiscardR','zoneDiscardSelf','zoneClear','swapZoneR','coverZoneR','coverHandToZone','coverHandAside','skip','restrict','protect','mark','poison','pending','extra','setTo7','placeFromHand','viewHand','targetHasAttr','handCount','zoneCount','zoneAttrCount','singCheck']);
+  const PID_SECOND = new Set(['stealR','stealC','stealAll','give','swapHands','swapZoneR']);
+  const proxy = new Proxy(A, {
+    get(t, k) {
+      const v = t[k];
+      if (typeof v !== 'function') return v;
+      return function(...args) {
+        args = args.map(a => (a && typeof a==='object' && typeof a.id==='string' && S.players.some(p=>p.id===a.id)) ? a.id : a);
+        if (args.length && (args[0]===null || args[0]===undefined) && PID_FIRST.has(k)) args[0] = actorId;
+        if (args.length>1 && (args[1]===null || args[1]===undefined) && PID_SECOND.has(k)) args[1] = actorId;
+        return v.apply(t, args);
+      };
+    }
+  });
+  return proxy;
+}
+function endTurn(pid) {
+  if (S.resolve) { toast('请先完成结算','err'); return; }
+  const p = P(pid);
+  if (p.hand.length > 7) {
+    if (p.ai) { // AI 弃随机
+      const need = p.hand.length - 7;
+      for (let i=0;i<need;i++) { const inst = p.hand.splice(Math.floor(Math.random()*p.hand.length),1)[0]; S.discard.push(inst); }
+      log(p.name+' 弃置了 '+need+' 张手牌');
+    } else {
+      S.pendingDiscard = { need: p.hand.length - 7, pid: pid };
+      mode = 'discard-limit'; bondSel = [];
+      toast('手牌超上限！请弃置 '+S.pendingDiscard.need+' 张','err');
+      render(); return;
+    }
+  }
+  finishTurn(pid);
+}
+function finishTurn(pid) {
+  const p = P(pid);
+  S.pendingDiscard = null;
+  // 待弃牌效果（335/353等）
+  if (p.pendDiscard > 0) { const n = Math.min(p.pendDiscard, p.hand.length); for(let i=0;i<n;i++) S.discard.push(randomSplice(p.hand)); log('⏳ '+p.name+' 弃置了 '+n+' 张（延时效果）'); p.pendDiscard = 0; }
+  // 出局判定
+  if (p.alive && usable(p) < 3) {
+    p.alive = false; p.hand.forEach(i=>S.discard.push(i)); p.hand = [];
+    toast(p.name+' 可用格不足3个，出局了！','err');
+    log('💀 '+p.name+' 出局', true);
+  }
+  // 亮眼判定（宣告后一整轮）
+  if (p.declared && S.turns - p.declareTurn >= S.order.length) {
+    if (zoneFv(p) >= S.threshold) { doWin(p); return; }
+    p.declared = false; log(p.name+' 友情值跌出门槛，亮眼取消');
+  }
+  S.turns++;
+  // ===== 回合结束钩子 =====
+  // 小爪水獭成长：友情区每轮+1
+  p.slots.forEach(s => { if (s.inst && cid(s.inst) === 333) s.bonus = (s.bonus||0) + 1; });
+  // 盖放回合倒计
+  S.players.forEach(pp => pp.slots.forEach(s => { if (s.inst && s.coverTurns) { s.coverTurns--; if (s.coverTurns <= 0 && s.faceUp===false) { /* 保留盖放，需翻开效果处理 */ } } }));
+  // 全局标记衰减
+  Object.keys(S.gflags).forEach(k => { S.gflags[k].rounds--; if (S.gflags[k].rounds <= 0) delete S.gflags[k]; });
+  // 合作关系衰减
+  if (S.partner) { S.partner.rounds--; if (S.partner.rounds <= 0) { log('🤝 合作关系结束'); S.partner = null; } }
+  // 明暗交锋：未使用的盖放牌返回手牌
+  if (S.aside.length) {
+    const rest = S.aside.filter(x => x.lightDark);
+    rest.forEach(x => { if (P(x.pid) && P(x.pid).alive) P(x.pid).hand.push(x.inst); });
+    S.aside = S.aside.filter(x => !x.lightDark);
+    if (rest.length) log('🌓 明暗交锋：盖放牌返回手牌');
+  }
+  // 个人标记/限制衰减
+  S.players.forEach(pp => {
+    ['restrict','protect','mark'].forEach(cat => {
+      const o = pp.flags[cat]; Object.keys(o).forEach(k => { o[k]--; if (o[k] <= 0) delete o[k]; });
+    });
+    pp.extraPlay = 0;
+  });
+  // 新的一轮：重置出牌追踪
+  if (S.turns % S.order.length === 0) {
+    S.roundNo++;
+    S.players.forEach(pp => { pp.track = { attrs: [], instant: false }; });
+    log('—— 第 '+(S.roundNo+1)+' 轮开始 ——');
+  }
+  // 下一位
+  let idx = S.turnIdx;
+  for (let k=0;k<S.order.length;k++) { idx = (idx+1)%S.order.length; if (P(S.order[idx]).alive) break; }
+  S.turnIdx = idx;
+  S.players.forEach(pp => pp.counters = 0);
+  S.phase = 'draw'; S.actionUsed = false; S.eventUsed = false;
+  log('—— '+cur().name+' 的回合 ——');
+  // 只剩一人
+  const alive = S.order.filter(id=>P(id).alive);
+  if (alive.length <= 1) { doWin(P(alive[0])); return; }
+  nextTurnBegin();
+}
+function doWin(p) {
+  S.winner = p.id; S.phase = 'over';
+  clearTimers();
+  const ov = document.getElementById('winOverlay');
+  ov.innerHTML = '<div class="win-emoji">🏆</div><div class="win-name">'+p.name+'</div><div class="win-sub">交够了朋友，获得胜利！</div><button class="win-btn" onclick="location.reload()">返回大厅 · 再开一局</button>'
+    + Array.from({length:30},(_,i)=>'<div class="confetti" style="left:'+(i*13%100)+'%;animation-delay:'+(i%8)*0.25+'s;animation-duration:'+(2+i%3)+'s">'+['🎉','🎊','✨','🐾','🌟'][i%5]+'</div>').join('');
+  ov.classList.add('show');
+  if (HOST && NET.on) publishState();
+}
+function backMenu() {
+  document.getElementById('winOverlay').classList.remove('show');
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('menu').style.display = 'flex';
+  clearTimers();
+}
+
+// ============ AI 行动 ============
+function aiTurn(p) {
+  if (!S || S.phase !== 'draw' || cur().id !== p.id) return;
+  log('🎴 '+p.name+' 抽牌');
+  doDraw(p.id);
+}
+function aiAction(p) {
+  if (!S || S.phase !== 'action' || cur().id !== p.id) return;
+  const card = inst => cardOf(inst);
+  // 春日翢鸢锁
+  if (p.flags.mark.lockHand5 && p.hand.length >= 5) { log(p.name+' 被锁手牌，无法出牌'); aiTimers.push(setTimeout(()=>endTurn(p.id), 600)); return; }
+  const free = usable(p);
+  const buns = p.hand.filter(h => card(h).type==='加帕里馒头');
+  const solos = p.hand.filter(h => isSoloCard(card(h)) && card(h).type!=='加帕里馒头');
+  const roles = p.hand.filter(h => card(h).type==='角色牌');
+  const evts = p.hand.filter(h => card(h).type==='事件牌');
+  let done = false;
+  // 放置：仅限可单独放置的牌与馒头
+  if (free > 3) {
+    if (solos.length) { const best = solos.sort((a,b)=>card(b).fv-card(a).fv)[0]; place(p.id, best, freeSlotIdx(p)); done = true; }
+    else if (buns.length > 2 && p.hand.length > 4) { place(p.id, buns[0], freeSlotIdx(p)); done = true; }
+  }
+  if (!done && !S.resolve) {
+    if (roles.length && Math.random() < 0.55) { playCard(p.id, roles[Math.floor(Math.random()*roles.length)]); return; }
+    if (evts.length && Math.random() < 0.6) { playCard(p.id, evts[Math.floor(Math.random()*evts.length)]); return; }
+    if (buns.length > 0 && free > 2 && Math.random() < 0.5) { place(p.id, buns[0], freeSlotIdx(p)); done = true; }
+  }
+  if (!done && !S.resolve) { log(p.name+' 选择观望'); }
+  if (!S.resolve) {
+    // 宣告胜利
+    if (!p.declared && zoneFv(p) >= S.threshold) { p.declared = true; p.declareTurn = S.turns; toast('🌟 '+p.name+' 宣告「交够了朋友」！','gold'); log('🌟 '+p.name+' 宣告亮眼', true); }
+    aiTimers.push(setTimeout(()=>endTurn(p.id), 600));
+  }
+  render();
+}
+function freeSlotIdx(p) { return p.slots.findIndex(s=>!s.inst && !s.locked); }
+
+// ============ 人类操作 ============
+function onHandClick(inst) {
+  if (mode === 'fx-hand') {
+    if (bondSel.includes(inst)) bondSel = bondSel.filter(x=>x!==inst);
+    else bondSel.push(inst);
+    render(); return;
+  }
+  if (mode === 'bond-hand') {
+    if (bondSel.includes(inst)) bondSel = bondSel.filter(x=>x!==inst);
+    else if (isBondCand(inst)) bondSel.push(inst);
+    render(); return;
+  }
+  if (mode === 'discard-limit') {
+    if (bondSel.includes(inst)) bondSel = bondSel.filter(x=>x!==inst);
+    else bondSel.push(inst);
+    render(); return;
+  }
+if (selInst === inst) { showDetail(cardOf(inst)); return; }
+selInst = inst; mode = null;
+showDetail(cardOf(inst));
+render();
+}
+function isBondCand(inst) {
+  if (!S.resolve || S.resolve.initiator === myId) return false;
+  const played = cardOf(S.resolve.card);
+  if (!played || played.type !== '角色牌' || S.resolve.claimed) return false;
+  const bondSet = new Set(played.bonds||[]);
+  return (cardOf(inst).bonds||[]).some(b=>bondSet.has(b));
+}
+function onSlotClick(p, idx) {
+  if (mode === 'place' && p.id === myId && selInst) {
+    const s = p.slots[idx];
+    if (s.inst || s.locked) { toast('该格位不可用','err'); return; }
+    const card = cardOf(selInst);
+    if (card.type === '角色牌') S.actionUsed = true;
+    if (!HOST && NET.on) { sendAct('place', { inst: selInst, slot: idx }); selInst = null; mode = null; setHint(''); render(); return; }
+    place(myId, selInst, idx, true);
+    selInst = null; mode = null; setHint('');
+    render(); return;
+  }
+  const s = p.slots[idx];
+  if (s.inst && s.faceUp) showDetail(cardOf(s.inst));
+}
+function hPlay() {
+  if (!selInst) return;
+  const card = cardOf(selInst);
+  if (card.type === '加帕里馒头') { toast('馒头请用「打出馒头」按钮','err'); return; }
+  const me = P(myId);
+  // 春日翢鸢锁：手牌≥5不能出牌
+  if (me.flags.mark.lockHand5 && me.hand.length >= 5) { toast('春日翢鸢：手牌≥5张时不能打出任何牌','err'); return; }
+  if (me.flags.restrict.noInstant && card.type === '角色牌') { toast('你被限制不能出即时牌','err'); return; }
+  if (S.actionUsed && !me.extraPlay) { toast('本回合已打出过牌','err'); return; }
+  if (!HOST && NET.on) { sendAct('play', { inst: selInst }); selInst = null; setHint(''); return; }
+  if (me.extraPlay > 0) me.extraPlay--; else S.actionUsed = true;
+  if (card.type === '事件牌') S.eventUsed = true;
+  playCard(myId, selInst);
+  selInst = null; setHint('');
+}
+function hPlayBun() {
+  if (!selInst) return;
+  const card = cardOf(selInst);
+  if (card.type !== '加帕里馒头') { toast('这不是馒头','err'); return; }
+  if (S.resolve && S.resolve.bunUsed >= 3) { toast('本结算馒头已达上限','err'); return; }
+  if (!HOST && NET.on) { sendAct('bun', { inst: selInst }); selInst = null; setHint(''); return; }
+  playBun(myId, selInst);
+  selInst = null; setHint('');
+}
+function hPlace() {
+  if (!selInst) return;
+  const card = cardOf(selInst);
+  if (!isSoloCard(card)) { toast('该牌不能自行放置：仅「可单独放在友情区」的牌和馒头可放置，普通角色牌需通过羁绊收集入区','err'); setHint('普通角色牌只能在他人出牌时凑羁绊入区（同一羁绊≥2张）'); return; }
+  mode = 'place'; setHint('选择自己友情区的空格放置','gold'); render();
+}
+function hDraw() { if (!HOST && NET.on) { sendAct('draw'); return; } if (S.phase!=='draw'||cur().id!==myId) return; doDraw(myId); }
+function hEndTurn() { if (!HOST && NET.on) { sendAct('endTurn'); return; } if (cur().id!==myId) return; if (S.resolve){toast('请先结算','err');return;} endTurn(myId); }
+function hCounter() {
+  if (!S.resolve || !selInst) return;
+  const r = S.resolve;
+  const card = cardOf(selInst);
+  if (r.kind === 'event') { toast('事件牌无法被反击','err'); return; }
+  if (r.kind === 'bun') { toast('馒头无法被反击','err'); return; }
+  if (r.chain.some(ch=>ch.kind==='bun')) { toast('连锁已被馒头截断，无法再反击','err'); return; }
+  if (!card.counter) { toast('这张牌没有反击效果','err'); return; }
+  const lastCnt = (r.chain.length && r.chain[r.chain.length-1].kind==='counter') ? r.chain[r.chain.length-1] : null;
+  if (lastCnt && lastCnt.by === myId) { toast('不能反击自己的反击','err'); return; }
+  if (!lastCnt && r.initiator === myId) { toast('不能反击自己打出的牌','err'); return; }
+  const tcard = cardOf(lastCnt ? lastCnt.card : r.card);
+  if (!counterFits(card, tcard)) { toast('属性不符：「'+card.name+'」无法反制「'+tcard.name+'」的效果','err'); return; }
+  const me = P(myId);
+  if (me.counters >= 2) { toast('本回合反击已达上限','err'); return; }
+  if (!HOST && NET.on) { sendAct('counter', { inst: selInst }); selInst = null; return; }
+rmHand(me, selInst); me.counters++;
+r.chain.push({card:selInst, by:myId, kind:'counter'});
+toast('反击发动！','gold');
+log('🛡 '+me.name+' 反击「'+card.name+'」'+(lastCnt?'（连锁反击「'+tcard.name+'」）':''), true);
+showCounterFX(card, me.name);
+runCounterText(myId, selInst, lastCnt ? lastCnt.by : r.initiator);
+  selInst = null;
+  aiReactToCounter();
+  if (S.resolve && !S.resolve.claimed) startResolveCountdown(30);
+  render();
+}
+function hBond() {
+  if (!S.resolve) return;
+  if (S.resolve.initiator === myId || S.resolve.claimed) return;
+  const played = cardOf(S.resolve.card);
+  if (played.type !== '角色牌') { toast('只能对角色牌收集羁绊','err'); return; }
+  const cands = P(myId).hand.filter(isBondCand);
+  if (cands.length === 0) { toast('没有共同羁绊的手牌','err'); return; }
+  mode = 'bond-hand'; bondSel = [];
+  setHint('点选共同羁绊手牌（可多选）→ 确认羁绊','gold');
+  render();
+}
+function hConfirmBond() {
+  if (bondSel.length < 1) { toast('至少选1张','err'); return; }
+  const me = P(myId);
+  const free = usable(me);
+  if (free < bondSel.length + 1) { toast('友情区空位不足','err'); return; }
+  if (!HOST && NET.on) { sendAct('claim', { ids: bondSel.slice() }); mode = null; bondSel = []; return; }
+  doClaim(myId, bondSel);
+  mode = null; bondSel = [];
+}
+function hDeclare() {
+  const me = P(myId);
+  if (me.declared) return;
+  if (zoneFv(me) < S.threshold) { toast('友情值尚未达标（'+zoneFv(me)+'/'+S.threshold+'）','err'); return; }
+  if (!HOST && NET.on) { sendAct('declare'); return; }
+  me.declared = true; me.declareTurn = S.turns;
+  toast('已宣告「交够了朋友」！维持一整轮即获胜','gold');
+  log('🌟 '+me.name+' 宣告亮眼！', true);
+  render();
+}
+function hDiscardConfirm() {
+  if (!S.pendingDiscard) return;
+  if (bondSel.length !== S.pendingDiscard.need) { toast('需选 '+S.pendingDiscard.need+' 张','err'); return; }
+  if (!HOST && NET.on) { sendAct('discard', { ids: bondSel.slice() }); mode = null; bondSel = []; return; }
+  const me = P(myId);
+  bondSel.forEach(inst => { rmHand(me, inst); S.discard.push(inst); });
+  log('你弃置了 '+bondSel.length+' 张手牌');
+  mode = null; bondSel = []; S.pendingDiscard = null;
+  finishTurn(myId);
+}
+
+// ============ 渲染 ============
+function render() {
+  if (!S) return;
+  document.getElementById('tb-th').textContent = '门槛 '+S.threshold;
+  document.getElementById('tb-deck').textContent = '牌堆 '+S.deck.length;
+  document.getElementById('tb-disc').textContent = '弃牌 '+S.discard.length;
+  document.getElementById('tb-round').textContent = '回合 '+(Math.floor(S.turns / Math.max(1,S.order.length))+1);
+  document.getElementById('deckN').textContent = S.deck.length+' 张';
+  document.getElementById('discN').textContent = S.discard.length+' 张';
+const db = document.getElementById('discBox');
+db.innerHTML = S.discard.length ? '<img src="'+cardOf(S.discard[S.discard.length-1]).img+'" style="width:100%;height:100%;object-fit:cover;object-position:top;border-radius:10px;opacity:.8;filter:grayscale(.4)">' : '';
+db.style.cursor = 'pointer';
+db.title = '点击查看弃牌区';
+db.onclick = openDiscardView;
+  renderOpponents(); renderMe(); renderHand(); renderRZone(); renderPList();
+  if (HOST && NET.on) publishState();
+}
+function renderOpponents() {
+  const box = document.getElementById('opponents');
+  box.innerHTML = '';
+  for (const pid of S.order.filter(id=>id!==myId)) {
+    const p = P(pid); if (!p) continue;
+    const isCur = cur() && cur().id === pid;
+    const targeting = mode==='fx-target';
+    const d = document.createElement('div');
+    d.className = 'opp'+(isCur?' cur':'')+(p.alive?'':' dead')+(targeting?' sel-tgt':'');
+    let slotsHtml = '';
+    p.slots.forEach((s,si) => {
+      slotsHtml += '<div class="slot'+(s.locked?' locked':'')+'">'+(s.inst&&s.faceUp?'<img src="'+cardOf(s.inst).img+'">':(s.inst?'<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:16px">🂠</div>':''))+'</div>';
+    });
+    d.innerHTML = '<div class="opp-head"><span style="font-size:20px">'+AVATARS[S.order.indexOf(pid)%8]+'</span><span class="nm">'+p.name+'</span>'+(p.ai?'<span class="tag-ai">AI</span>':'')+(p.declared?'<span class="tag-declare">亮眼!</span>':'')+(p.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+p.skip+'</span>':'')+'<span class="fv">❤'+zoneFv(p)+'</span></div>'
+      + '<div class="slots">'+slotsHtml+'</div>'
+      + '<div class="opp-foot"><span>✋'+p.hand.length+'</span><span>可用格 '+usable(p)+'</span></div>';
+    d.querySelectorAll('.slot').forEach((el, si) => {
+      el.onclick = () => {
+        const s = p.slots[si];
+        if (s.inst && s.faceUp) showDetail(cardOf(s.inst));
+      };
+    });
+    d.querySelector('.opp-head').style.cursor = 'pointer';
+    d.querySelector('.opp-head').onclick = () => { if (mode==='fx-target') { fxPickTarget(pid); return; } showDetail(null, p); };
+    box.appendChild(d);
+  }
+}
+function renderPList() {
+  const rows = document.getElementById('plistRows'); if (!rows || !S) return;
+  rows.innerHTML = '';
+  for (const pid of S.order) {
+    if (pid === myId) continue;
+    const p = P(pid); if (!p) continue;
+    const isCur = cur() && cur().id === pid;
+    const fv = zoneFv(p);
+    const full = fv >= S.threshold;
+    const d = document.createElement('div');
+    d.className = 'pl-row'+(isCur?' cur':'')+(p.alive?'':' dead')+(full?' full':'');
+    d.innerHTML = '<span style="font-size:18px">'+AVATARS[S.order.indexOf(pid)%8]+'</span>'
+      + '<div class="pl-main"><div class="pl-nm">'+esc(p.name)+(p.ai?' <span class="tag-ai">AI</span>':'')+(isCur?'<span class="pl-turn">▶ 行动中</span>':'')+(p.declared?' <span class="tag-declare">亮眼</span>':'')+'</div>'
+      + '<div class="pl-stats">✋ '+p.hand.length+' 张 · ❤ '+fv+' / '+S.threshold+'</div></div>'
+      + (full?'<div class="pl-hearts"><i style="left:2px">💗</i><i style="left:15px;animation-delay:.55s">💖</i><i style="left:28px;animation-delay:1.1s">💗</i></div>':'');
+    rows.appendChild(d);
+  }
+  if (!rows.children.length) rows.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.4)">暂无其他玩家</div>';
+}
+function renderMe() {
+  const me = P(myId); if (!me) return;
+  const el = document.getElementById('mePanel');
+  const isMy = cur() && cur().id === myId;
+  let slotsHtml = '';
+  me.slots.forEach((s,si) => {
+    const sel = mode==='place' && !s.inst && !s.locked;
+    slotsHtml += '<div class="slot'+(s.locked?' locked':'')+(sel?' sel':'')+'" data-slot="'+si+'">'+(s.inst&&s.faceUp?'<img src="'+cardOf(s.inst).img+'">':(s.inst&&s.faceUp===false?'':''))+'</div>';
+  });
+  el.innerHTML = '<div class="me-head" id="meHead"><span style="font-size:24px">'+AVATARS[S.order.indexOf(myId)%8]+'</span><span class="nm">'+me.name+'（你）</span>'+(isMy&&S.phase==='action'?'<span class="my-turn">我的回合</span>':'')+(me.declared?'<span class="tag-declare">亮眼中</span>':'')+(me.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+me.skip+'</span>':'')
+    +(zoneFv(me)>=S.threshold && !me.declared && isMy ? '<button class="declare-btn" onclick="hDeclare()">交够了朋友！</button>':'')
+    +'<span class="fv">❤ '+zoneFv(me)+' / '+S.threshold+(S.tableBuns.length?' +🍞'+S.tableBuns.length:'')+'</span></div>'
+    +'<div class="slots">'+slotsHtml+'</div>'
+    +'<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px">友情区 · 可用格 '+usable(me)+'/7</div>';
+  const mh = el.querySelector('#meHead');
+  if (mh) { mh.style.cursor='pointer'; mh.onclick = () => { if (mode==='fx-target') { fxPickTarget(myId); return; } }; }
+  el.querySelectorAll('[data-slot]').forEach(elm => {
+    elm.onclick = () => onSlotClick(me, Number(elm.dataset.slot));
+  });
+}
+function renderHand() {
+  const me = P(myId); if (!me) return;
+  const row = document.getElementById('handRow');
+  row.innerHTML = '';
+  const n = me.hand.length, mid = (n-1)/2;
+  me.hand.forEach((inst, i) => {
+    const card = cardOf(inst);
+    const angle = (i-mid)*(n>5?4:7);
+    const lift = Math.abs(i-mid)*(n>5?2.5:4);
+    const w = document.createElement('div');
+const selected = selInst===inst || bondSel.includes(inst);
+const bc = (mode==='bond-hand' && isBondCand(inst)) || mode==='fx-hand';
+// 对方出牌结算窗口：可反击→红光，可凑羁绊→绿光
+let glowCls = '';
+const rr = S.resolve;
+if (rr && !rr.claimed && rr.kind !== 'bun' && mode !== 'bond-hand' && mode !== 'fx-hand' && !rr.chain.some(ch=>ch.kind==='bun')) {
+const lastCnt = (rr.chain.length && rr.chain[rr.chain.length-1].kind==='counter') ? rr.chain[rr.chain.length-1] : null;
+const canCnt = card.counter && P(myId).counters < 2 && (lastCnt
+  ? (lastCnt.by !== myId && counterFits(card, cardOf(lastCnt.card)))
+  : (rr.kind !== 'event' && rr.initiator !== myId && counterFits(card, cardOf(rr.card))));
+if (canCnt) glowCls = ' cntcand';
+else if (isBondCand(inst)) glowCls = ' bondglow';
+}
+w.className = 'hcard'+(selected?' sel':'')+(bc&&!selected?' bondcand':'')+(glowCls && !selected && !bc ? glowCls : '');
+    w.style.transform = 'rotate('+angle+'deg) translateY('+lift+'px)';
+    w.style.zIndex = 10+i;
+    const typeCls = card.type==='加帕里馒头'?'bun':(card.type==='事件牌'?'evt':'');
+    w.innerHTML = '<div class="hcard-inner"><img src="'+card.img+'" draggable="false">'
+      +'<div class="top-info"><span class="type-tag '+typeCls+'">'+(card.type==='角色牌'?'角色':card.type==='事件牌'?'事件':'馒头')+(card.attr?' '+({'林原':'🌿','沙漠':'🏜️','雪域':'❄️','海洋':'🌊'}[card.attr]||''):'')+'</span></div>'
+      +'<div class="bot-info"><span class="fv">❤'+card.fv+'</span><span class="lv">🍀'+card.lv+'</span></div></div>';
+    w.onclick = (e) => { e.stopPropagation(); onHandClick(inst); };
+    row.appendChild(w);
+  });
+  // 按钮区
+  const br = document.getElementById('btnRow');
+  br.innerHTML = '';
+  const isMy = cur() && cur().id === myId && me.alive;
+  if (S.phase==='draw' && isMy) br.appendChild(mkBtn('🎴 抽牌','draw',hDraw));
+  if (S.phase==='action' && isMy && selInst && !S.resolve) {
+    const card = cardOf(selInst);
+    if (card.type!=='加帕里馒头') br.appendChild(mkBtn('⚡ 打出','play',hPlay));
+    else br.appendChild(mkBtn('🍞 打出馒头','bun',hPlayBun));
+    br.appendChild(mkBtn('📥 放置友情区','place',hPlace));
+  }
+  if (S.phase==='action' && isMy && !S.resolve) br.appendChild(mkBtn('结束回合 →','end',hEndTurn));
+  if (S.resolve) {
+    const r = S.resolve;
+    if (r.initiator!==myId && !r.claimed && cardOf(r.card).type==='角色牌') br.appendChild(mkBtn('✨ 羁绊收集','bond',hBond));
+    if (r.kind!=='event' && r.kind!=='bun' && !r.claimed && !r.chain.some(ch=>ch.kind==='bun')) br.appendChild(mkBtn('🛡 反击'+(selInst?'「'+cardOf(selInst).name+'」':''),'counter',hCounter));
+    if (!r.claimed && selInst && cardOf(selInst).type==='加帕里馒头' && r.bunUsed<3) br.appendChild(mkBtn('🍞 截断连锁','bun',hPlayBun));
+    br.appendChild(mkBtn('⚡ 结算','settle',humanSettle));
+  }
+  if (mode==='bond-hand') {
+    const cf = mkBtn('确认羁绊（'+bondSel.length+'）','bond',hConfirmBond);
+    if (bondSel.length<1) cf.disabled = true;
+    br.appendChild(cf);
+    br.appendChild(mkBtn('取消','place',()=>{mode=null;bondSel=[];render();}));
+  }
+  if (mode==='discard-limit') {
+    const cf = mkBtn('确认弃置（'+bondSel.length+'/'+(S.pendingDiscard?S.pendingDiscard.need:0)+'）','counter',hDiscardConfirm);
+    if (!S.pendingDiscard || bondSel.length!==S.pendingDiscard.need) cf.disabled = true;
+    br.appendChild(cf);
+  }
+}
+function mkBtn(text, cls, fn) { const b = document.createElement('button'); b.className='gbtn '+cls; b.textContent = text; b.onclick = fn; return b; }
+function renderRZone() {
+  const el = document.getElementById('rzone');
+  if (HOST && fxAskTo && S) {
+    const w = P(fxAskTo.pid);
+    const cardName = PFX ? cardOf(PFX.ctx.played).name : '效果';
+    el.innerHTML = '<div style="color:#fbbf24;font-size:14px">⏳ 等待 '+esc(w?w.name:'玩家')+' 执行「'+esc(cardName)+'」效果…（限时45秒）</div><div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:4px">第 '+(Math.floor(S.turns/Math.max(1,S.order.length))+1)+' 轮</div>';
+    return;
+  }
+  if (!S.resolve) {
+    const c = cur();
+    let txt = '';
+    if (S.phase==='draw') txt = (c.id===myId && !c.ai) ? '轮到你抽牌' : c.name+' 正在抽牌…';
+    else if (S.phase==='action') txt = (c.id===myId && !c.ai) ? '你的行动阶段' : c.name+' 思考中…';
+    else if (S.phase==='discarding') txt = '请弃牌至7张';
+    el.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:14px">'+txt+'</div><div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:4px">第 '+(Math.floor(S.turns/Math.max(1,S.order.length))+1)+' 轮</div>';
+    return;
+  }
+  const r = S.resolve; const card = cardOf(r.card);
+  el.innerHTML = '<div class="rz-title">⚔ 结算中 · '+(r.kind==='event'?'事件牌':r.kind==='bun'?'馒头':'即时效果')+'</div><div class="rz-timer" id="rzTimer"></div>'
+    + '<div class="rz-card"><img src="'+card.img+'"></div>'
+    + '<div class="rz-info">发动者：'+P(r.initiator).name+(r.claimed?' <span style="color:#e879f9;font-weight:800">✨已被羁绊收集</span>':'')+'<br>'+(card.effect?'<span style="color:rgba(255,255,255,.55)">'+card.effect+'</span>':'')+(r.chain.length?'<br><span class="rz-chain">连锁 ×'+r.chain.length+'（后发先至）：'+r.chain.map(c=>(c.kind==='counter'?'🛡':'🍞')+'「'+cardOf(c.card).name+'」·'+P(c.by).name).join(' → ')+'</span>':'')+(r.initiator!==myId&&!r.claimed?'<br><span style="color:#fbbf24;font-size:11px">⏱ 倒计时内可选：🛡反击 / ✨凑羁绊 / ⚡直接结算</span>':'')+'</div>';
+  el.querySelector('.rz-card').onclick = () => showDetail(card);
+}
+
+// ============ 详情（左侧信息栏） ============
+let sideJustOpened = false;
+function showDetail(card, player) {
+if (!card && player) { closeDetail(); return; }
+const el = document.getElementById('sideInfo');
+el.innerHTML = '<div class="si-img"><img src="'+card.img+'"></div>'
++'<h3>'+card.name+'</h3>'
++'<div class="si-tags"><span>'+(card.type==='角色牌'?'角色':card.type==='事件牌'?'事件':'馒头')+'</span>'
++(card.race?'<span>'+card.race+'</span>':'')+(card.attr?'<span>'+card.attr+'</span>':'')
++'<span class="fv">❤友情值 '+card.fv+'</span><span class="lv">🍀幸运值 '+card.lv+'</span></div>'
++'<div class="si-sec"><div class="t">羁绊</div><div class="v">'+((card.bonds&&card.bonds.length)?card.bonds.join(' · '):'（无）')+'</div></div>'
++'<div class="si-sec"><div class="t">⚡ 即时效果</div><div class="v">'+(card.effect||'（无即时效果）')+'</div></div>'
++'<div class="si-sec counter"><div class="t">🛡 反击效果</div><div class="v">'+(card.counter||'（无反击效果）')+'</div></div>'
++'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:6px">点击空白处关闭</div>';
+el.classList.add('show');
+sideJustOpened = true;
+setTimeout(() => { sideJustOpened = false; }, 80);
+}
+function closeDetail() { document.getElementById('sideInfo').classList.remove('show'); }
+// 点击空白区域关闭信息栏
+document.addEventListener('click', e => {
+if (sideJustOpened) return;
+const si = document.getElementById('sideInfo');
+if (si.classList.contains('show') && !si.contains(e.target)) closeDetail();
+}, true);
+// ============ 弃牌区查看 ============
+function openDiscardView() {
+const box = document.getElementById('dvContent');
+box.innerHTML = '';
+if (!S.discard.length) box.innerHTML = '<div class="dv-empty">还没有牌进入弃牌区</div>';
+else {
+const g = document.createElement('div'); g.className = 'dv-grid';
+S.discard.slice().reverse().forEach(inst => {
+const img = document.createElement('img');
+img.src = cardOf(inst).img;
+img.onclick = (e) => { e.stopPropagation(); showDetail(cardOf(inst)); };
+g.appendChild(img);
+});
+box.appendChild(g);
+}
+document.getElementById('discardView').classList.add('show');
+}
+document.getElementById('discardView').addEventListener('click', e => { if (e.target.id === 'discardView') e.currentTarget.classList.remove('show'); });
+
+// ============ 特效 ============
+function fxLayer() { return document.getElementById('fx-layer'); }
+function showShuffle(done) {
+  if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'shuffle' } });
+  const l = fxLayer();
+  let cards = '';
+  for (let i=0;i<12;i++) cards += '<div style="position:absolute;width:60px;height:88px;border-radius:8px;border:2px solid rgba(251,191,36,.5);background:linear-gradient(135deg,#0f766e,#134e4a);animation:shuf'+(i%4)+' 1.6s ease-in-out '+(i*0.04)+'s"></div>';
+  l.innerHTML = '<div class="shuffle-overlay"><div class="shuffle-title">洗 牌</div>'+cards+'</div>'
+    + '<style>@keyframes shuf0{0%,100%{transform:translate(-120px,-40px) rotate(0)}50%{transform:translate(-260px,-120px) rotate(340deg)}}@keyframes shuf1{0%,100%{transform:translate(120px,-40px) rotate(0)}50%{transform:translate(260px,-100px) rotate(-340deg)}}@keyframes shuf2{0%,100%{transform:translate(-80px,80px) rotate(0)}50%{transform:translate(-200px,160px) rotate(-380deg)}}@keyframes shuf3{0%,100%{transform:translate(80px,80px) rotate(0)}50%{transform:translate(200px,150px) rotate(380deg)}}</style>';
+  setTimeout(() => { l.innerHTML = ''; done(); }, 1800);
+}
+function playDealAnims(anims, done) {
+  if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'deal', n: anims.length } });
+  let i = 0;
+  const step = () => {
+    if (i >= anims.length) { fxLayer().innerHTML = ''; done(); return; }
+    const a = anims[i++];
+    const isMe = a.to === myId;
+    const l = fxLayer();
+    l.innerHTML = '<div class="fly-card" style="--ty:'+(isMe?'220px':'-160px')+'"></div>';
+    setTimeout(step, 90);
+  };
+  step();
+}
+function flyCard(dir, done) {
+  const l = fxLayer();
+  l.innerHTML = '<div class="fly-card" style="--ty:'+(dir==='me'?'220px':'-160px')+'"></div>';
+  setTimeout(() => { l.innerHTML = ''; done && done(); }, 420);
+}
+function showPlayFX(card, name, done) {
+  if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'play', card: card.id, name } });
+  const l = fxLayer();
+  l.innerHTML = '<div class="play-overlay"><div class="play-big"><img src="'+card.img+'"></div><div class="play-name">'+name+' 打出「'+card.name+'」</div></div>';
+  setTimeout(() => { l.innerHTML = ''; done(); }, 1500);
+}
+function showBondFX(insts, name, done) {
+if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'bond', cards: insts.map(i=>cardOf(i).id), name } });
+const l = fxLayer();
+l.innerHTML = '<div class="bond-overlay"><div class="bond-title">羁 绊 达 成</div><div class="bond-cards">'+insts.map((inst,i)=>'<img src="'+cardOf(inst).img+'" style="animation-delay:'+(i*0.12)+'s">').join('')+'</div><div style="color:#fde68a;font-weight:800">'+name+'</div></div>';
+setTimeout(() => { l.innerHTML = ''; done(); }, 1900);
+}
+function showCounterFX(card, name) {
+if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'counter', card: card.id, name } });
+const l = fxLayer();
+l.innerHTML = '<div class="counter-overlay"><div class="counter-title">🛡 反 击</div><div class="counter-big"><img src="'+card.img+'"></div><div class="counter-name">'+name+' 发动「'+card.name+'」</div></div>';
+setTimeout(() => { l.innerHTML = ''; }, 1800);
+}
+
+// ============ 提示 ============
+function setHint(text, gold) { const h = document.getElementById('hint'); h.textContent = text||''; h.className = 'hint'+(gold?' gold':''); }
+
+// ============ 房主核心：状态快照（手牌隐私）→ 定向发送 ============
+function publishState() {
+  if (!HOST || !NET.on || !S) return;
+  if (pubT) return;
+  pubT = setTimeout(() => { pubT = null; doPublish(); }, 60);
+}
+function doPublish() {
+  if (!HOST || !NET.on || !S) return;
+  for (const m of NET.members) {
+    const p = P(m.pid);
+    if (!p) continue;
+    const snap = mkSnapshot(m.pid);
+    netSend({ t:'gto', to: m.pid, d:{ k:'snap', s: snap } });
+  }
+}
+function mkSnapshot(viewerPid) {
+  const pub = {
+    threshold: S.threshold, order: S.order, turnIdx: S.turnIdx, phase: S.phase,
+    deckN: S.deck.length, discard: S.discard.slice(), actionUsed: S.actionUsed, eventUsed: S.eventUsed,
+    resolve: S.resolve ? { kind: S.resolve.kind, card: cardOf(S.resolve.card).id, initiator: S.resolve.initiator, chain: (S.resolve.chain||[]).map(ch=>({card: cardOf(ch.card).id, by: ch.by, kind: ch.kind})), bunUsed: S.resolve.bunUsed, claimed: S.resolve.claimed } : null,
+    turns: S.turns, winner: S.winner ? { id: S.winner, name: P(S.winner).name } : null,
+    roundNo: S.roundNo, tableBuns: S.tableBuns.slice(), tableBunN: S.tableBuns.length,
+    partner: S.partner, rzLeft, pendingDiscard: S.pendingDiscard && S.pendingDiscard.pid === viewerPid ? { need: S.pendingDiscard.need } : null,
+    logArr: (S.logArr||[]).slice(-9),
+    players: S.players.map(p => ({
+      id: p.id, name: p.name, ai: p.ai, alive: p.alive, declared: p.declared, declareTurn: p.declareTurn,
+      hand: p.id === viewerPid ? p.hand.map(x => cardOf(x).id) : p.hand.map(() => 0),
+      handN: p.hand.length, counters: p.counters,
+      slots: p.slots.map(s => ({ inst: s.inst ? cardOf(s.inst).id : null, faceUp: s.faceUp, locked: s.locked, bonus: s.bonus||0 })),
+      skip: p.skip, fv: zoneFv(p)
+    }))
+  };
+  return pub;
+}
+// 客户端发来的实例 id 可能是快照重建的 "id#c"，映射回真实实例（同 cid 逐个消费）
+function normInsts(p, arr) {
+  const out = []; const pool = p.hand.slice();
+  for (const x of (arr||[])) {
+    if (pool.includes(x)) { out.push(x); pool.splice(pool.indexOf(x), 1); }
+    else if (typeof x === 'string' && /#/.test(x)) {
+      const n = Number(String(x).split('#')[0]);
+      const k = pool.findIndex(h => cid(h) === n);
+      if (k > -1) { out.push(pool[k]); pool.splice(k, 1); }
+    }
+  }
+  return out;
+}
+// ============ 房主：远程操作裁决 ============
+function applyAct(from, a, v) {
+  if (!S || S.winner) return;
+  const p = P(from); if (!p || p.ai) return;
+  if (S.pendingDiscard && a !== 'discard') return; // 等弃牌时只接受 discard
+  switch (a) {
+    case 'draw': if (S.phase==='draw' && cur().id===from && !S.resolve) doDraw(from); break;
+    case 'endTurn': if (S.phase==='action' && cur().id===from && !S.resolve) endTurn(from); break;
+    case 'play': {
+      if (S.phase!=='action' || cur().id!==from || S.resolve) break;
+      const inst = normInsts(p, [v.inst])[0];
+      if (!inst) break;
+      const card = cardOf(inst);
+      if (card.type==='加帕里馒头') break;
+      if (p.flags.mark.lockHand5 && p.hand.length >= 5) break;
+      if (p.flags.restrict.noInstant && card.type==='角色牌') break;
+      if (S.actionUsed && !p.extraPlay) break;
+      if (p.extraPlay > 0) p.extraPlay--; else S.actionUsed = true;
+      if (card.type==='事件牌') S.eventUsed = true;
+      playCard(from, inst);
+      break;
+    }
+case 'bun': {
+const cutting = !!S.resolve;
+if (!cutting && cur().id!==from) break;
+if (cutting && (S.resolve.claimed || S.resolve.bunUsed >= 3)) break;
+const inst = normInsts(p, [v.inst])[0];
+if (!inst) break;
+if (!cutting && (S.phase!=='action' || S.actionUsed)) break;
+if (!cutting && p.flags.mark.lockHand5 && p.hand.length >= 5) break;
+if (!cutting) { if (p.extraPlay > 0) p.extraPlay--; else S.actionUsed = true; }
+playBun(from, inst);
+break;
+    }
+    case 'place': {
+      if (S.phase!=='action' || cur().id!==from || S.resolve) break;
+      const inst = normInsts(p, [v.inst])[0];
+      if (!inst) break;
+      if (!isSoloCard(cardOf(inst))) break;
+      if (cardOf(inst).type==='角色牌') S.actionUsed = true;
+      place(from, inst, v.slot, true);
+      break;
+    }
+    case 'counter': {
+      const r = S.resolve; if (!r || r.kind==='event' || r.kind==='bun' || r.claimed) break;
+      if (r.chain.some(ch=>ch.kind==='bun')) { netSend({ t:'gto', to: from, d:{ k:'evt', e:'toast', text:'连锁已被馒头截断，无法再反击', g:'err' } }); break; }
+      const inst = normInsts(p, [v.inst])[0];
+      if (!inst) break;
+      const card = cardOf(inst);
+      if (!card.counter) break;
+      const lastCnt = (r.chain.length && r.chain[r.chain.length-1].kind==='counter') ? r.chain[r.chain.length-1] : null;
+      if (lastCnt && lastCnt.by === from) { netSend({ t:'gto', to: from, d:{ k:'evt', e:'toast', text:'不能反击自己的反击', g:'err' } }); break; }
+      if (!lastCnt && r.initiator === from) break;
+      const tcardC = cardOf(lastCnt ? lastCnt.card : r.card);
+      if (!counterFits(card, tcardC)) { netSend({ t:'gto', to: from, d:{ k:'evt', e:'toast', text:'属性不符：「'+card.name+'」无法反制「'+tcardC.name+'」的效果', g:'err' } }); log('🛡 '+p.name+' 想用「'+card.name+'」反击，但属性不符（'+card.counter+'），已拒绝'); break; }
+      if (p.counters >= 2) break;
+      rmHand(p, inst); p.counters++;
+      r.chain.push({card:inst, by:from, kind:'counter'});
+      toast(p.name+' 发动反击「'+card.name+'」！', 'err');
+      log('🛡 '+p.name+' 反击「'+card.name+'」'+(lastCnt?'（连锁反击「'+tcardC.name+'」）':''), true);
+      showCounterFX(card, p.name);
+      runCounterText(from, inst, lastCnt ? lastCnt.by : r.initiator);
+      aiReactToCounter();
+      if (S.resolve && !S.resolve.claimed) startResolveCountdown(30);
+      render(); publishState();
+      break;
+    }
+    case 'claim': {
+      const r = S.resolve; if (!r || r.claimed) break;
+      if (r.initiator === from) break;
+      if (cardOf(r.card).type !== '角色牌') break;
+      const ids = normInsts(p, v.ids);
+      if (!ids.length) break;
+      if (usable(p) < ids.length + 1) break;
+      doClaim(from, ids);
+      break;
+    }
+    case 'settle': {
+      const r = S.resolve; if (!r || r.claimed) break;
+      startEffect();
+      break;
+    }
+    case 'declare': {
+      if (p.declared || cur().id!==from) break;
+      if (zoneFv(p) < S.threshold) break;
+      p.declared = true; p.declareTurn = S.turns;
+      toast('🌟 '+p.name+' 宣告「交够了朋友」！','gold');
+      log('🌟 '+p.name+' 宣告亮眼', true);
+      render(); publishState();
+      break;
+    }
+    case 'discard': {
+      if (!S.pendingDiscard || S.pendingDiscard.pid !== from) break;
+      const ids = normInsts(p, v.ids);
+      if (ids.length !== S.pendingDiscard.need) break;
+      ids.forEach(inst => { rmHand(p, inst); S.discard.push(inst); });
+      log(p.name+' 弃置了 '+ids.length+' 张手牌');
+      S.pendingDiscard = null;
+      finishTurn(from);
+      break;
+    }
+    case 'fx': {
+      if (fxAskTo && fxAskTo.pid === from) applyFxAnswer(v);
+      break;
+    }
+  }
+}
+// ============ 房主：成员掉线 → AI 接管 ============
+function syncAiFlags() {
+  if (!S) return;
+  for (const m of NET.members) {
+    const p = P(m.pid);
+    if (!p) continue;
+    const off = !!m.offline;
+    if (off && !p.ai) { p.ai = true; log('⚠ '+p.name+' 掉线，AI 已接管'); }
+    else if (!off && p.ai) { p.ai = false; log('✅ '+p.name+' 已重新连接'); }
+  }
+}
+function onMemberLeft(pid) {
+  const p = P(pid);
+  if (p && !p.ai) { p.ai = true; log('⚠ '+p.name+' 掉线，AI 已接管'); }
+  // 更新大厅成员状态
+  const m = NET.members.find(x => x.pid === pid);
+  if (m) m.offline = true;
+  renderMemberList();
+  render(); publishState();
+}
+function showHostLost() {
+  const ov = document.getElementById('winOverlay');
+  if (!ov) return;
+  ov.innerHTML = '<div class="win-emoji">💔</div><div class="win-name">连接中断</div><div class="win-sub">房主已离线，本局无法继续</div><button class="win-btn" onclick="location.reload()">返回大厅</button>';
+  ov.classList.add('show');
+}
+// ============ 客户端：应用快照 ============
+function applySnap(s) {
+  if (HOST) return;
+  if (!s) return;
+  myId = NET.pid;
+  if (!S || S.players.length !== s.players.length) {
+    S = {
+      players: s.players.map(p => ({ id: p.id, name: p.name, ai: p.ai, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} })),
+      order: s.order.slice(), turnIdx: 0, phase: 'draw', deck: [], discard: [], actionUsed: false, eventUsed: false,
+      resolve: null, threshold: s.threshold, turns: 0, winner: null,
+      roundNo: 0, gflags: {}, tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: []
+    };
+    S.players.forEach((p,i) => { p.slots = s.players[i].slots.map(x => ({inst: null, faceUp: x.faceUp, locked: x.locked})); });
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('game').style.display = 'block';
+  }
+  S.threshold = s.threshold; S.order = s.order.slice(); S.turnIdx = s.turnIdx; S.phase = s.phase;
+  S.deck = Array(s.deckN).fill(0);
+  S.discard = s.discard.slice();
+  S.actionUsed = s.actionUsed; S.eventUsed = s.eventUsed;
+  S.resolve = s.resolve ? { kind: s.resolve.kind, card: s.resolve.card + '#c', initiator: s.resolve.initiator, chain: (s.resolve.chain||[]).map(ch=>({card: ch.card + '#c', by: ch.by, kind: ch.kind})), bunUsed: s.resolve.bunUsed, claimed: s.resolve.claimed } : null;
+  S.turns = s.turns; S.winner = s.winner ? s.winner.id : null;
+  S.roundNo = s.roundNo; S.tableBuns = s.tableBuns.slice();
+  S.partner = s.partner;
+  S.pendingDiscard = s.pendingDiscard ? { need: s.pendingDiscard.need, pid: myId } : null;
+  S.logArr = (s.logArr||[]).slice();
+  // 玩家字段
+  s.players.forEach((sp, i) => {
+    const p = S.players.find(x => x.id === sp.id) || S.players[i];
+    p.name = sp.name; p.ai = sp.ai; p.alive = sp.alive; p.declared = sp.declared; p.declareTurn = sp.declareTurn;
+    p.hand = sp.hand.map(x => x === 0 ? 'bk#i' : x + '#c');
+    p.counters = sp.counters; p.skip = sp.skip;
+    p.slots = sp.slots.map(x => ({ inst: x.inst != null ? x.inst + '#c' : null, faceUp: x.faceUp, locked: x.locked, bonus: x.bonus||0 }));
+  });
+  // 日志框同步
+  const lb = document.getElementById('logbox');
+  lb.innerHTML = '';
+  (S.logArr||[]).forEach(l => { const d = document.createElement('div'); if (l.hl) d.className='hl'; d.textContent = l.text; lb.appendChild(d); });
+  // 本地倒计时刷UI
+  if (s.rzLeft > 0 && !rzLocal) {
+    rzLocal = setInterval(() => { if (!S.resolve) { clearInterval(rzLocal); rzLocal = null; updateRzTimer(0); return; } }, 1000);
+  }
+  updateRzTimer(s.rzLeft);
+  // 询问中的效果若已被处理，关闭本地弹窗
+  if (fxAskStep && !s.rzLeft && !S.resolve) endClientFx();
+  // 弃牌模式恢复
+  if (S.pendingDiscard && mode !== 'discard-limit') { mode = 'discard-limit'; bondSel = []; }
+  if (!S.pendingDiscard && mode === 'discard-limit') { mode = null; bondSel = []; }
+  // 快照重建手牌后，清理已失效的选中项
+  if ((mode === 'discard-limit' || mode === 'bond-hand' || mode === 'fx-hand') && P(myId)) bondSel = bondSel.filter(x => P(myId).hand.includes(x));
+  render();
+  if (S.winner) {
+    const w = S.players.find(p => p.id === S.winner);
+    const ov = document.getElementById('winOverlay');
+    if (w && ov && !ov.classList.contains('show')) {
+      ov.innerHTML = '<div class="win-emoji">🏆</div><div class="win-name">'+w.name+'</div><div class="win-sub">交够了朋友，获得胜利！</div><button class="win-btn" onclick="location.reload()">返回大厅 · 再开一局</button>'
+        + Array.from({length:30},(_,i)=>'<div class="confetti" style="left:'+(i*13%100)+'%;animation-delay:'+(i%8)*0.25+'s;animation-duration:'+(2+i%3)+'s">'+['🎉','🎊','✨','🐾','🌟'][i%5]+'</div>').join('');
+      ov.classList.add('show');
+    }
+  }
+}
+
+// ============ 菜单绑定（联机） ============
+const _savedNick = localStorage.getItem('kp_nick');
+if (_savedNick) document.getElementById('nick').value = _savedNick;
+const _savedSrv = localStorage.getItem('kp_srv');
+if (_savedSrv) document.getElementById('srvUrl').value = _savedSrv;
+document.getElementById('nick').addEventListener('change', e => localStorage.setItem('kp_nick', e.target.value));
+document.getElementById('srvUrl').addEventListener('change', e => localStorage.setItem('kp_srv', e.target.value));
+document.getElementById('createBtn').onclick = () => {
+  connTip(''); const nick = getNick();
+  netConnect(() => {
+    HOST = true;
+    netSend({ t:'create', name: nick });
+  }, msg => connTip(msg));
+};
+document.getElementById('joinBtn').onclick = () => {
+  connTip('');
+  const code = document.getElementById('roomCode').value.trim().toUpperCase();
+  if (code.length !== 4) { connTip('请输入4位房间码'); return; }
+  const nick = getNick();
+  netConnect(() => {
+    const tok = localStorage.getItem('kp_tok_'+code) || '';
+    netSend({ t:'join', room: code, name: nick, token: tok });
+  }, msg => connTip(msg));
+};
+document.getElementById('startBtn').onclick = () => {
+  if (!HOST || NET.started) return;
+  netSend({ t:'start' });
+  startGameMp(NET.members);
+};
+document.getElementById('btnMenu').onclick = () => {
+  if (confirm('确定离开？离开后当前对局将丢失（房主离开会导致对局终止）')) { NET.quiet = true; location.reload(); }
+};
+</script>
+</body>
+</html>

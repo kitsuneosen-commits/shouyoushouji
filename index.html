@@ -321,7 +321,7 @@ E(271,{steps:c=>[['t']],run:(a,c)=>{a.zoneDiscardR(c.t);}});
 E(272,{run:(a,c)=>{a.skip(c.actor,1);a.protect(c.actor,'all',1);a.note('出局1轮且免疫所有效果');}});
 E(273,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).some(x=>x==='沙漠兽类'));if(ts.length){ts.forEach(p=>a.discardR(p.id,2));}else a.note('本轮无人打出沙漠兽族牌，无效果');}});
 E(274,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.discardC(c.actor,c.h);a.draw(c.t,1);}});
-E(275,{run:(a,c)=>{a.reclaim(5);a.note('已回收弃牌区5张，请弃3张手牌');}});
+E(275,{run:(a,c)=>{a.reclaim(5);a.pending(c.actor,3);}});
 E(276,{run:(a,c)=>{a.draw(c.actor,1);}});
 E(277,{run:(a,c)=>{const n=a.discardedName('圣诞快乐');a.draw(c.actor,1+n);a.note('弃牌区圣诞快乐×'+n);}});
 E(278,{run:(a,c)=>{a.draw(c.actor,3);a.skip(c.actor,1);}});
@@ -487,21 +487,59 @@ __w.EFFECTS.hasSolo = hasSolo;
 const CM = {}; CARDS.forEach(c => CM[c.id] = c);
 const cid = inst => Number(String(inst).split('#')[0]);
 const cardOf = inst => CM[cid(inst)] || { id:0, name:'？', type:'角色牌', race:'', attr:'', fv:0, lv:0, bonds:[], effect:'', counter:'' };
-// 反击条件匹配：带属性/种族限制的反击牌只能反制符合条件的角色效果（如埃及胡狼只能无效沙漠属性角色效果）
-function counterFits(cc, tc) {
+// 反击条件匹配：严格分类——反击牌只能反制其文本声明的情况
+function counterTrigger(txt) {
+const t = String(txt||'').replace(/\s/g,'');
+if (!t) return null;
+if (/即时效果(?:发动)?(?:时)?/.test(t) && /无效|阻止/.test(t)) return 'instant';
+if (/反击效果(?:发动|使用)?(?:时|是)/.test(t) && /无效|阻止/.test(t)) return 'counter';
+if (/抽(?:出)?3张以上|抽3张以上/.test(t)) return 'draw3';
+if (/抽牌效果/.test(t)) return 'draw';
+if (/从弃牌区取牌|从弃牌区.*?(加入手牌|抽取|抽\d+张)/.test(t)) return 'discardPick';
+if (/偷取.*?手牌/.test(t) && /阻止|无效|出现|效果/.test(t)) return 'steal';
+if (/弃牌效果/.test(t)) return 'discard';
+if (/任意效果发动|当任意效果/.test(t)) return 'any';
+return null;
+}
+function effectKindOf(tc) {
+if (!tc) return '';
+const eff = String(tc.effect||'').replace(/\s/g,'');
+if (/偷取/.test(eff)) return 'steal';
+if (/弃牌区/.test(eff) && /加入手牌|抽(?:出|取)?/.test(eff)) return 'discardPick';
+if (/从牌堆抽|抽(?:出)?\d+张/.test(eff)) return 'draw';
+if (/丢(?:弃)?/.test(eff) && /张/.test(eff)) return 'discard';
+return 'instant';
+}
+function drawNOf(tc) {
+const eff = String((tc&&tc.effect)||'').replace(/\s/g,'');
+let n = 0, m; const re = /抽(?:出)?(\d+)张/g;
+while ((m = re.exec(eff))) n = Math.max(n, +m[1]);
+return n;
+}
+function counterFits(cc, tc, chainCnt) {
   if (!cc || !cc.counter) return false;
   const txt = String(cc.counter).replace(/\s/g,'');
   const tAttr = (tc && tc.attr) || '', tRace = (tc && tc.race) || '';
   // 属性·种族组合，如「雪域·兽族效果发动时」
   const m2 = txt.match(/(雪域|沙漠|林原|海洋)·(兽族|鸟族)效果发动/);
   if (m2) return tAttr === m2[1] && tRace.startsWith(m2[2].charAt(0));
-  // 属性限制，如「沙漠属性角色效果发动时」「林原角色牌效果发动时」「雪域或林原角色牌效果发动时」「任意玩家发动雪域属性角色牌效果时」
+  // 属性限制，如「沙漠属性角色效果发动时」
   const m1 = txt.match(/(雪域|沙漠|林原|海洋)((?:或|、)(?:雪域|沙漠|林原|海洋))*(?:属性)?角色牌?效果(?:发动)?时?/);
   if (m1) return m1[0].split(/(?:属性)?角色牌?效果(?:发动)?时?/)[0].split(/或|、/).indexOf(tAttr) > -1;
-  // 种族限制，如「兽族角色牌效果发动时」「鸟族角色牌效果发动时」
+  // 种族限制，如「兽族角色牌效果发动时」
   const m3 = txt.match(/(兽族|鸟族)角色牌?效果发动/);
   if (m3) return tRace.startsWith(m3[1].charAt(0));
-  return true;
+  const trig = counterTrigger(txt);
+  if (!trig) return false;
+  if (trig === 'counter') return !!chainCnt;
+  if (trig === 'any' || trig === 'instant') return true;
+  const ek = effectKindOf(tc);
+  if (trig === 'draw') return ek === 'draw';
+  if (trig === 'draw3') return ek === 'draw' && drawNOf(tc) >= 3;
+  if (trig === 'discardPick') return ek === 'discardPick';
+  if (trig === 'steal') return ek === 'steal';
+  if (trig === 'discard') return ek === 'discard';
+  return false;
 }
 const AVATARS = ['🐱','🦊','🐺','🦉','🐬','🦌','🐻','🦜'];
 const AI_NAMES = ['薮猫小翼','浣熊阿棕','企鹅波波','狐狸雪雪','河狸小木','水獭泡泡'];
@@ -544,20 +582,50 @@ function netConnect(done, fail) {
 function netSend(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
 function sendAct(a, v) { netSend({ t:'act', a, v: v||{} }); }
 function connTip(msg) { const el = document.getElementById('connTip'); if (el) el.textContent = msg||''; }
-// ===== 账号身份（KC-6 游戏站联动：KC-6 打开时自动注入用户信息；否则用本设备指纹） =====
+// ===== 账号身份（KC-6 游戏站联动：从游戏站进入时自动注入用户信息；否则用本设备指纹） =====
 const KC6 = {
-  getUser() { // 预留入口：window.KC6.getUser() 或 URL 参数 ?kuid=..&kname=..
+  BASE: 'https://kc6-game-site.netlify.app',
+  token: '', uid: '', gid: '', name: '', avatar: '',
+  init() {
     try {
-      if (window.KC6 && typeof window.KC6.getUser === 'function') {
-        const u = window.KC6.getUser();
-        if (u && u.uid) return { uid: 'kc6:' + String(u.uid), name: u.name || '', avatar: u.avatar || '' };
-      }
       const q = new URLSearchParams(location.search);
-      if (q.get('kuid')) return { uid: 'kc6:' + String(q.get('kuid')).slice(0, 40), name: q.get('kname') || '', avatar: '' };
+      const apiOverride = q.get('api');
+      if (apiOverride && /^https?:\/\//.test(apiOverride)) this.BASE = apiOverride.replace(/\/$/, '');
+      this.token = (q.get('kc6_token') || '').slice(0, 300);
+      this.uid = (q.get('kc6_uid') || q.get('kuid') || '').slice(0, 40);
+      this.name = (q.get('kc6_name') || q.get('kname') || '').slice(0, 20);
+      this.gid = (q.get('kc6_gid') || '').slice(0, 10);
     } catch(_) {}
-    return null;
+  },
+  getUser() {
+    if (!this.uid) return null;
+    return { uid: 'kc6:' + this.uid, name: this.name, avatar: this.avatar, gid: this.gid, token: this.token };
+  },
+  // 从 KC-6 拉取最新昵称与头像（仅平台进入时有 token）
+  fetchMe(cb) {
+    if (!this.token) { cb && cb(null); return; }
+    fetch(this.BASE + '/api/users/me', { headers: { 'Authorization': 'Bearer ' + this.token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(u => {
+        if (u && u.id) {
+          if (u.nickname) this.name = String(u.nickname).slice(0, 10);
+          if (u.avatar) this.avatar = String(u.avatar).slice(0, 500);
+          cb && cb(u);
+        } else cb && cb(null);
+      })
+      .catch(() => cb && cb(null));
+  },
+  // 局末上报名绩到 KC-6 游戏站排行榜：mode='card'，win=1/0，score=积分
+  report(score, win, character) {
+    if (!this.token || !this.gid) return Promise.resolve(false);
+    return fetch(this.BASE + '/api/games/' + this.gid + '/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + this.token },
+      body: JSON.stringify({ score: Math.max(0, Math.floor(score)), win: !!win, mode: 'card', character: character || '', difficulty: 'Normal' })
+    }).then(r => r.ok).catch(() => false);
   }
 };
+KC6.init();
 function myUid() {
   const u = KC6.getUser();
   if (u) return u.uid;
@@ -567,10 +635,18 @@ function myUid() {
   return uid;
 }
 function getNick() { const n = document.getElementById('nick').value.trim() || ('朋友'+Math.floor(Math.random()*90+10)); localStorage.setItem('kp_nick', n); return n; }
+// KC-6 用户头像渲染：有 av 字段时返回 img HTML，否则 null（调用方回退 emoji）
+function avHtml(p, size) {
+  if (p && p.av && /^data:image|^https?:\/\//.test(String(p.av))) return '<img src="'+esc(p.av)+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.35);flex-shrink:0">';
+  return null;
+}
 function renderMemberList() {
   const ml = document.getElementById('memberList');
   if (!ml) return;
-  ml.innerHTML = NET.members.map(x => '<div><span>'+(x.pid===NET.pid?'👤':'👥')+' '+esc(x.name)+'</span><span>'+(x.pid===NET.hostPid?'<span class="ml-host">房主</span>':'')+(x.offline?'<span class="ml-off"> · 掉线</span>':'')+'</span></div>').join('');
+  ml.innerHTML = NET.members.map(x => {
+    const av = avHtml({ id: x.pid, av: x.av }, 20) || '<span>'+(x.pid===NET.pid?'👤':'👥')+'</span>';
+    return '<div><span style="display:flex;align-items:center;gap:6px">'+av+esc(x.name)+'</span><span>'+(x.pid===NET.hostPid?'<span class="ml-host">房主</span>':'')+(x.offline?'<span class="ml-off"> · 掉线</span>':'')+'</span></div>';
+  }).join('');
   const sb = document.getElementById('startBtn');
   const isHost = NET.pid === NET.hostPid;
   sb.style.display = isHost ? 'block' : 'none';
@@ -645,7 +721,7 @@ function toast(text, kind) {
 function startGameMp(members) {
   myId = NET.pid;
   NET.started = true;
-  const players = members.map(x => ({ id: x.pid, name: x.name, ai: !!x.offline, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} }));
+  const players = members.map(x => ({ id: x.pid, name: x.name, av: x.av || '', ai: !!x.offline, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} }));
   // 牌库
   const deck = []; let seq = 0;
   CARDS.forEach(c => {
@@ -870,7 +946,7 @@ r.chain.push({card:cInst, by:ai.id, kind:'counter'});
 toast(ai.name+' 发动反击「'+cardOf(cInst).name+'」！', 'err');
 log('🛡 '+ai.name+' 反击「'+cardOf(cInst).name+'」', true);
 showCounterFX(cardOf(cInst), ai.name);
-runCounterText(ai.id, cInst, r.initiator);
+runCounterText(ai.id, cInst, r.initiator, card);
       }
     }
   }
@@ -891,29 +967,36 @@ function aiReactToCounter() {
     for (const ai of S.players.filter(p=>p.ai && p.alive && p.id!==lastCnt.by)) {
       if (!S.resolve || S.resolve.claimed) break;
       if (Math.random() < 0.2 && ai.counters < 2) {
-        const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), lastCard));
+        const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), lastCard, true));
         if (cIdx > -1) {
           const cInst = ai.hand[cIdx]; rmHand(ai, cInst); ai.counters++;
           r.chain.push({card:cInst, by:ai.id, kind:'counter'});
           toast(ai.name+' 连锁反击「'+cardOf(cInst).name+'」！', 'err');
           log('🛡 '+ai.name+' 连锁反击「'+cardOf(cInst).name+'」', true);
           showCounterFX(cardOf(cInst), ai.name);
-          runCounterText(ai.id, cInst, lastCnt.by);
+          runCounterText(ai.id, cInst, lastCnt.by, lastCard);
           reacted = true;
         }
       }
     }
   }
 }
-// 反击文本轻量执行（数字版适配）
-function runCounterText(pid, cInst, targetId) {
-  const card = cardOf(cInst); const txt = card.counter || '';
-  const me = P(pid); const t = P(targetId);
-  if (/自己抽(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n;i++){const g=S.deck.pop(); if(g) me.hand.push(g);} log('🛡 反击结算：'+me.name+' 抽了'+n+'张'); }
-  else if (/(?:对方|丢弃对方|对方丢弃) (\d+)张|对方丢弃(\d+)张/.test(txt)) { const n=+(RegExp.$1||RegExp.$2); for(let i=0;i<n&&t.hand.length;i++) S.discard.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); log('🛡 反击结算：'+t.name+' 被弃置'+n+'张'); }
-  else if (/偷取对方(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n&&t.hand.length;i++) me.hand.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); log('🛡 反击结算：'+me.name+' 偷取'+n+'张'); }
-  else log('🛡 反击文本：'+txt);
-  render();
+// 反击文本实际执行（无效化由连锁后发先至处理，这里执行反击方收益）
+function runCounterText(pid, cInst, targetId, tc) {
+const card = cardOf(cInst); const txt = (card.counter||'').replace(/\s/g,'');
+const me = P(pid); const t = P(targetId);
+const takeDiscard = (n) => { let got=0; for(let i=0;i<n&&S.discard.length;i++){ me.hand.push(S.discard.pop()); got++; } if(got) log('🛡 反击结算：'+me.name+' 从弃牌区回收 '+got+' 张'); };
+const tDiscard = (n) => { let got=0; for(let i=0;i<n&&t.hand.length;i++){ S.discard.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); got++; } if(got) log('🛡 反击结算：'+t.name+' 被弃置 '+got+' 张'); };
+if (/自己抽(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n;i++){const g=S.deck.pop(); if(g) me.hand.push(g);} log('🛡 反击结算：'+me.name+' 抽了'+n+'张'); }
+else if (/对方丢(?:弃)?(\d+)张/.test(txt)) { tDiscard(+RegExp.$1); }
+else if (/偷取对方(\d+)张/.test(txt)) { const n=+RegExp.$1; let got=0; for(let i=0;i<n&&t.hand.length;i++){ me.hand.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); got++; } log('🛡 反击结算：'+me.name+' 偷取'+got+'张'); }
+else if (/从弃牌区随机抽(?:取)?(\d+)张/.test(txt)) { const n=+RegExp.$1; let got=0; for(let i=0;i<n&&S.discard.length;i++){ const idx=Math.floor(Math.random()*S.discard.length); me.hand.push(S.discard.splice(idx,1)[0]); got++; } log('🛡 反击结算：'+me.name+' 从弃牌区随机回收 '+got+' 张'); }
+else if (/弃牌区每有1张【(.+?)】(?:对方|该玩家)丢(\d+)张/.test(txt)) { const nm=RegExp.$1, per=+RegExp.$2; const cnt=S.discard.filter(i=>cardOf(i).name===nm).length; if(cnt) tDiscard(cnt*per); else log('🛡 反击结算：弃牌区没有【'+nm+'】，无额外效果'); }
+else if (/那些牌加入(?:自己)?手牌/.test(txt)) { const ek = effectKindOf(tc||{}); if (ek==='steal' && t && t.hand.length) { me.hand.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); log('🛡 反击结算：'+me.name+' 截下了被偷的牌'); } else takeDiscard(2); }
+else if (/自己抽出丢弃数量的牌/.test(txt)) { const me2=/丢(?:弃)?(\d+)张/.exec(String((tc&&tc.effect)||'')); const n=me2?+me2[1]:1; for(let i=0;i<n;i++){const g=S.deck.pop(); if(g) me.hand.push(g);} log('🛡 反击结算：'+me.name+' 抽了 '+n+' 张'); }
+else if (/从弃牌(?:堆|区)将(\d+)张/.test(txt)) { takeDiscard(+RegExp.$1); }
+else if (txt) log('🛡 反击文本：'+txt);
+render();
 }
 function startResolveCountdown(sec) {
   clearTimer();
@@ -1551,9 +1634,30 @@ function finishTurn(pid) {
   if (alive.length <= 1) { doWin(P(alive[0])); return; }
   nextTurnBegin();
 }
+// 局结束：上报名绩到 KC-6 游戏站（每局只报一次；胜者 +100 基础分，所有人按最终友情值得分）
+function kc6Report() {
+  if (!S || !S.winner || !S.phase) return;
+  const u = KC6.getUser();
+  if (!u || !u.token || !u.gid) return;
+  // 防重复：本页标记 + localStorage 持久标记（刷新/重连不重报）
+  if (kc6Report.done) return;
+  const me = P(myId); if (!me) return;
+  const key = 'kp_rep_' + u.gid + '_' + u.uid + '_' + (NET.room||'') + '_' + S.winner + '_' + (S.turns||0);
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch(_) {}
+  kc6Report.done = true;
+  const isWin = S.winner === myId;
+  const fv = zoneFv(me);
+  const score = isWin ? (100 + fv * 2) : (fv * 2);
+  const aliveN = S.players.filter(p => p.alive).length;
+  const npc = S.players.filter(p => p.ai).length;
+  KC6.report(score, isWin, S.players.length + '人局' + (npc ? '(AI' + npc + ')' : '')).then(ok => {
+    if (ok) toast(isWin ? ('🏆 胜利！+' + score + ' 积分已记入 KC-6 排行榜') : ('+' + score + ' 积分已记入 KC-6 排行榜'), 'gold');
+  });
+}
 function doWin(p) {
-  S.winner = p.id; S.phase = 'over';
-  clearTimers();
+S.winner = p.id; S.phase = 'over';
+clearTimers();
+kc6Report();
   const ov = document.getElementById('winOverlay');
   ov.innerHTML = '<div class="win-emoji">🏆</div><div class="win-name">'+p.name+'</div><div class="win-sub">交够了朋友，获得胜利！</div><button class="win-btn" onclick="location.reload()">返回大厅 · 再开一局</button>'
     + Array.from({length:30},(_,i)=>'<div class="confetti" style="left:'+(i*13%100)+'%;animation-delay:'+(i%8)*0.25+'s;animation-duration:'+(2+i%3)+'s">'+['🎉','🎊','✨','🐾','🌟'][i%5]+'</div>').join('');
@@ -1691,7 +1795,7 @@ function hCounter() {
   if (lastCnt && lastCnt.by === myId) { toast('不能反击自己的反击','err'); return; }
   if (!lastCnt && r.initiator === myId) { toast('不能反击自己打出的牌','err'); return; }
   const tcard = cardOf(lastCnt ? lastCnt.card : r.card);
-  if (!counterFits(card, tcard)) { toast('属性不符：「'+card.name+'」无法反制「'+tcard.name+'」的效果','err'); return; }
+  if (!counterFits(card, tcard, !!lastCnt)) { toast('条件不符：「'+card.name+'」无法反制「'+tcard.name+'」的效果','err'); return; }
   const me = P(myId);
   if (me.counters >= 2) { toast('本回合反击已达上限','err'); return; }
   if (!HOST && NET.on) { sendAct('counter', { inst: selInst }); selInst = null; return; }
@@ -1700,7 +1804,7 @@ r.chain.push({card:selInst, by:myId, kind:'counter'});
 toast('反击发动！','gold');
 log('🛡 '+me.name+' 反击「'+card.name+'」'+(lastCnt?'（连锁反击「'+tcard.name+'」）':''), true);
 showCounterFX(card, me.name);
-runCounterText(myId, selInst, lastCnt ? lastCnt.by : r.initiator);
+runCounterText(myId, selInst, lastCnt ? lastCnt.by : r.initiator, tcard);
   selInst = null;
   aiReactToCounter();
   if (S.resolve && !S.resolve.claimed) startResolveCountdown(30);
@@ -1777,7 +1881,7 @@ function renderOpponents() {
     p.slots.forEach((s,si) => {
       slotsHtml += '<div class="slot'+(s.locked?' locked':'')+'">'+(s.inst&&s.faceUp?'<img src="'+cardOf(s.inst).img+'">':(s.inst?'<div style="position:absolute;inset:0;background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:16px">🂠</div>':''))+'</div>';
     });
-    d.innerHTML = '<div class="opp-head"><span style="font-size:20px">'+AVATARS[S.order.indexOf(pid)%8]+'</span><span class="nm">'+p.name+'</span>'+(p.ai?'<span class="tag-ai">AI</span>':'')+(p.declared?'<span class="tag-declare">亮眼!</span>':'')+(p.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+p.skip+'</span>':'')+'<span class="fv">❤'+zoneFv(p)+'</span></div>'
+    d.innerHTML = '<div class="opp-head"><span style="font-size:20px;display:flex;align-items:center">'+(avHtml(p, 26) || AVATARS[S.order.indexOf(pid)%8])+'</span><span class="nm">'+p.name+'</span>'+(p.ai?'<span class="tag-ai">AI</span>':'')+(p.declared?'<span class="tag-declare">亮眼!</span>':'')+(p.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+p.skip+'</span>':'')+'<span class="fv">❤'+zoneFv(p)+'</span></div>'
       + '<div class="slots">'+slotsHtml+'</div>'
       + '<div class="opp-foot"><span>✋'+p.hand.length+'</span><span>可用格 '+usable(p)+'</span></div>';
     d.querySelectorAll('.slot').forEach((el, si) => {
@@ -1802,7 +1906,7 @@ function renderPList() {
     const full = fv >= S.threshold;
     const d = document.createElement('div');
     d.className = 'pl-row'+(isCur?' cur':'')+(p.alive?'':' dead')+(full?' full':'');
-    d.innerHTML = '<span style="font-size:18px">'+AVATARS[S.order.indexOf(pid)%8]+'</span>'
+    d.innerHTML = '<span style="font-size:18px;display:flex;align-items:center">'+(avHtml(p, 24) || AVATARS[S.order.indexOf(pid)%8])+'</span>'
       + '<div class="pl-main"><div class="pl-nm">'+esc(p.name)+(p.ai?' <span class="tag-ai">AI</span>':'')+(isCur?'<span class="pl-turn">▶ 行动中</span>':'')+(p.declared?' <span class="tag-declare">亮眼</span>':'')+'</div>'
       + '<div class="pl-stats">✋ '+p.hand.length+' 张 · ❤ '+fv+' / '+S.threshold+'</div></div>'
       + (full?'<div class="pl-hearts"><i style="left:2px">💗</i><i style="left:15px;animation-delay:.55s">💖</i><i style="left:28px;animation-delay:1.1s">💗</i></div>':'');
@@ -1819,7 +1923,7 @@ function renderMe() {
     const sel = mode==='place' && !s.inst && !s.locked;
     slotsHtml += '<div class="slot'+(s.locked?' locked':'')+(sel?' sel':'')+'" data-slot="'+si+'">'+(s.inst&&s.faceUp?'<img src="'+cardOf(s.inst).img+'">':(s.inst&&s.faceUp===false?'':''))+'</div>';
   });
-  el.innerHTML = '<div class="me-head" id="meHead"><span style="font-size:24px">'+AVATARS[S.order.indexOf(myId)%8]+'</span><span class="nm">'+me.name+'（你）</span>'+(isMy&&S.phase==='action'?'<span class="my-turn">我的回合</span>':'')+(me.declared?'<span class="tag-declare">亮眼中</span>':'')+(me.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+me.skip+'</span>':'')
+  el.innerHTML = '<div class="me-head" id="meHead"><span style="font-size:24px;display:flex;align-items:center">'+(avHtml(me, 28) || AVATARS[S.order.indexOf(myId)%8])+'</span><span class="nm">'+me.name+'（你）</span>'+(isMy&&S.phase==='action'?'<span class="my-turn">我的回合</span>':'')+(me.declared?'<span class="tag-declare">亮眼中</span>':'')+(me.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+me.skip+'</span>':'')
     +(zoneFv(me)>=S.threshold && !me.declared && isMy ? '<button class="declare-btn" onclick="hDeclare()">交够了朋友！</button>':'')
     +'<span class="fv">❤ '+zoneFv(me)+' / '+S.threshold+(S.tableBuns.length?' +🍞'+S.tableBuns.length:'')+'</span></div>'
     +'<div class="slots">'+slotsHtml+'</div>'
@@ -1848,8 +1952,8 @@ const rr = S.resolve;
 if (rr && !rr.claimed && rr.kind !== 'bun' && mode !== 'bond-hand' && mode !== 'fx-hand' && !rr.chain.some(ch=>ch.kind==='bun')) {
 const lastCnt = (rr.chain.length && rr.chain[rr.chain.length-1].kind==='counter') ? rr.chain[rr.chain.length-1] : null;
 const canCnt = card.counter && P(myId).counters < 2 && (lastCnt
-  ? (lastCnt.by !== myId && counterFits(card, cardOf(lastCnt.card)))
-  : (rr.kind !== 'event' && rr.initiator !== myId && counterFits(card, cardOf(rr.card))));
+? (lastCnt.by !== myId && counterFits(card, cardOf(lastCnt.card), true))
+: (rr.kind !== 'event' && rr.initiator !== myId && counterFits(card, cardOf(rr.card), false)));
 if (canCnt) glowCls = ' cntcand';
 else if (isBondCand(inst)) glowCls = ' bondglow';
 }
@@ -2245,8 +2349,9 @@ function applySnap(s) {
   // 快照重建手牌后，清理已失效的选中项
   if ((mode === 'discard-limit' || mode === 'bond-hand' || mode === 'fx-hand') && P(myId)) bondSel = bondSel.filter(x => P(myId).hand.includes(x));
   render();
-  if (S.winner) {
-    const w = S.players.find(p => p.id === S.winner);
+if (S.winner) {
+kc6Report();
+const w = S.players.find(p => p.id === S.winner);
     const ov = document.getElementById('winOverlay');
     if (w && ov && !ov.classList.contains('show')) {
       ov.innerHTML = '<div class="win-emoji">🏆</div><div class="win-name">'+w.name+'</div><div class="win-sub">交够了朋友，获得胜利！</div><button class="win-btn" onclick="location.reload()">返回大厅 · 再开一局</button>'
@@ -2260,13 +2365,24 @@ function applySnap(s) {
 const _savedNick = localStorage.getItem('kp_nick');
 if (_savedNick) document.getElementById('nick').value = _savedNick;
 const _kc6u = KC6.getUser(); // KC-6 游戏站注入的昵称优先
-if (_kc6u && _kc6u.name) document.getElementById('nick').value = _kc6u.name.slice(0, 10);
+if (_kc6u && _kc6u.name) {
+  document.getElementById('nick').value = _kc6u.name.slice(0, 10);
+  if (_kc6u.token) {
+    // KC-6 平台用户：昵称以平台为准，锁定；异步拉取最新昵称与头像
+    const _nickEl = document.getElementById('nick');
+    _nickEl.placeholder = 'KC-6 用户';
+    KC6.fetchMe(u => {
+      if (u && u.nickname) _nickEl.value = String(u.nickname).slice(0, 10);
+      _nickEl.parentNode.querySelector('label').textContent = '你的昵称（KC-6 账号）';
+    });
+  }
+}
 document.getElementById('nick').addEventListener('change', e => localStorage.setItem('kp_nick', e.target.value));
 document.getElementById('createBtn').onclick = () => {
   connTip(''); const nick = getNick();
   netConnect(() => {
     HOST = true;
-    netSend({ t:'create', name: nick, uid: myUid() });
+    netSend({ t:'create', name: nick, uid: myUid(), av: KC6.avatar || '' });
   }, msg => connTip(msg));
 };
 document.getElementById('joinBtn').onclick = () => {
@@ -2276,7 +2392,7 @@ document.getElementById('joinBtn').onclick = () => {
   const nick = getNick();
   netConnect(() => {
     const tok = localStorage.getItem('kp_tok_'+code) || '';
-    netSend({ t:'join', room: code, name: nick, token: tok, uid: myUid() });
+    netSend({ t:'join', room: code, name: nick, token: tok, uid: myUid(), av: KC6.avatar || '' });
   }, msg => connTip(msg));
 };
 document.getElementById('leaveBtn').onclick = () => {

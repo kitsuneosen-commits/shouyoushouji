@@ -246,8 +246,6 @@ body {
     <div class="menu-card">
       <label>你的昵称</label>
       <input id="nick" maxlength="10" placeholder="输入昵称…" value="">
-      <label style="margin-top:14px">游戏服务器</label>
-      <input id="srvUrl" placeholder="wss://kapari-game-relay.onrender.com" value="wss://kapari-game-relay.onrender.com" style="font-size:12px">
       <div style="display:flex;gap:8px;margin-top:14px;align-items:stretch">
         <button class="start-btn" id="createBtn" style="flex:1;margin-top:0">创建房间</button>
         <input id="roomCode" maxlength="4" placeholder="房间码" style="width:86px;text-align:center;text-transform:uppercase;font-size:15px">
@@ -526,7 +524,12 @@ let fxAskStep = null;      // 客户端：当前待答的效果步骤
 let pubT = null;           // publishState 防抖
 let rzLocal = null;        // 客户端本地倒计时刷UI
 function esc(s) { return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function srvUrl() { const el = document.getElementById('srvUrl'); return (el && el.value.trim()) || localStorage.getItem('kp_srv') || ''; }
+// 内置中继服务器地址（本地调试可用 ?srv=ws://localhost:9090 覆盖）
+const DEFAULT_SRV = 'wss://kapari-game-relay.onrender.com';
+function srvUrl() {
+  try { const q = new URLSearchParams(location.search).get('srv'); if (q && /^wss?:\/\//.test(q)) return q; } catch(_) {}
+  return DEFAULT_SRV;
+}
 function netConnect(done, fail) {
   const url = srvUrl();
   if (!/^wss?:\/\//.test(url)) { fail('请先填写服务器地址（wss://…，本地测试 ws://localhost:9090）'); return; }
@@ -580,7 +583,6 @@ function netMsg(m) {
 if (m.t === 'joined') {
 NET.on = true; NET.room = m.room; NET.pid = m.pid; NET.token = m.token; NET.hostPid = m.host; NET.members = m.members || []; NET.started = !!m.started;
 HOST = (m.pid === m.host); // 以服务器判定为准，防止残留的幽灵房主标志
-    localStorage.setItem('kp_srv', srvUrl());
     localStorage.setItem('kp_tok_'+m.room, m.token);
     document.getElementById('lobbyBox').style.display = 'block';
     document.getElementById('roomShow').textContent = m.room;
@@ -2259,10 +2261,7 @@ const _savedNick = localStorage.getItem('kp_nick');
 if (_savedNick) document.getElementById('nick').value = _savedNick;
 const _kc6u = KC6.getUser(); // KC-6 游戏站注入的昵称优先
 if (_kc6u && _kc6u.name) document.getElementById('nick').value = _kc6u.name.slice(0, 10);
-const _savedSrv = localStorage.getItem('kp_srv');
-if (_savedSrv) document.getElementById('srvUrl').value = _savedSrv;
 document.getElementById('nick').addEventListener('change', e => localStorage.setItem('kp_nick', e.target.value));
-document.getElementById('srvUrl').addEventListener('change', e => localStorage.setItem('kp_srv', e.target.value));
 document.getElementById('createBtn').onclick = () => {
   connTip(''); const nick = getNick();
   netConnect(() => {

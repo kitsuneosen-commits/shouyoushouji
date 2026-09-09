@@ -137,6 +137,14 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .lch-title { font-size: 12px; color: rgba(255,255,255,.55); font-weight: 700; letter-spacing: 1px; }
 .lch-result { font-size: 12px; font-weight: 800; margin-top: 2px; }
 .lch-result.bad { color: #fca5a5; } .lch-result.ok { color: #86efac; } .lch-result.claim { color: #e879f9; }
+.feed-wrap { margin-top: 10px; background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 10px; }
+.feed-title { font-size: 11px; color: rgba(255,255,255,.5); font-weight: 800; letter-spacing: 1px; margin-bottom: 6px; }
+.feed-row { display: flex; flex-direction: column; gap: 5px; max-height: 168px; overflow-y: auto; }
+.feed-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: rgba(255,255,255,.82); background: rgba(255,255,255,.05); border-radius: 7px; padding: 4px 8px; }
+.feed-item img { width: 30px; height: 42px; object-fit: cover; object-position: top; border-radius: 4px; cursor: pointer; flex: none; }
+.feed-item .feed-noimg { width: 30px; text-align: center; flex: none; }
+.feed-item.nul { border-left: 3px solid #f472b6; }
+.feed-item.act { border-left: 3px solid #fbbf24; }
 /* 胜利在望粒子（仅自己视角） */
 #winFx { position: fixed; inset: 0; pointer-events: none; z-index: 25; overflow: hidden; }
 #winFx .wf-par { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle, #fde047 0%, rgba(253,224,71,0) 70%); box-shadow: 0 0 8px rgba(253,224,71,.9); animation: wfrise linear infinite; }
@@ -451,6 +459,7 @@ body.side-closed #plist, body.side-closed #chatBox { transform: translateX(120%)
     <b id="tb-th">门槛 25</b>
     <span id="tb-deck">牌堆 --</span>
     <span id="tb-disc">弃牌 --</span>
+    <span id="tb-table" style="cursor:pointer;text-decoration:underline" onclick="showTableZone()" title="桌面：盖放/除外的牌（月夜访客、明暗交锋、馒头分享等）">桌面 --</span>
     <span id="tb-round">回合 --</span>
     <span id="tb-timer"></span>
     <span class="sp"></span>
@@ -525,7 +534,7 @@ E(275,{run:(a,c)=>{a.reclaim(5);a.pending(c.actor,3);}});
 E(276,{run:(a,c)=>{a.draw(c.actor,1);}});
 E(277,{run:(a,c)=>{const n=a.discardedName('圣诞快乐');a.draw(c.actor,1+n);a.note('弃牌区圣诞快乐×'+n);}});
 E(278,{run:(a,c)=>{a.draw(c.actor,3);a.skip(c.actor,1);}});
-E(279,{steps:c=>[['t']],run:(a,c)=>{a.coverZoneR(c.t,3);}});
+E(279,{steps:c=>[['t']],run:(a,c)=>{a.coverZoneCard(c.t,3);}});
 E(280,{steps:c=>[['t']],run:(a,c)=>{a.poison(c.t,1,2);}});
 E(281,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
 E(282,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
@@ -546,7 +555,7 @@ E(296,{steps:c=>[['t']],run:(a,c)=>{a.coverHandToZone(c.t);}});
 E(297,{run:(a,c)=>{a.reclaimBonded(c.actor,2);}});
 E(298,{run:(a,c)=>{a.restrict(c.actor,'noDrawFx',1);}});
 E(299,{steps:c=>[['t',pid=>P(pid).slots.filter(s=>s.inst).length>=3]],run:(a,c)=>{a.discardR(c.t,3);}});
-E(300,{steps:c=>[['t']],run:(a,c)=>{a.coverHandAside(c.t,3);}});
+E(300,{steps:c=>[['t']],run:(a,c)=>{a.coverHandAside(c.t,1,3);}});
 E(301,{steps:c=>[['t'],['coin']],run:(a,c)=>{if(c.coin){a.draw(c.actor,3);}else{a.draw(c.t,3);}}});
 E(302,{ret3:1,run:(a,c)=>{a.allOthers(c.actor,p=>a.discardR(p,2));}});
 E(303,{ret3:1,run:(a,c)=>{a.draw(c.actor,3);}});
@@ -640,7 +649,7 @@ E(390,{s:1,fvX2Hand:1,run:(a,c)=>{a.draw(c.actor,3);}});
 E(391,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.guessMyCard(c,c.h[0]);}});
 E(392,{s:1,run:(a,c)=>{a.flipAllCovered();}});
 E(393,{run:(a,c)=>{a.draw(c.actor,2);}});
-E(394,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.coverZoneR(c.t,3);}});
+E(394,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.coverZoneCard(c.t,0);}});
 E(395,{steps:c=>[['t'],['t2',pid=>pid!==c.t&&pid!==c.actor]],run:(a,c)=>{a.stealR(c.t2||c.actor,c.t||c.actor,3);a.giveRandom(c.t||c.actor,c.actor);}});
 E(396,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).includes('林原兽类'));if(ts.length)ts.forEach(p=>a.discardR(p.id,2));else a.note('本轮无人打出林原兽类牌');}});
 E(397,{s:1,run:(a,c)=>{a.mark(c.actor,'extraPlayRound',1);}});
@@ -651,7 +660,7 @@ E(400,{steps:c=>[['t']],run:(a,c)=>{a.swapHands(c.actor,c.t);a.skip(c.actor,1);}
 // ===== 馒头牌 401-405 =====
 E(401,{run:(a,c)=>{a.draw(c.actor,2);}});
 E(402,{steps:c=>[['t'],['zp']],run:(a,c)=>{a.zoneDiscardOne(c.zp);}});
-E(403,{steps:c=>[['h',1]],run:(a,c)=>{a.coverChosenToZone(c.actor,c.h[0]);}});
+E(403,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.coverChosenToZone(c.actor,c.h[0],c.t);}});
 E(404,{run:()=>{}});
 E(405,{steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t,1);}});
 
@@ -822,6 +831,7 @@ function runPassiveCounter(pid, inst, card, actorId, place2x) {
   if (/自己丢弃所有手牌/.test(txt)) { const n=me.hand.length; me.hand.forEach(i=>S.discard.push(i)); me.hand=[]; acted.push('自己弃全部手牌('+n+')'); }
   if (/对方抽1张牌，如果不是沙漠属性角色牌，丢弃全部手牌/.test(txt)) { if (t) { const g=S.deck.pop(); if (g) { t.hand.push(g); const tc=cardOf(g); if (!(tc.attr==='沙漠'&&tc.type==='角色牌')) { const n=t.hand.length; t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; acted.push('对方抽1张非沙漠角色→弃全部('+n+')'); } else acted.push('对方抽到沙漠角色牌'); } } }
   if (acted.length) log('🛡 被动结算：' + card.name + ' → ' + acted.join('，'));
+  pushFeed('🛡 被动结算：「'+card.name+'」→ '+P(pid).name+(acted.length?('：'+acted.join('，')):''), inst, 'nul');
   render();
 }
 // 自己被反击时：手牌中的 selfCountered 被动使反击无效。返回 true=反击已被无效化
@@ -839,6 +849,7 @@ function selfCounterReact(initId, byPid, cntInst) {
   S.discard.push(inst);
   toast('🛡 ' + ini.name + ' 的「' + cc.name + '」被动触发：反击无效化！', 'err');
   log('🛡 被动时点：' + ini.name + '「' + cc.name + '」使反击「' + cardOf(cntInst).name + '」无效', true);
+  pushFeed('🛡 被动时点：「'+cc.name+'」使「'+cardOf(cntInst).name+'」的反击无效化 · '+ini.name, inst, 'nul');
   showCounterFX(cc, ini.name, cardOf(cntInst));
   runPassiveCounter(initId, inst, cc, byPid, false);
   return true;
@@ -1115,7 +1126,7 @@ function startGameMp(members, opts) {
   CARDS.forEach(c => { deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++)); });
   S = { players, order: shuffle(players.map(p=>p.id)), turnIdx: 0, phase: 'draw',
     deck: shuffle(deck), discard: [], actionUsed: false, eventUsed: false,
-    resolve: null, threshold: 30, turns: 0, winner: null,
+    resolve: null, threshold: 30, turns: 0, winner: null, feed: [],
     roundNo: 0, gflags: {}, tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: [],
     tut: isTut, noTimer: isTut };
   _snapTurns = -1; _wasAlive = true; _lost = false;
@@ -1229,7 +1240,7 @@ function nextTurnBegin() {
     S.turnIdx = idx;
     S.phase = 'draw'; S.actionUsed = false; S.eventUsed = false;
     const alive = S.order.filter(id=>P(id).alive);
-    if (alive.length <= 1) { doWin(P(alive[0])); return; }
+    if (alive.length <= 1 && !S.tut) { doWin(P(alive[0])); return; }
     nextTurnBegin();
     return;
   }
@@ -1258,7 +1269,7 @@ function nextTurnBegin() {
   if (c.extraPlayNext) { c.extraPlay += c.extraPlayNext; c.extraPlayNext = 0; }
   if (c.flags.mark.extraPlayRound) c.extraPlay += 1;
   if (c.ai) { aiTimers.push(setTimeout(()=>aiTurn(c), 900)); }
-  else { toast('轮到你了，请抽牌', 'gold'); if (S.tableBuns.length) toast('桌面有馒头可领取（见按钮）'); if (c.id === myId) startTurnTimer(180); }
+  else { toast('轮到你了，请抽牌', 'gold'); if (S.tableBuns.length) toast('🍞 桌面有馒头（点顶栏「桌面」查看）'); if (c.id === myId) startTurnTimer(180); }
 }
 function doDraw(pid) {
   const p = P(pid);
@@ -1455,8 +1466,10 @@ runCounterText(ai.id, cInst, lastCnt.by, lastCard);
 function runCounterText(pid, cInst, targetId, tc) {
 const card = cardOf(cInst); const txt = (card.counter||'').replace(/\s/g,'');
 const me = P(pid); const t = P(targetId);
+pushFeed('🛡 「'+card.name+'」反击发动 · '+me.name+' → '+(t?t.name:'?'), cInst, 'act');
 const takeDiscard = (n) => { let got=0; for(let i=0;i<n&&S.discard.length;i++){ me.hand.push(S.discard.pop()); got++; } if(got) log('🛡 反击结算：'+me.name+' 从弃牌区回收 '+got+' 张'); };
 const tDiscard = (n) => { let got=0; for(let i=0;i<n&&t.hand.length;i++){ S.discard.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); got++; } if(got) log('🛡 反击结算：'+t.name+' 被弃置 '+got+' 张'); };
+const tCoverHand = (n) => { let got=0; for(let i=0;i<n&&t.hand.length;i++){ const inst=t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]; const free=t.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0){ t.hand.push(inst); break; } t.slots[free]={inst,faceUp:false,coverTurns:null}; got++; } if(got) log('🛡 反击结算：'+t.name+' '+got+'张手牌被盖放在友情区'); };
 if (/自己抽(\d+)张/.test(txt)) { const n=+RegExp.$1; for(let i=0;i<n;i++){const g=S.deck.pop(); if(g) me.hand.push(g);} log('🛡 反击结算：'+me.name+' 抽了'+n+'张'); }
 else if (/对方丢(?:弃)?(\d+)张/.test(txt)) { tDiscard(+RegExp.$1); }
 else if (/偷取对方(\d+)张/.test(txt)) { const n=+RegExp.$1; let got=0; for(let i=0;i<n&&t.hand.length;i++){ me.hand.push(t.hand.splice(Math.floor(Math.random()*t.hand.length),1)[0]); got++; } log('🛡 反击结算：'+me.name+' 偷取'+got+'张'); }
@@ -1467,8 +1480,19 @@ else if (/自己抽出丢弃数量的牌/.test(txt)) { const me2=/丢(?:弃)?(\d
 else if (/从弃牌(?:堆|区)将(\d+)张/.test(txt)) { takeDiscard(+RegExp.$1); }
 else if (/使那个效果无效，该玩家丢弃所有手牌/.test(txt)) { let got=0; while(t.hand.length){ S.discard.push(t.hand.pop()); got++; } if(got) log('🛡 反击结算：'+t.name+' 的手牌全部被弃（'+got+'张）'); }
 else if (/其他所有玩家各丢弃(\d+)张手牌/.test(txt)) { const n=+RegExp.$1; let hit=0; S.players.filter(p=>p.alive&&p.id!==pid).forEach(p=>{ for(let i=0;i<n&&p.hand.length;i++){ S.discard.push(randomSplice(p.hand)); hit++; } }); if(hit) log('🛡 反击结算：其他所有玩家共被弃 '+hit+' 张'); }
+else if (/选对方随机(\d+)张手牌盖放在友情区/.test(txt)) tCoverHand(+RegExp.$1);
+else if (/对方盖放(\d+)张手牌在友情区/.test(txt)) tCoverHand(+RegExp.$1);
+else if (/将自己友情区1张牌盖放在对方的友情区/.test(txt)) { const zi=me.slots.findIndex(s=>s.inst&&s.faceUp); if(zi>-1){ const inst=me.slots[zi].inst; me.slots[zi].inst=null; const free=t.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ t.slots[free]={inst,faceUp:false,coverTurns:null}; log('🛡 反击结算：'+me.name+' 友情区1张牌盖放到 '+t.name+' 的友情区'); } else S.discard.push(inst); } }
 else if (txt) log('🛡 反击文本：'+txt);
 render();
+}
+// 反击链路反馈：所有反击/被动事件推入 S.feed，在画面中央（结算区）持续展示
+function pushFeed(txt, inst, cls) {
+  if (!S) return;
+  if (!S.feed) S.feed = [];
+  S.feed.push({ txt: txt, inst: inst || null, cls: cls || '' });
+  if (S.feed.length > 10) S.feed.shift();
+  if (!NET.on || HOST) { if (typeof render === 'function' && S.phase !== 'over') { try { render(); } catch(e){} } }
 }
 function startResolveCountdown(sec) {
   clearTimer();
@@ -1800,6 +1824,46 @@ function fxDeckPick(i) {
   closeBigModal();
   if (PFX) fxAdvance();
 }
+// 牌堆抽牌中央展示：展示抽到的牌，玩家可点选其中1张（选中即置顶手牌）
+function showDrawReveal(insts, title, cb) {
+  const d = document.getElementById('bmContent');
+  window._drCb = cb || null; window._drPick = null; window._drInsts = insts;
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">'+(title||'从牌堆抽取的牌')+'</div><div style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:8px">点击选择其中 1 张（选中的牌会排到手牌最前）</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:432px;overflow-y:auto">'
+    + insts.map((inst,i)=>'<div id="dr'+i+'" style="display:inline-block;margin:6px;cursor:pointer" onclick="drPick('+i+')"><img src="'+cardOf(inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+esc(cardOf(inst).name)+' ❤'+(cardOf(inst).fv||0)+'</div></div>').join('')
+    + '</div><button class="dlg-close" onclick="drConfirm()">确认</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+}
+function drPick(i){ window._drPick=i; document.querySelectorAll('#bmContent [id^=dr]').forEach(el=>{ if(el.tagName!=='BUTTON') el.style.outline='none'; }); const el=document.getElementById('dr'+i); if(el) el.style.outline='3px solid #ffd54f'; }
+function drConfirm(){
+  const cb=window._drCb, pk=window._drPick, insts=window._drInsts;
+  window._drCb=null; window._drPick=null; window._drInsts=null;
+  closeBigModal();
+  if (insts && pk!=null && insts[pk]!=null) {
+    const p=P(myId); const hi=p.hand.indexOf(insts[pk]);
+    if(hi>-1){
+      if (HOST && NET.on) {
+        // 联机：通知房主重排（同 cid 第1张置顶）
+        netSend({ t:'g', d:{ k:'act', a:'reorder', cid: cardOf(insts[pk]).id } });
+      } else { p.hand.splice(hi,1); p.hand.unshift(insts[pk]); render(); }
+    }
+  }
+  if (cb) cb(pk);
+}
+// 桌面区（场外）查看：月夜访客盖放牌 / 明暗交锋·北极狐盖放牌 / 桌面馒头
+function showTableZone() {
+  if (!S) return;
+  const d = document.getElementById('bmContent');
+  const cardHtml = (inst, tag) => '<div style="display:inline-block;margin:6px;text-align:center"><img src="'+cardOf(inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;margin-top:3px">'+esc(cardOf(inst).name)+'</div><div style="font-size:10px;color:rgba(255,255,255,.55)">'+tag+'</div></div>';
+  const coverHtml = (owner, tag) => '<div style="display:inline-block;margin:6px;text-align:center"><div style="width:86px;height:120px;border-radius:8px;background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:34px">🂠</div><div style="font-size:11px;margin-top:3px">盖放牌（未知）</div><div style="font-size:10px;color:rgba(255,255,255,.55)">'+tag+' · '+(P(owner)?esc(P(owner).name):owner)+'</div></div>';
+  let rows = '';
+  if ((S.tableStack||[]).length) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#a5b4fc;margin:6px 0">🌙 月夜访客（每回合准备阶段随机翻开1张发动）</div>' + S.tableStack.map(i=>coverHtml('桌面','月夜盖放')).join('');
+  if ((S.aside||[]).length) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#f9a8d4;margin:6px 0">🂠 桌面盖放 / 除外区</div>' + S.aside.map(x=>x.lightDark ? coverHtml(x.pid,'明暗交锋'+(x.rounds!=null?('·剩'+x.rounds+'回合'):'')) : coverHtml(x.pid, x.rounds!=null ? ('盖放·剩'+x.rounds+'回合') : '除外')).join('');
+  if ((S.tableBuns||[]).length) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#fcd34d;margin:6px 0">🍞 桌面馒头（全员共享友情值）</div>' + S.tableBuns.map(i=>cardHtml(i,'桌面馒头 ❤'+(cardOf(i).fv||0))).join('');
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">🂠 桌面区（场外）</div>'
+    + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:432px;overflow-y:auto;padding:0 8px">'+(rows||'<div style="color:rgba(255,255,255,.5);padding:24px">桌面是空的（盖放/除外的牌会出现在这里）</div>')+'</div>'
+    + '<button class="dlg-close" onclick="closeBigModal()">关闭</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+}
 // 选目标友情区1张牌（北方苍鹰等）：明牌可点选，盖放牌不可选（房主本地版 + 客户端版共用 fxAsk 通道）
 function showZonePickModal(tp) {
   const d = document.getElementById('bmContent');
@@ -1956,10 +2020,10 @@ function clientReveal(d) {
 // ============ 效果 API 原语 ============
 // 卡组固定316张（每种2张），抽尽后不再重洗
 function drawCards(pid, n) {
-const p = P(pid); let got = 0;
+const p = P(pid); let got = 0; const gotInsts = [];
 for (let i=0;i<n;i++) {
 const inst = S.deck.pop(); if (!inst) break;
-p.hand.push(inst); got++;
+p.hand.push(inst); gotInsts.push(inst); got++;
 }
 if (got && !S.deck.length && !S._deckEmptyNoted) { S._deckEmptyNoted = true; if (!NET.on || HOST) toast('📦 牌堆已抽尽，不再补充','err'); log('📦 牌堆耗尽（本局卡组316张，抽完不重洗）', true); }
   if (got) { log(p.name+' 抽了 '+got+' 张牌');
@@ -1970,6 +2034,8 @@ if (got && !S.deck.length && !S._deckEmptyNoted) { S._deckEmptyNoted = true; if 
     } else flyCard('ai', ()=>{});
   }
   render();
+  // 规则：从牌堆抽牌的效果，抽到的牌展示在画面中央供玩家选择（房主/单机视角直接看，客户端由房主 evt 驱动）
+  if (got && pid === myId && (!NET.on || HOST)) showDrawReveal(gotInsts, '🃏 你从牌堆抽了 '+got+' 张牌');
 }
 function randomSplice(arr) { return arr.length ? arr.splice(Math.floor(Math.random()*arr.length),1)[0] : null; }
 function discardFrom(pid, n) {
@@ -2022,15 +2088,16 @@ stealAll: (from,to) => triggerSelfHurt(from, actorId, 'steal', () => { const f=P
     zoneStealR: (from,to) => { const f=P(from),t=P(to); const idx=f.slots.findIndex(s=>s.inst); if(idx>-1){ const inst=f.slots[idx].inst; f.slots[idx].inst=null; const free=t.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ t.slots[free].inst=inst; log(t.name+' 夺走了 '+f.name+' 友情区的「'+cardOf(inst).name+'」'); } else S.discard.push(inst); } render(); },
     swapZoneR: (a,b) => { const x=P(a),y=P(b); const ix=x.slots.findIndex(s=>s.inst); const iy=y.slots.findIndex(s=>s.inst); if(ix>-1&&iy>-1){ const tmp=x.slots[ix].inst; x.slots[ix].inst=y.slots[iy].inst; y.slots[iy].inst=tmp; log(x.name+' 与 '+y.name+' 友情区1张牌互换'); } render(); },
     coverZoneR: (pid,n) => { const p=P(pid); let n2=0; for(let i=0;i<n;i++){ const gi=S.deck.pop(); if(!gi) break; const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0){ S.discard.push(gi); break; } p.slots[free]={inst:gi,faceUp:false,coverTurns:2}; n2++; } log(p.name+' 友情区被盖放 '+n2+' 张牌'); render(); },
+coverZoneCard: (pid,turns) => { const p=P(pid); const cand=p.slots.find(s=>s.inst&&s.faceUp); if(!cand){ log(p.name+' 友情区没有可盖放的牌'); render(); return; } cand.faceUp=false; cand.coverTurns=turns||null; log('🂠 '+p.name+' 友情区的「'+cardOf(cand.inst).name+'」被盖放'+(turns?('，持续'+turns+'回合'):'')); render(); },
     coverHandToZone: pid => { const p=P(pid); const inst=randomSplice(p.hand); if(inst){ const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst,faceUp:false,coverTurns:2}; log(p.name+' 1张手牌被盖放在友情区'); } else p.hand.push(inst); } render(); },
-    coverHandAside: (pid,n) => { const p=P(pid); for(let i=0;i<n&&p.hand.length;i++){ const inst=randomSplice(p.hand); if(inst){ p.slots.forEach(s=>{ if(s.inst===inst) s.inst=null; }); S.aside.push({pid,inst}); } } log(p.name+' 的 '+n+' 张手牌被移出游戏'); render(); },
-    coverChosenToZone: (pid,inst) => { if(!inst) return; const p=P(pid); rmHand(p,inst); const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst,faceUp:false,coverTurns:2}; log(p.name+' 将1张手牌盖放在友情区'); } render(); },
+    coverHandAside: (pid,n,rounds) => { const p=P(pid); for(let i=0;i<n&&p.hand.length;i++){ const inst=randomSplice(p.hand); if(inst){ p.slots.forEach(s=>{ if(s.inst===inst) s.inst=null; }); S.aside.push({pid,inst,rounds:rounds||null}); } } log('🂠 '+p.name+' 的 '+n+' 张手牌被盖放在桌面'+(rounds?('，持续'+rounds+'回合'):'')); render(); },
+    coverChosenToZone: (pid,inst,targetPid) => { if(!inst) return; const p=P(pid); rmHand(p,inst); const tp = targetPid!=null ? P(targetPid) : p; const free=tp.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ tp.slots[free]={inst,faceUp:false,coverTurns:2}; log('🂠 '+p.name+' 将1张手牌盖放在 '+tp.name+' 的友情区'); } else { p.hand.push(inst); } render(); },
     selfPlaceCovered: () => { const p=P(actorId); const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free>-1){ p.slots[free]={inst:ctx.played,faceUp:false,coverTurns:2}; if(S.resolve) S.resolve.taken=null; log(p.name+' 将本牌盖放在自己友情区'); } render(); },
-    flipAllCovered: () => { let n=0; S.players.forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ s.faceUp=true; s.coverTurns=null; n++; } })); log('翻开全场所有盖放的牌（'+n+'张）'); render(); },
-    clearAllCovered: () => { S.players.forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ S.discard.push(s.inst); s.inst=null; } })); log('丢弃场上所有盖放的牌'); render(); },
+    flipAllCovered: () => { let n=0; S.players.filter(p=>p.alive).forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ s.faceUp=true; s.coverTurns=null; n++; } })); log('翻开全场所有盖放的牌（'+n+'张）'); render(); },
+    clearAllCovered: () => { S.players.filter(p=>p.alive).forEach(p=>p.slots.forEach(s=>{ if(s.inst&&!s.faceUp){ S.discard.push(s.inst); s.inst=null; } })); log('丢弃场上所有盖放的牌'); render(); },
     hasCovered: pid => P(pid).slots.some(s=>s.inst&&!s.faceUp),
-    penguinReturn: () => { const n=S.discard.filter(i=>cardOf(i).name.includes('企鹅')).length; let done=0; S.players.forEach(p=>{ while(done<n){ const idx=p.slots.findIndex(s=>s.inst&&s.faceUp); if(idx<0) break; p.hand.push(p.slots[idx].inst); p.slots[idx].inst=null; done++; } }); log('🐧 企鹅回巢：'+done+' 张友情区牌回到持有者手牌'); render(); },
-    zoneFillTo3: () => { S.players.forEach(p=>{ const cnt=p.slots.filter(s=>s.inst).length; for(let i=cnt;i<3;i++){ const gi=S.deck.pop(); if(!gi) break; const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0) break; p.slots[free]={inst:gi,faceUp:true}; } }); log('🐧 全场友情区补足至3张'); render(); },
+    penguinReturn: () => { const n=S.discard.filter(i=>cardOf(i).name.includes('企鹅')).length; let done=0; S.players.filter(p=>p.alive).forEach(p=>{ while(done<n){ const idx=p.slots.findIndex(s=>s.inst&&s.faceUp); if(idx<0) break; p.hand.push(p.slots[idx].inst); p.slots[idx].inst=null; done++; } }); log('🐧 企鹅回巢：'+done+' 张友情区牌回到持有者手牌'); render(); },
+    zoneFillTo3: () => { S.players.filter(p=>p.alive).forEach(p=>{ const cnt=p.slots.filter(s=>s.inst).length; for(let i=cnt;i<3;i++){ const gi=S.deck.pop(); if(!gi) break; const free=p.slots.findIndex(s=>!s.inst&&!s.locked); if(free<0) break; p.slots[free]={inst:gi,faceUp:true}; } }); log('🐧 全场友情区补足至3张'); render(); },
     setTo7: pid => { const p=P(pid); while(p.hand.length<7&&S.deck.length) p.hand.push(S.deck.pop()); while(p.hand.length>7) S.discard.push(randomSplice(p.hand)); log(p.name+' 手牌调整为7张'); render(); },
     placeFromHand: pid => { const p=P(pid); const roles=p.hand.filter(h=>cardOf(h).type==='角色牌'); if(roles.length){ const best=roles.sort((a,b)=>cardOf(b).fv-cardOf(a).fv)[0]; const free=freeSlotIdx(p); if(free>-1) place(pid,best,free,true); } },
     selfBondToZone: pid => { const p=P(pid); const played=cardOf(ctx.played); for(const b of (played.bonds||[])){ const cands=p.hand.filter(h=>(cardOf(h).bonds||[]).includes(b)); if(cands.length){ const inst=cands[0]; rmHand(p,inst); const free=freeSlotIdx(p); if(free>-1) place(pid,inst,free,true); break; } } },
@@ -2084,13 +2151,16 @@ stealAll: (from,to) => triggerSelfHurt(from, actorId, 'steal', () => { const f=P
       if (ok) drawCards(c.actor,2); else discardFrom(c.actor,1);
     },
     // ===== 事件牌助手 =====
-    xmas: pid => { const n=S.players.filter(p=>p.alive).length; drawCards(pid,n); const p=P(pid); const others=S.players.filter(q=>q.alive&&q.id!==pid); for(let i=0;i<n-1;i++){ const inst=randomSplice(p.hand); if(!inst) break; (others[i%others.length]||p).hand.push(inst); } log('🎄 '+p.name+' 抽'+n+'张并分发'+(n-1)+'张'); render(); },
+    xmas: pid => { const n=S.players.filter(p=>p.alive).length; const p=P(pid); const drawn=[]; for(let i=0;i<n;i++){ const gi=S.deck.pop(); if(!gi) break; p.hand.push(gi); drawn.push(gi); } if(!drawn.length){ render(); return; } const others=S.players.filter(q=>q.alive&&q.id!==pid); const dist=(keepIdx)=>{ let di=0; drawn.forEach((x,i)=>{ if(i===keepIdx) return; const hi=p.hand.indexOf(x); if(hi>-1) p.hand.splice(hi,1); if(others.length) others[di%others.length].hand.push(x); di++; }); log('🎄 '+p.name+' 抽'+drawn.length+'张，留下1张，分发'+(drawn.length-1)+'张给在场玩家'); render(); };
+      if (pid===myId && drawn.length>1) { render(); showDrawReveal(drawn, '🎄 圣诞快乐：点选 1 张留下，其余分发给在场玩家', pk=>dist(pk!=null?pk:0)); }
+      else if (pid===myId && drawn.length===1) { log('🎄 只有1张，直接留下'); render(); }
+      else dist(Math.floor(Math.random()*drawn.length)); },
     moonlight: pid => { const n=Math.min(S.players.filter(p=>p.alive).length, S.deck.length); for(let i=0;i<n;i++){ S.tableStack.push(S.deck.pop()); } if(S.resolve) S.resolve.table=true; log('🌙 '+n+' 张牌盖放在桌面（月夜访客）'); },
     harvest: pid => { const p=P(pid); p.harvest = { stack: p.hand.slice(), covered: [], turns: 3 }; p.hand=[]; log('🍂 '+p.name+' 手牌盖放桌面，3回合内每回合用牌堆顶1张替换，之后收回'); },
     partyFeast: pid => { const alive=S.players.filter(p=>p.alive); const n=alive.length; const pool=[]; for(let i=0;i<n;i++){ const g=S.deck.pop(); if(g) pool.push(g); } shuffle(pool); alive.forEach(p=>{ const inst=pool.pop(); if(inst) p.hand.push(inst); }); log('🎉 聚会盛宴：每人随机分得1张'); render(); },
     partner: (pid,tid) => { S.partner={a:pid,b:tid,rounds:2}; A.viewHand(tid); log('🤝 '+P(pid).name+' 与 '+P(tid).name+' 绑定合作关系（2轮）'); },
     improvSeasoning: pid => { const reveals=S.players.filter(p=>p.alive).map(p=>{ const roles=p.hand.filter(h=>cardOf(h).type==='角色牌'); const inst=roles.length?roles[Math.floor(Math.random()*roles.length)]:null; return {p,inst}; }); let bonus=0; for(let i=0;i<reveals.length;i++)for(let j=i+1;j<reveals.length;j++){ const a=reveals[i],b=reveals[j]; if(a.inst&&b.inst){ const bs=new Set(cardOf(a.inst).bonds||[]); if((cardOf(b.inst).bonds||[]).some(x=>bs.has(x))){ drawCards(a.p.id,2); drawCards(b.p.id,2); bonus++; } } } log('🎭 即兴调味：'+(bonus?bonus+' 对羁绊触发，各抽2张':'无羁绊触发')); },
-    bunShare: pid => { let n=0; S.players.forEach(p=>{ const buns=p.hand.filter(h=>cardOf(h).type==='加帕里馒头'); buns.forEach(b=>{ rmHand(p,b); S.tableBuns.push(b); n++; }); }); log('🍞 馒头分享：'+n+' 张馒头放桌面，全员共享其友情值'); render(); },
+    bunShare: pid => { let n=0; S.players.filter(p=>p.alive).forEach(p=>{ const buns=p.hand.filter(h=>cardOf(h).type==='加帕里馒头'); buns.forEach(b=>{ rmHand(p,b); S.tableBuns.push(b); n++; }); }); log('🍞 馒头分享：'+n+' 张馒头放桌面，全员共享其友情值'); render(); },
     bunFeast: pid => { const n=S.tableBuns.length; S.tableBuns.forEach(inst=>{ const d=EFFECTS[cid(inst)]; if(d&&d.run){ try{ d.run(makeAPI(pid,{actor:pid,played:inst}), {actor:pid,played:inst}); }catch(e){} } }); S.tableBuns=[]; log('🍽 美食品鉴：触发桌面全部 '+n+' 张馒头效果'); render(); },
     ultrasound: (c,tid,inst) => { if(!inst){ A.note('对方手牌为空'); return; } const p=P(c.actor); const tc=cardOf(inst); const bonded=p.hand.filter(h=>(cardOf(h).bonds||[]).some(b=>(tc.bonds||[]).includes(b))); const all=[inst,...bonded]; let placed=0; all.forEach(x=>{ rmHand(p,x); const free=freeSlotIdx(p); if(free>-1){ place(c.actor,x,free,true); placed++; } }); log('📡 超声波：与「'+tc.name+'」凑羁绊的 '+placed+' 张牌放入友情区'); render(); },
     huntGame: (pid,tid) => { const p=P(pid),t=P(tid); let w=0,l=0; const cyc={'林原':'雪域','雪域':'海洋','海洋':'沙漠','沙漠':'林原'}; for(let r=0;r<3;r++){ const pi=p.hand.filter(h=>cardOf(h).type==='角色牌'); const ti=t.hand.filter(h=>cardOf(h).type==='角色牌'); if(!pi.length||!ti.length) break; const pc=cardOf(pi[Math.floor(Math.random()*pi.length)]); const tc=cardOf(ti[Math.floor(Math.random()*ti.length)]); if(cyc[pc.attr]===tc.attr) w++; else if(cyc[tc.attr]===pc.attr) l++; } toast('狩猎游戏 3轮：'+w+'胜 '+l+'负', w>l?'gold':''); if(w>l){ discardFrom(tid,2); log('🏹 狩猎游戏：'+P(pid).name+' 获胜，'+P(tid).name+' 弃2张'); } else if(l>w){ discardFrom(pid,2); log('🏹 狩猎游戏：'+P(tid).name+' 获胜'); } },
@@ -2100,7 +2170,7 @@ stealAll: (from,to) => triggerSelfHurt(from, actorId, 'steal', () => { const f=P
     lightDark: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const cand=p.hand.filter(h=>cardOf(h).counter); if(cand.length){ const inst=cand[0]; rmHand(p,inst); S.aside.push({pid:p.id,inst,lightDark:true}); } }); log('🌓 明暗交锋：各玩家1张反击牌盖放桌面'); },
     californiaBeach: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const oc=p.hand.find(h=>cardOf(h).attr==='海洋'&&cardOf(h).type==='角色牌'); if(oc){ rmHand(p,oc); const free=freeSlotIdx(p); if(free>-1) place(p.id,oc,free,true); drawCards(p.id,2); } }); log('🏖 加州海滨结算完成'); },
     finiteSong: (pid,inst,tid) => { if(!inst) return; const p=P(pid),t=P(tid); rmHand(p,inst); const shown=cardOf(inst); p.hand.forEach(i=>S.discard.push(i)); p.hand=[]; if(shown.name.includes('朱鹮')){ t.alive=false; t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; toast('🎤 绯羽绝唱！'+t.name+' 直接出局','err'); log('💀 '+t.name+' 被绯羽绝唱淘汰'); } else { t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; log('🎤 绯羽绝唱：双方弃全部手牌'); } render(); },
-    deduction: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const ok=Math.random()<0.5; if(ok) drawCards(p.id,3); else discardFrom(p.id,2); }); log('🔍 疑案推理：全员猜谎结算完成'); },
+    deduction: pid => { const ps=S.players.filter(p=>p.alive); const covered=[]; ps.forEach(p=>{ const inst=randomSplice(p.hand); if(inst) covered.push({p,inst}); }); const results=[]; ps.forEach((p,i)=>{ const ok=Math.random()<0.5; if(ok){ for(let k=0;k<3;k++){ const g=S.deck.pop(); if(!g) break; p.hand.push(g); } } else { for(let k=0;k<2&&p.hand.length;k++){ S.discard.push(randomSplice(p.hand)); } } results.push(p.name+(ok?' 猜对（抽3张）':' 猜错（弃2张）')); }); covered.forEach(e=>{ e.p.hand.push(e.inst); }); log('🔍 疑案推理：'+results.join('；')+'；盖放的牌已收回手牌'); if(covered.length) showDrawReveal(covered.map(e=>e.inst), '🔍 疑案推理：各玩家盖放在桌面又收回的牌'); render(); },
     flowerExpedition: (c,tid) => { const both=S.players.filter(p=>[c.actor,tid].includes(p.id)); const flowerN=both.reduce((s,p)=>s+p.hand.filter(h=>(cardOf(h).bonds||[]).includes('花丸探险队')).length+p.slots.filter(x=>x.inst&&(cardOf(x.inst).bonds||[]).includes('花丸探险队')).length,0); let ok=flowerN>=2; if(!ok){ const top=S.deck[S.deck.length-1]; if(top){ const tc=cardOf(top); let guess; if(tid===myId){ guess=window.__flowerGuess; } else guess=ATTRS[Math.floor(Math.random()*4)]; guess=guess||ATTRS[Math.floor(Math.random()*4)]; ok=guess===tc.attr; toast('花丸探险：猜'+guess+' 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); S.discard.push(S.deck.pop()); } } else toast('花丸探险队羁绊≥2，直接成功！','gold'); if(ok){ drawCards(c.actor,4); drawCards(tid,4); } else { discardFrom(c.actor,2); discardFrom(tid,2); } window.__flowerGuess=null; },
   };
   function coverZoneR2(pid,n){ A.coverZoneR(pid,n); }
@@ -2143,34 +2213,40 @@ function finishTurn(pid) {
   S.pendingDiscard = null;
   // 待弃牌效果（335/353等）
   if (p.pendDiscard > 0) { const n = Math.min(p.pendDiscard, p.hand.length); for(let i=0;i<n;i++) S.discard.push(randomSplice(p.hand)); log('⏳ '+p.name+' 弃置了 '+n+' 张（延时效果）'); p.pendDiscard = 0; }
-  // 出局判定
+  // 出局判定（教学对局不判出局，避免教学搭档意外退场导致误判胜利）
   if (p.alive && usable(p) < 3) {
-    p.alive = false; p.hand.forEach(i=>S.discard.push(i)); p.hand = [];
-    toast(p.name+' 可用格不足3个，出局了！','err');
-    log('💀 '+p.name+' 出局', true);
-    if (p.id === myId) { showDefeat('你的可用格不足3个，出局了'); if (HOST && NET.on) publishState(); }
+    if (S.tut) { log('📖 教学对局：不判定出局，继续教学'); }
+    else {
+      p.alive = false; p.hand.forEach(i=>S.discard.push(i)); p.hand = [];
+      toast(p.name+' 可用格不足3个，出局了！','err');
+      log('💀 '+p.name+' 出局', true);
+      if (p.id === myId) { showDefeat('你的可用格不足3个，出局了'); if (HOST && NET.on) publishState(); }
+    }
   }
-  // 亮眼判定（宣告后一整轮）
+  // 亮眼判定（宣告后一整轮；教学对局不判定胜负）
   if (p.declared && S.turns - p.declareTurn >= S.order.length) {
-    if (zoneFv(p) >= S.threshold) { doWin(p); return; }
+    if (zoneFv(p) >= S.threshold) { if (!S.tut) { doWin(p); return; } log('📖 教学对局：不判定亮眼胜利，继续教学'); }
     p.declared = false; log(p.name+' 友情值跌出门槛，亮眼取消');
   }
   S.turns++;
   // ===== 回合结束钩子 =====
   // 小爪水獭成长：友情区每轮+1
   p.slots.forEach(s => { if (s.inst && cid(s.inst) === 333) s.bonus = (s.bonus||0) + 1; });
-  // 盖放回合倒计
-  S.players.forEach(pp => pp.slots.forEach(s => { if (s.inst && s.coverTurns) { s.coverTurns--; if (s.coverTurns <= 0 && s.faceUp===false) { /* 保留盖放，需翻开效果处理 */ } } }));
+  // 盖放回合倒计：到 0 自动翻开（每轮=直到下一个自己回合前）
+  S.players.forEach(pp => pp.slots.forEach(s => { if (s.inst && s.coverTurns) { s.coverTurns--; if (s.coverTurns <= 0 && s.faceUp === false) { s.faceUp = true; log('🔄 '+pp.name+' 友情区的「'+cardOf(s.inst).name+'」盖放结束，翻开'); } } }));
   // 全局标记衰减
   Object.keys(S.gflags).forEach(k => { S.gflags[k].rounds--; if (S.gflags[k].rounds <= 0) delete S.gflags[k]; });
   // 合作关系衰减
   if (S.partner) { S.partner.rounds--; if (S.partner.rounds <= 0) { log('🤝 合作关系结束'); S.partner = null; } }
-  // 明暗交锋：未使用的盖放牌返回手牌
+  // 明暗交锋/北极狐：盖放在桌面的牌计时返回手牌
   if (S.aside.length) {
-    const rest = S.aside.filter(x => x.lightDark);
-    rest.forEach(x => { if (P(x.pid) && P(x.pid).alive) P(x.pid).hand.push(x.inst); });
-    S.aside = S.aside.filter(x => !x.lightDark);
-    if (rest.length) log('🌓 明暗交锋：盖放牌返回手牌');
+    const back = S.aside.filter(x => x.lightDark || x.rounds);
+    back.forEach(x => { if (x.rounds) x.rounds--; });
+    const done = S.aside.filter(x => x.lightDark || (x.rounds !== undefined && x.rounds <= 0));
+    done.forEach(x => { if (P(x.pid)) P(x.pid).hand.push(x.inst); });
+    S.aside = S.aside.filter(x => !done.includes(x));
+    if (done.filter(x=>x.lightDark).length) log('🌓 明暗交锋：盖放牌返回手牌');
+    if (done.filter(x=>!x.lightDark).length) log('🌊 桌面盖放计时结束，牌回到手牌');
   }
   // 个人标记/限制衰减
   S.players.forEach(pp => {
@@ -2192,9 +2268,9 @@ function finishTurn(pid) {
   S.players.forEach(pp => pp.counters = 0);
   S.phase = 'draw'; S.actionUsed = false; S.eventUsed = false;
   log('—— '+cur().name+' 的回合 ——');
-  // 只剩一人
+  // 只剩一人（教学对局不判定胜负）
   const alive = S.order.filter(id=>P(id).alive);
-  if (alive.length <= 1) { doWin(P(alive[0])); return; }
+  if (alive.length <= 1 && !S.tut) { doWin(P(alive[0])); return; }
   nextTurnBegin();
 }
 // 局结束：上报名绩到 KC-6 游戏站（每局只报一次；胜者 +100 基础分，所有人按最终友情值得分）
@@ -2426,6 +2502,7 @@ function render() {
   document.getElementById('tb-th').textContent = '门槛 '+S.threshold;
   document.getElementById('tb-deck').textContent = '牌堆 '+S.deck.length;
   document.getElementById('tb-disc').textContent = '弃牌 '+S.discard.length;
+{ const tbn = (S.tableStack||[]).length + (S.tableBuns||[]).length + (S.aside||[]).length; const te = document.getElementById('tb-table'); if (te) te.textContent = '桌面 '+tbn; }
   document.getElementById('tb-round').textContent = '回合 '+(Math.floor(S.turns / Math.max(1,S.order.length))+1);
   document.getElementById('deckN').textContent = S.deck.length+' 张';
   document.getElementById('discN').textContent = S.discard.length+' 张';
@@ -2601,8 +2678,9 @@ function renderRZone() {
         + '<div class="rz-cards-row" style="justify-content:center;margin-top:6px"><div class="rz-card main" data-inst="'+lc.main+'" style="cursor:pointer"><img src="'+lcCard.img+'"></div>'+(lchCards?'<span class="rz-ch-arrow">⇠</span>'+lchCards:'')+'</div>'
         + '<div style="margin-top:12px">'+res+'</div></div>';
     }
-    el.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:14px">'+txt+'</div><div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:4px">第 '+(Math.floor(S.turns/Math.max(1,S.order.length))+1)+' 轮</div>'+lch;
+    el.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:14px">'+txt+'</div><div style="color:rgba(255,255,255,.3);font-size:11px;margin-top:4px">第 '+(Math.floor(S.turns/Math.max(1,S.order.length))+1)+' 轮</div>'+lch+mkFeedHtml();
     el.querySelectorAll('.rz-card[data-inst]').forEach(n2 => { n2.style.cursor='pointer'; n2.onclick = () => showDetail(cardOf(n2.getAttribute('data-inst'))); });
+    bindFeedImgs(el);
     return;
   }
   const r = S.resolve; const card = cardOf(r.card);
@@ -2614,6 +2692,18 @@ function renderRZone() {
     + '<div class="rz-info">发动者：'+P(r.initiator).name+(r.claimed?' <span style="color:#e879f9;font-weight:800">✨羁绊收集确认 · 连锁完成后放入友情区</span>':'')+'<br>'+(card.effect?'<span style="color:rgba(255,255,255,.55)">'+card.effect+'</span>':'')+(r.chain.length?'<br><span class="rz-chain">连锁 ×'+r.chain.length+'（后发先至）：'+r.chain.map(c=>(c.kind==='counter'?'🛡':'🍞')+'「'+cardOf(c.card).name+'」·'+P(c.by).name).join(' → ')+'</span>':'')+(r.initiator!==myId&&!r.claimed?'<br><span style="color:#fbbf24;font-size:11px">⏱ 倒计时内可选：🛡反击 / ✨凑羁绊 / ⚡直接结算</span>':'')+'</div>';
   el.querySelector('.rz-card.main').onclick = () => showDetail(card);
   el.querySelectorAll('.rz-card.chc, .rz-card.chb').forEach(n => { n.onclick = () => showDetail(cardOf(n.getAttribute('data-inst'))); });
+  const fb = mkFeedHtml(); if (fb) { el.insertAdjacentHTML('beforeend', fb); bindFeedImgs(el); }
+}
+// 反击链路反馈渲染（画面中央结算区）
+function mkFeedHtml() {
+  if (!S || !S.feed || !S.feed.length) return '';
+  const items = S.feed.slice(-6).map(f =>
+    '<div class="feed-item '+(f.cls||'')+'">'+(f.inst?'<img src="'+cardOf(f.inst).img+'" data-finst="'+f.inst+'">':'<div class="feed-noimg">🛡</div>')+'<div>'+esc(f.txt)+'</div></div>'
+  ).join('');
+  return '<div class="feed-wrap"><div class="feed-title">🛡 反击链路动态</div><div class="feed-row">'+items+'</div></div>';
+}
+function bindFeedImgs(scope) {
+  (scope||document).querySelectorAll('.feed-item img[data-finst]').forEach(im => { im.onclick = () => showDetail(cardOf(im.getAttribute('data-finst'))); });
 }
 
 // ============ 详情（左侧信息栏） ============
@@ -2669,7 +2759,9 @@ function showShuffle(done) {
   for (let i=0;i<12;i++) cards += '<div style="position:absolute;width:60px;height:88px;border-radius:8px;border:2px solid rgba(251,191,36,.5);background:linear-gradient(135deg,#0f766e,#134e4a);animation:shuf'+(i%4)+' 1.6s ease-in-out '+(i*0.04)+'s"></div>';
   l.innerHTML = '<div class="shuffle-overlay"><div class="shuffle-title">洗 牌</div>'+cards+'</div>'
     + '<style>@keyframes shuf0{0%,100%{transform:translate(-120px,-40px) rotate(0)}50%{transform:translate(-260px,-120px) rotate(340deg)}}@keyframes shuf1{0%,100%{transform:translate(120px,-40px) rotate(0)}50%{transform:translate(260px,-100px) rotate(-340deg)}}@keyframes shuf2{0%,100%{transform:translate(-80px,80px) rotate(0)}50%{transform:translate(-200px,160px) rotate(-380deg)}}@keyframes shuf3{0%,100%{transform:translate(80px,80px) rotate(0)}50%{transform:translate(200px,150px) rotate(380deg)}}</style>';
-  setTimeout(() => { l.innerHTML = ''; done(); }, 1800);
+  // 洗牌动画全部播完（最后一张 1.6s + 0.44s 延迟）再淡出，淡出结束后才开始发牌
+setTimeout(() => { const ov = l.querySelector('.shuffle-overlay'); if (ov) ov.style.transition = 'opacity .3s'; if (ov) ov.style.opacity = '0'; }, 2060);
+setTimeout(() => { l.innerHTML = ''; done(); }, 2400);
 }
 function playDealAnims(anims, done) {
 if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'deal', n: anims.length } });
@@ -2781,7 +2873,8 @@ function mkSnapshot(viewerPid) {
       slots: p.slots.map(s => ({ inst: s.inst ? cardOf(s.inst).id : null, faceUp: s.faceUp, locked: s.locked, bonus: s.bonus||0 })),
       skip: p.skip, fv: zoneFv(p), av: p.av || ''
     })),
-    lastChain: S.lastChain ? { main: cardOf(S.lastChain.main).id, initiator: S.lastChain.initiator, claimed: S.lastChain.claimed, chain: (S.lastChain.chain||[]).map(ch=>({card: cardOf(ch.card).id, by: ch.by, kind: ch.kind})) } : null
+    lastChain: S.lastChain ? { main: cardOf(S.lastChain.main).id, initiator: S.lastChain.initiator, claimed: S.lastChain.claimed, chain: (S.lastChain.chain||[]).map(ch=>({card: cardOf(ch.card).id, by: ch.by, kind: ch.kind})) } : null,
+    feed: (S.feed||[]).map(f=>({ txt: f.txt, inst: f.inst ? cardOf(f.inst).id : null, cls: f.cls }))
   };
   return pub;
 }
@@ -2806,6 +2899,15 @@ function applyAct(from, a, v) {
   switch (a) {
     case 'draw': if (S.phase==='draw' && cur().id===from && !S.resolve) doDraw(from); break;
     case 'endTurn': if (S.phase==='action' && cur().id===from && !S.resolve) endTurn(from); break;
+    case 'reorder': {
+      // 客户端在抽牌展示中点选的牌：同 cid 的第1张移到手牌最前（仅排序，不影响逻辑）
+      if (typeof v === 'number' || (v && v.cid != null)) {
+        const c = (v && v.cid != null) ? v.cid : v;
+        const hi = p.hand.findIndex(h => cid(h) === c);
+        if (hi > -1) { const x = p.hand.splice(hi,1)[0]; p.hand.unshift(x); render(); }
+      }
+      break;
+    }
     case 'play': {
       if (S.phase!=='action' || cur().id!==from || S.resolve) break;
       const inst = normInsts(p, [v.inst])[0];
@@ -2944,7 +3046,7 @@ function applySnap(s) {
       players: s.players.map(p => ({ id: p.id, name: p.name, ai: p.ai, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} })),
       order: s.order.slice(), turnIdx: 0, phase: 'draw', deck: [], discard: [], actionUsed: false, eventUsed: false,
       resolve: null, threshold: s.threshold, turns: 0, winner: null,
-      roundNo: 0, gflags: {}, tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: []
+      roundNo: 0, gflags: {}, tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: [], feed: []
     };
     S.players.forEach((p,i) => { p.slots = s.players[i].slots.map(x => ({inst: null, faceUp: x.faceUp, locked: x.locked})); });
     _snapTurns = -1; _wasAlive = true; _lost = false;
@@ -2962,6 +3064,7 @@ function applySnap(s) {
   S.pendingDiscard = s.pendingDiscard ? { need: s.pendingDiscard.need, pid: myId } : null;
   S.logArr = (s.logArr||[]).slice();
   S.lastChain = s.lastChain ? { main: s.lastChain.main + '#c', initiator: s.lastChain.initiator, claimed: s.lastChain.claimed, chain: (s.lastChain.chain||[]).map(ch=>({card: ch.card + '#c', by: ch.by, kind: ch.kind})) } : null;
+  S.feed = (s.feed||[]).map(f=>({ txt: f.txt, inst: f.inst != null ? f.inst + '#c' : null, cls: f.cls }));
   // 玩家字段
   s.players.forEach((sp, i) => {
     const p = S.players.find(x => x.id === sp.id) || S.players[i];

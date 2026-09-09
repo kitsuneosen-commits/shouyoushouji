@@ -8,7 +8,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #000; color: #fff; width: 100%; height: 100%; overflow: hidden; user-select: none; }
 /* ===== 16:9 固定舞台（所有设备呈现完整相同画面） ===== */
-#stage { position: fixed; left: 50%; top: 50%; width: 1280px; height: 720px; transform: translate(-50%,-50%) scale(1); background: linear-gradient(180deg, #0f172a 0%, #042f2e 50%, #022c22 100%); overflow: hidden; box-shadow: 0 0 90px rgba(0,0,0,.85); }
+#stage { position: fixed; inset: 0; width: 100%; height: 100%; --slot-w: clamp(52px, 4.9vw, 110px); --slot-h: calc(var(--slot-w) * 1.46); --hc-w: clamp(88px, 9.6vw, 200px); --hc-h: calc(var(--hc-w) * 1.406); --pile-w: clamp(66px, 6.2vw, 130px); --pile-h: calc(var(--pile-w) * 1.413); --hand-h: calc(var(--hc-h) + 36px); background: linear-gradient(180deg, #0f172a 0%, #042f2e 50%, #022c22 100%); overflow: hidden; }
 /* ===== 背景伪动态粒子 ===== */
 #bgfx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .bg-p { position: absolute; bottom: -24px; border-radius: 50%; pointer-events: none; will-change: transform, opacity; animation: bgfloat linear infinite; }
@@ -64,12 +64,12 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 #chatBox .chat-row { padding: 6px; }
 
 /* ===== 桌面 ===== */
-#game { display: none; }
+#game { display: none; height: 100%; box-sizing: border-box; }
 .topbar { position: sticky; top: 0; z-index: 40; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,.1); padding: 4px 16px; display: flex; align-items: center; gap: 16px; font-size: 13px; }
 .topbar b { color: #fbbf24; }
 .topbar .sp { flex: 1; }
 .topbar button { background: none; border: none; color: rgba(255,255,255,.6); cursor: pointer; font-size: 12px; text-decoration: underline; }
-.table-area { max-width: 1232px; margin: 0 auto; padding: 4px 14px 214px; }
+.table-area { max-width: none; margin: 0; padding: 4px 14px calc(var(--hand-h) + 44px); min-height: calc(100% - 40px); display: flex; flex-direction: column; box-sizing: border-box; }
 
 /* 对手卡 */
 .opponents { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 10px; }
@@ -82,26 +82,26 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .tag-ai { font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #6366f1; font-weight: 800; }
 .tag-declare { font-size: 10px; padding: 1px 6px; border-radius: 99px; background: #facc15; color: #1e293b; font-weight: 900; animation: blink 1s infinite; }
 @keyframes blink { 50% { opacity: .4; } }
-.slots { display: grid; grid-template-columns: repeat(7, 63px); justify-content: center; gap: 4px; }
-.slot { height: 92px; border-radius: 7px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); overflow: hidden; cursor: pointer; position: relative; }
+.slots { display: grid; grid-template-columns: repeat(7, var(--slot-w)); justify-content: center; gap: clamp(3px, 0.4vw, 6px); }
+.slot { height: var(--slot-h); border-radius: 7px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); overflow: hidden; cursor: pointer; position: relative; }
 .slot img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .slot.locked { border-color: rgba(239,68,68,.6); background: rgba(127,29,29,.3); }
 .slot.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
 .slot.sel { border-color: #fbbf24; background: rgba(251,191,36,.2); animation: blink 1s infinite; }
-.me-panel .slot { height: 92px; border-radius: 8px; }
+.me-panel .slot { height: var(--slot-h); border-radius: 8px; }
 .opp.sel-tgt { border-color: #fbbf24; box-shadow: 0 0 18px rgba(251,191,36,.55); animation: turnpulse 1.4s infinite; }
 .opp-foot { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: rgba(255,255,255,.55); }
 
 /* 中央区 */
-.center { display: flex; align-items: center; justify-content: center; gap: 30px; margin: 4px 0; }
+.center { display: flex; align-items: center; justify-content: center; gap: 30px; margin: 4px 0; flex: 1; }
 .pile { text-align: center; }
-.pile-box { width: 92px; height: 130px; position: relative; }
+.pile-box { width: var(--pile-w); height: var(--pile-h); position: relative; }
 .pile-box .cb { position: absolute; inset: 0; border-radius: 10px; border: 2px solid rgba(251,191,36,.4); background: #0b1220 center/cover; }
 .pile-n { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 6px; }
-.resolve-zone { flex: 1; max-width: 520px; min-height: 132px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.3); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; position: relative; animation: tablepulse 5s infinite; }
+.resolve-zone { flex: 1; max-width: min(40vw, 560px); min-height: clamp(110px, 17vh, 170px); border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(0,0,0,.3); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; position: relative; animation: tablepulse 5s infinite; }
 .rz-title { position: absolute; top: 8px; left: 12px; font-size: 11px; color: #fbbf24; font-weight: 800; }
 .rz-timer { position: absolute; top: 8px; right: 12px; font-size: 11px; color: rgba(255,255,255,.65); }
-.rz-card { width: 96px; height: 134px; animation: floatcard 3s infinite; }
+.rz-card { width: calc(var(--pile-w) + 4px); height: calc(var(--pile-h) + 4px); animation: floatcard 3s infinite; }
 .rz-card img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 10px; border: 3px solid rgba(255,255,255,.5); box-shadow: 0 8px 30px rgba(0,0,0,.6); }
 .rz-info { font-size: 12px; color: rgba(255,255,255,.75); margin-top: 8px; text-align: center; line-height: 1.6; }
 .rz-chain { color: #7dd3fc; font-size: 11px; }
@@ -119,8 +119,8 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 
 /* 手牌 */
 .hand-zone { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(0deg, rgba(0,0,0,.9) 20%, transparent); padding: 20px 12px 8px; }
-.hand-row { display: flex; justify-content: center; align-items: flex-end; gap: 4px; height: 220px; perspective: 1200px; }
-.hcard { width: 138px; height: 194px; position: relative; transform-origin: bottom center; transition: transform .3s cubic-bezier(.22,.9,.32,1.05); }
+.hand-row { display: flex; justify-content: center; align-items: flex-end; gap: 4px; height: calc(var(--hc-h) + 26px); perspective: 1200px; }
+.hcard { width: var(--hc-w); height: var(--hc-h); position: relative; transform-origin: bottom center; transition: transform .3s cubic-bezier(.22,.9,.32,1.05); }
 .hcard:hover { transform: translateY(-46px) scale(1.12) !important; z-index: 50; }
 .hcard-inner { width: 100%; height: 100%; border-radius: 9px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,.35); box-shadow: 0 6px 18px rgba(0,0,0,.5); cursor: pointer; }
 .hcard-inner img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
@@ -160,7 +160,7 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .gbtn.fx { background: #475569; }
 
 /* 左侧信息栏 */
-#sideInfo { position: fixed; left: 12px; top: 76px; width: 300px; max-height: 420px; overflow-y: auto; z-index: 120; background: rgba(2,6,23,.94); border: 1px solid rgba(251,191,36,.4); border-radius: 14px; padding: 14px; display: none; box-shadow: 0 14px 50px rgba(0,0,0,.6); }
+#sideInfo { position: fixed; left: 12px; top: 76px; width: 300px; max-height: 420px; overflow-y: auto; z-index: 200; background: rgba(2,6,23,.94); border: 1px solid rgba(251,191,36,.4); border-radius: 14px; padding: 14px; display: none; box-shadow: 0 14px 50px rgba(0,0,0,.6); }
 #sideInfo.show { display: block; animation: fadein .2s; }
 #sideInfo .si-img { width: 100%; height: 250px; border-radius: 10px; overflow: hidden; border: 3px solid rgba(251,191,36,.5); }
 #sideInfo .si-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
@@ -187,7 +187,10 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 8px; }
 .dv-grid img { width: 100%; aspect-ratio: 3/4.2; object-fit: cover; object-position: top; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); cursor: pointer; transition: .15s; }
 .dv-grid img:hover { transform: scale(1.08); border-color: #fde047; }
-/* 右侧玩家列表 */
+/* 右侧玩家列表（可收纳） */
+#sideTab { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 42; writing-mode: vertical-rl; padding: 16px 5px; border: 1px solid rgba(251,191,36,.32); border-right: none; border-radius: 10px 0 0 10px; background: rgba(2,6,23,.9); color: #fbbf24; font-weight: 800; font-size: 13px; letter-spacing: 3px; cursor: pointer; }
+#plist, #chatBox { transition: transform .25s ease; }
+body.side-closed #plist, body.side-closed #chatBox { transform: translateX(120%); }
 #plist { position: fixed; right: 10px; top: 56px; width: 198px; z-index: 40; background: rgba(2,6,23,.86); border: 1px solid rgba(251,191,36,.32); border-radius: 14px; padding: 10px 10px 6px; backdrop-filter: blur(5px); max-height: 340px; overflow-y: auto; }
 #plist .pl-title { font-size: 12px; color: #fbbf24; font-weight: 800; margin-bottom: 8px; letter-spacing: 1px; }
 .pl-row { position: relative; display: flex; align-items: center; gap: 7px; padding: 7px 8px; border-radius: 10px; margin-bottom: 6px; background: rgba(255,255,255,.05); border: 1px solid transparent; overflow: hidden; }
@@ -241,7 +244,7 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 @keyframes confetti { 0% { transform: translateY(-60px) rotate(0); } 100% { transform: translateY(792px) rotate(680deg); } }
 
 /* 日志 */
-#logbox { position: fixed; left: 10px; bottom: 300px; z-index: 25; width: 250px; max-height: 150px; overflow: hidden; font-size: 11px; color: rgba(255,255,255,.55); pointer-events: none; }
+#logbox { position: fixed; left: 8px; bottom: calc(var(--hand-h) + 6px); z-index: 25; width: min(280px, 22vw); max-height: 26vh; overflow: hidden; font-size: 11px; color: rgba(255,255,255,.62); pointer-events: none; background: rgba(0,0,0,.32); border-radius: 10px; padding: 6px 10px; }
 #logbox div { line-height: 1.7; text-shadow: 0 1px 3px #000; }
 #logbox .hl { color: #fde047; }
 
@@ -422,7 +425,8 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
     </div>
     <div class="me-panel" id="mePanel"></div>
   </div>
-  <div id="plist"><div class="pl-title">👥 玩家列表</div><div id="plistRows"></div></div>
+  <button id="sideTab">玩家·聊天</button>
+<div id="plist"><div class="pl-title">👥 玩家列表</div><div id="plistRows"></div></div>
   <div id="chatBox"><div class="chat-log" id="chatLog2"></div><div class="chat-row"><input id="chatIn2" maxlength="60" placeholder="聊天…"><button id="chatSend2">➤</button></div></div>
   <div class="hand-zone">
     <div class="hint" id="hint"></div>
@@ -638,7 +642,10 @@ const IMG = {"cover":"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAk
 // 菜单封面虚影
 (function(){ const mb = document.getElementById('menuBg'); if (mb) mb.style.backgroundImage = 'url("'+IMG.cover+'")'; })();
 // 16:9 舞台自适应（所有设备呈现完整相同画面）
-(function(){ const st = document.getElementById('stage'); if (!st) return; function fit(){ const s = Math.min(innerWidth/1280, innerHeight/720); st.style.transform = 'translate(-50%,-50%) scale(' + s + ')'; } addEventListener('resize', fit); fit(); })();
+// 右侧玩家/聊天抽屉（默认收起，不遮挡桌面）
+document.body.classList.add('side-closed');
+const __sideTab = document.getElementById('sideTab');
+if (__sideTab) __sideTab.onclick = () => document.body.classList.toggle('side-closed');
 // 背景伪动态粒子（漂浮光尘）
 (function(){ const box = document.getElementById('bgfx'); if (!box) return; const colors = ['rgba(253,230,138,', 'rgba(153,246,228,', 'rgba(255,255,255,']; for (let i = 0; i < 22; i++) { const p = document.createElement('div'); p.className = 'bg-p'; const sz = 2 + Math.random()*6; const c = colors[Math.floor(Math.random()*colors.length)]; p.style.cssText = 'left:' + (Math.random()*100) + '%;width:' + sz + 'px;height:' + sz + 'px;background:radial-gradient(circle,' + c + '.9),' + c + '.25));--dx:' + ((Math.random()*160)-80) + 'px;--o:' + (0.22 + Math.random()*0.42).toFixed(2) + ';animation-duration:' + (9 + Math.random()*14).toFixed(1) + 's;animation-delay:-' + (Math.random()*20).toFixed(1) + 's;box-shadow:0 0 ' + (sz*2) + 'px ' + c + '.45)'; box.appendChild(p); } })();
 // 牌堆卡背

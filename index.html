@@ -145,6 +145,17 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .feed-item .feed-noimg { width: 30px; text-align: center; flex: none; }
 .feed-item.nul { border-left: 3px solid #f472b6; }
 .feed-item.act { border-left: 3px solid #fbbf24; }
+/* ===== 中央弹窗 3D 按键 ===== */
+.g3d { position:relative; border:none; border-radius:12px; padding:9px 18px; font-weight:900; font-size:13px; color:#fff; cursor:pointer; letter-spacing:1px; text-shadow:0 1px 2px rgba(0,0,0,.45); box-shadow:0 4px 0 rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.4), inset 0 -2px 0 rgba(0,0,0,.18); transition:transform .08s, box-shadow .08s, filter .15s; }
+.g3d:hover { filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 5px 0 rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.45); }
+.g3d:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.3); }
+.g3d.sel { outline:3px solid #ffd54f; outline-offset:2px; transform:translateY(2px); box-shadow:0 2px 0 rgba(0,0,0,.38), 0 0 18px rgba(255,213,79,.55); }
+.g3d.dis { opacity:.4; cursor:not-allowed; }
+.g3d.gold { background:linear-gradient(180deg,#fbbf24,#b45309); }
+.g3d.slate { background:linear-gradient(180deg,#64748b,#334155); }
+.gtitle { display:inline-block; font-size:18px; font-weight:900; letter-spacing:1px; background:linear-gradient(90deg,#ffd54f,#f472b6); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.gsub { font-size:12px; color:rgba(255,255,255,.65); margin-bottom:10px; }
+.glabel { font-size:13px; font-weight:900; color:rgba(255,255,255,.85); margin:8px 0 6px; letter-spacing:2px; }
 /* 胜利在望粒子（仅自己视角） */
 #winFx { position: fixed; inset: 0; pointer-events: none; z-index: 25; overflow: hidden; }
 #winFx .wf-par { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle, #fde047 0%, rgba(253,224,71,0) 70%); box-shadow: 0 0 8px rgba(253,224,71,.9); animation: wfrise linear infinite; }
@@ -536,10 +547,12 @@ E(277,{run:(a,c)=>{const n=a.discardedName('圣诞快乐');a.draw(c.actor,1+n);a
 E(278,{run:(a,c)=>{a.draw(c.actor,3);a.skip(c.actor,1);}});
 E(279,{steps:c=>[['t']],run:(a,c)=>{a.coverZoneCard(c.t,3);}});
 E(280,{steps:c=>[['t']],run:(a,c)=>{a.poison(c.t,1,2);}});
-E(281,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
-E(282,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
-E(283,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
-E(284,{run:(a,c)=>{a.note('四神汇聚光环牌：放置入友情区后生效（需集齐2张四神）');}});
+// 四神汇聚光环（281-284 统一即时效果）：打出的瞬间只作放置；当友情区集齐≥2张四神（羁绊达成）后，
+// 每个回合结束由 fireGodAuras() 自动触发各自光环（白虎全场弃1/朱雀选目标弃友情区1张/青龙额外抽1/玄武抽1）
+E(281,{run:(a,c)=>{a.note('四神·白虎：需集齐2张四神放置友情区，之后每回合结束其他所有玩家各弃1张手牌');}});
+E(282,{run:(a,c)=>{a.note('四神·朱雀：需集齐2张四神放置友情区，之后每回合结束选任意玩家弃1张友情区牌');}});
+E(283,{run:(a,c)=>{a.note('四神·青龙：需集齐2张四神放置友情区，之后每回合结束自己额外抽1张牌');}});
+E(284,{run:(a,c)=>{a.note('四神·玄武：需集齐2张四神放置友情区，之后每个回合结束自己抽1张牌');}});
 E(285,{steps:c=>[['t'],['h',1]],run:(a,c)=>{a.zoneDiscardRandom(c.t);a.discardC(c.actor,c.h);}});
 E(286,{s:1,run:(a,c)=>{a.flipAllCovered();}});
 E(287,{s:1,run:(a,c)=>{a.draw(c.actor,3);a.restrict(c.actor,'noDraw',1);}});
@@ -614,6 +627,7 @@ E(355,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.protect(c.actor,'noSelfDiscard',
 E(356,{run:(a,c)=>{a.players().filter(p=>p.alive&&a.handCount(p.id)>=3).forEach(p=>a.discardR(p.id,2));}});
 E(357,{steps:c=>[['t']],run:(a,c)=>{a.reclaim(1);a.discardR(c.t,1);}});
 E(358,{run:(a,c)=>{a.draw(c.actor,1);a.protect(c.actor,'instant',1);}});
+// 穿山甲&犰狹：中央弹窗猜属性·种族（60秒）→结算同上
 E(359,{steps:c=>[['ar']],run:(a,c)=>{a.guessTopResolve(c,2,pid=>a.allOthers(pid,q=>a.discardR(q,2)));}});
 E(360,{s:1,run:(a,c)=>{const rich=a.players().some(p=>p.alive&&p.id!==c.actor&&a.handCount(p.id)>a.handCount(c.actor));if(rich){const n=a.handCount(c.actor);a.discardAll(c.actor);a.allOthers(c.actor,p=>a.discardR(p,n));}else a.note('自己手牌并不少，无效果');}});
 E(361,{steps:c=>[['t']],run:(a,c)=>{if(a.handCount(c.actor)>a.handCount(c.t))a.stealR(c.t,c.actor,2);else a.note('对方手牌不少于你，无效果');}});
@@ -647,6 +661,7 @@ E(388,{steps:c=>[['t',pid=>P(pid).slots.filter(s=>s.inst).length<P(c.actor).slot
 E(389,{run:(a,c)=>{if(a.zoneCount(c.actor)<=3)a.mark(c.actor,'autoPlace',1);else a.note('友情区>3张，无效果');}});
 E(390,{s:1,fvX2Hand:1,run:(a,c)=>{a.draw(c.actor,3);}});
 E(391,{steps:c=>[['h',1],['t']],run:(a,c)=>{a.guessMyCard(c,c.h[0]);}});
+// 耳廓狐：目标玩家用中央弹窗猜属性·种族（60秒），AI随机
 E(392,{s:1,run:(a,c)=>{a.flipAllCovered();}});
 E(393,{run:(a,c)=>{a.draw(c.actor,2);}});
 E(394,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.coverZoneCard(c.t,0);}});
@@ -654,6 +669,7 @@ E(395,{steps:c=>[['t'],['t2',pid=>pid!==c.t&&pid!==c.actor]],run:(a,c)=>{a.steal
 E(396,{run:(a,c)=>{const ts=a.players().filter(p=>p.alive&&(a.track(p.id)||[]).includes('林原兽类'));if(ts.length)ts.forEach(p=>a.discardR(p.id,2));else a.note('本轮无人打出林原兽类牌');}});
 E(397,{s:1,run:(a,c)=>{a.mark(c.actor,'extraPlayRound',1);}});
 E(398,{steps:c=>[['guessTotal']],run:(a,c)=>{a.guessTotalResolve(c);}});
+// 灰狼：改用中央弹窗猜总数（60秒）
 E(399,{steps:c=>[['t']],run:(a,c)=>{a.discardR(c.t||c.actor,2);if(a.hasCovered(c.t||c.actor))a.stealR(c.t||c.actor,c.actor,1);}});
 E(400,{steps:c=>[['t']],run:(a,c)=>{a.swapHands(c.actor,c.t);a.skip(c.actor,1);}});
 
@@ -679,14 +695,14 @@ E(416,{evt:1,run:(a,c)=>{a.bunFeast(c.actor);}});
 E(417,{evt:1,run:(a,c)=>{a.extra(c.actor,1);a.protect(c.actor,'shiny',1);a.note('本回合可额外打出1张角色牌');}});
 E(418,{evt:1,steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.ultrasound(c,c.t,c.hv[0]);}});
 E(419,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.huntGame(c.actor,c.t||c.actor);}});
-E(420,{evt:1,run:(a,c)=>{a.luckyBlast(c.actor);}});
+E(420,{evt:1,steps:c=>[['a']],run:(a,c)=>{window.__luckyGuess=c.attr;a.luckyBlast(c.actor);}});
 E(421,{evt:1,steps:c=>[['h',1]],run:(a,c)=>{a.snowImpact(c.actor,c.h);}});
 E(422,{evt:1,run:(a,c)=>{a.skyHunt(c.actor);}});
 E(423,{evt:1,run:(a,c)=>{a.lightDark(c.actor);}});
 E(424,{evt:1,run:(a,c)=>{a.californiaBeach(c.actor);}});
 E(425,{evt:1,steps:c=>[['h',1],['t']],run:(a,c)=>{a.finiteSong(c.actor,c.h[0],c.t);}});
 E(426,{evt:1,run:(a,c)=>{a.deduction(c.actor);}});
-E(427,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.flowerExpedition(c,c.t||c.actor);}});
+E(427,{evt:1,steps:c=>[['t'],['ta']],run:(a,c)=>{window.__flowerGuess=c.fguess;a.flowerExpedition(c,c.t||c.actor);}});
 E(428,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.draw(c.t,6);a.mark(c.t,'lockHand5',2);}});
 
 __w.EFFECTS = T;
@@ -1121,9 +1137,13 @@ function startGameMp(members, opts) {
   const players = members.map(x => ({ id: x.pid, name: x.name, av: x.av || '', ai: !!x.offline, alive: true, declared: false, declareTurn: -1, hand: [], counters: 0, slots: mkSlots(), skip:0, extraPlay:0, pendDiscard:0, poison:null, flags:{restrict:{},protect:{},mark:{}}, track:{attrs:[],instant:false} }));
   // 非KC6进入（无头像）→ 随机分配14张默认头像之一（快照同步给所有客户端）
   players.forEach(p => { if (!p.av) p.av = AV_IMGS[Math.floor(Math.random()*AV_IMGS.length)]; });
-  // 牌库：每种卡牌2张（158种 × 2 = 316张），抽尽不重洗
-  const deck = []; let seq = 0;
-  CARDS.forEach(c => { deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++)); });
+// 牌库：每种卡牌2张；409/411/412 与 406/407/408 是同名重复事件牌，不重复入组（155种 × 2 = 310张）
+const DUP_EVT = new Set([409, 411, 412]);
+const deck = []; let seq = 0;
+CARDS.forEach(c => {
+if (DUP_EVT.has(c.id)) return;
+deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++));
+});
   S = { players, order: shuffle(players.map(p=>p.id)), turnIdx: 0, phase: 'draw',
     deck: shuffle(deck), discard: [], actionUsed: false, eventUsed: false,
     resolve: null, threshold: 30, turns: 0, winner: null, feed: [],
@@ -1557,10 +1577,15 @@ function doSettle() {
       }
       ids.forEach(x => { if (!placed.includes(x)) p.hand.push(x); });
       log('✨ '+p.name+' 羁绊收集完成：'+placed.length+' 张牌放入友情区，友情值 +'+gained+(placed.length<ids.length?'（友情区已满，超出部分回到手牌）':''));
-      showBanner('<span style="font-size:16px">✨ '+p.name+' 羁绊收集完成！</span><br>友情值 <b style="color:#fde047;font-size:18px">+'+gained+'</b>（'+placed.length+' 张牌入友情区）', 2400, 'gold');
-      if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'claimdone', name: p.name, gained, placed: placed.length } });
-    }
-  }
+showBanner('<span style="font-size:16px">✨ '+p.name+' 羁绊收集完成！</span><br>友情值 <b style="color:#fde047;font-size:18px">+'+gained+'</b>（'+placed.length+' 张牌入友情区）', 2400, 'gold');
+if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'claimdone', name: p.name, gained, placed: placed.length } });
+// 四神汇聚达成提示：集齐≥2张四神且已在友情区
+if (placed.some(x => (cardOf(x).bonds||[]).includes('四神汇聚')) && godZoneIds(p).length >= 2) {
+log('🔱 '+p.name+' 集齐 '+godZoneIds(p).length+' 张四神：【四神汇聚】达成！此后每个回合结束触发四神即时效果', true);
+toast('🔱 四神汇聚达成！光环效果已激活', 'gold');
+}
+}
+}
   // 连锁记录快照：保持显示到下一次新连锁发动（快照同步给客户端）
   S.lastChain = { main: r.card, initiator: r.initiator, claimed: !!r.claimed, chain: (r.chain||[]).map(ch=>({card:ch.card, by:ch.by, kind:ch.kind})) };
   if (r.chain.length) {
@@ -1664,6 +1689,7 @@ function applyFxAnswer(v) {
   else if (type === 'deckpick') ctx.picked = (v.i != null && v.i >= 0 && deckTop) ? deckTop[v.i] : null;
   else if (type === 'guessHand') { const t = P(ctx.t); ctx.guess = { inst: (t && v.idx != null && v.idx >= 0 && v.idx < t.hand.length) ? t.hand[v.idx] : null, a: v.a, r: v.r }; }
   else if (type === 'guessTotal') ctx.guess = v.n;
+  else if (type === 'ta') ctx.fguess = v.a;
   else if (type === 'zp') ctx.zp = (v.i != null && v.i >= 0 && zpCands && zpCands[v.i]) ? zpCands[v.i] : null;
   fxAdvance();
 }
@@ -1701,6 +1727,7 @@ function aiResolveStep(st) {
   else if (type==='deckpick') { ctx.picked = S.deck[S.deck.length-1]; }
   else if (type==='guessHand') ctx.guess = { inst: P(ctx.t)?P(ctx.t).hand[0]:null, a: ATTRS[Math.floor(Math.random()*4)], r: RACES[Math.floor(Math.random()*3)] };
   else if (type==='guessTotal') ctx.guess = 3;
+  else if (type==='ta') ctx.fguess = ATTRS[Math.floor(Math.random()*4)];
   else if (type==='zp') { const tp = P(ctx.t2||ctx.t); const cands = tp ? tp.slots.filter(s=>s.inst) : []; ctx.zp = cands.length ? cands[Math.floor(Math.random()*cands.length)].inst : null; }
   PFX.i++; setTimeout(fxStep, 300);
 }
@@ -1727,10 +1754,16 @@ function humanPromptStep(st) {
   } else if (type==='rps') {
     html += '<div class="t">猜拳</div><div class="row"><button onclick="fxRps(\'石头\')">✊ 石头</button><button onclick="fxRps(\'剪刀\')">✌ 剪刀</button><button onclick="fxRps(\'布\')">✋ 布</button></div>';
   } else if (type==='ar') {
-    html += '<div class="t">猜牌堆顶角色牌</div><div class="t">属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxArA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="fxArR" style="display:none;margin-top:6px"><div class="t">种族</div><div class="row">'+RACES.map(r=>'<button onclick="fxArR(\''+r+'\')">'+r+'</button>').join('')+'</div></div>';
-    setHint('👉 猜牌堆最上方角色牌的属性和种族','gold');
+    showGuessArModal((a,r)=>{ if(!PFX)return; PFX.ctx.ar={a:a,r:r}; fxAdvance(); }, '🦔 猜牌堆最上方角色牌的属性·种族', true); return;
   } else if (type==='a') {
-    html += '<div class="t">选择1个属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxAttr(\''+a+'\')">'+a+'</button>').join('')+'</div>';
+    showGuessArModal((a)=>{ if(!PFX)return; PFX.ctx.attr=a; fxAdvance(); }, '选择 1 个属性', false); return;
+  } else if (type==='ta') {
+    if (ctx.t === myId) {
+      showGuessArModal((a)=>{ if(!PFX)return; PFX.ctx.fguess=a; fxAdvance(); }, '🌸 你被指定猜牌堆最上方1张牌的属性', false);
+    } else {
+      ctx.fguess = ATTRS[Math.floor(Math.random()*4)]; fxAdvance();
+    }
+    return;
   } else if (type==='deckpick') {
     showDeckPickModal(arg||5);
     return;
@@ -1738,7 +1771,7 @@ function humanPromptStep(st) {
     showGuessHandModal(P(ctx.t));
     return;
   } else if (type==='guessTotal') {
-    html += '<div class="t">猜全场手牌总数</div><div class="row">'+[0,1,2,3,4,5,6,7,8,9,10].map(n=>'<button onclick="fxTotal('+n+')">'+n+'</button>').join('')+'</div>';
+    showGuessTotalModal(n=>{ if(!PFX)return; PFX.ctx.guess=n; fxAdvance(); }); return;
   } else if (type==='zp') {
     showZonePickModal(P(ctx.t2||ctx.t));
     return;
@@ -1785,7 +1818,27 @@ function fxAttr(a) { if (fxAskStep) { sendAct('fx',{a}); endClientFx(); return; 
 function fxTotal(n) { if (fxAskStep) { sendAct('fx',{n}); endClientFx(); return; } if(!PFX)return; PFX.ctx.guess = n; fxAdvance(); }
 function closeFxPanel() { const el=document.getElementById('fxpanel'); if(el) el.classList.remove('show'); if (mode==='fx-target'||mode==='fx-hand') { mode=null; fxMode=null; } }
 // 查看/选择目标手牌弹窗
-function closeBigModal() { document.getElementById('bigModal').classList.remove('show'); }
+function closeBigModal() { stopModalTimer(); document.getElementById('bigModal').classList.remove('show'); }
+let modalTimer = null;
+function startModalTimer(sec, onTimeout, hostId) {
+  stopModalTimer();
+  const host = document.getElementById(hostId || 'bigModal');
+  if (!host) return;
+  if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+  let left = sec;
+  const bar = document.createElement('div');
+  bar.id = 'modalTimerBar';
+  bar.style.cssText = 'position:absolute;top:10px;right:14px;font-size:12px;font-weight:800;color:#ffd54f;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:8px;z-index:60;pointer-events:none';
+  host.appendChild(bar);
+  const fmt = () => { bar.textContent = '⏱ ' + left + 's'; };
+  fmt();
+  modalTimer = setInterval(() => {
+    left--;
+    if (left <= 0) { stopModalTimer(); if (onTimeout) onTimeout(); return; }
+    fmt();
+  }, 1000);
+}
+function stopModalTimer() { if (modalTimer) { clearInterval(modalTimer); modalTimer = null; } const b = document.getElementById('modalTimerBar'); if (b) b.remove(); }
 function showHandModal(t, n, steal) {
   const d = document.getElementById('bmContent');
   let cards = t.hand.map((inst,i)=>{
@@ -1824,30 +1877,154 @@ function fxDeckPick(i) {
   closeBigModal();
   if (PFX) fxAdvance();
 }
-// 牌堆抽牌中央展示：展示抽到的牌，玩家可点选其中1张（选中即置顶手牌）
-function showDrawReveal(insts, title, cb) {
-  const d = document.getElementById('bmContent');
-  window._drCb = cb || null; window._drPick = null; window._drInsts = insts;
-  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">'+(title||'从牌堆抽取的牌')+'</div><div style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:8px">点击选择其中 1 张（选中的牌会排到手牌最前）</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:432px;overflow-y:auto">'
-    + insts.map((inst,i)=>'<div id="dr'+i+'" style="display:inline-block;margin:6px;cursor:pointer" onclick="drPick('+i+')"><img src="'+cardOf(inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+esc(cardOf(inst).name)+' ❤'+(cardOf(inst).fv||0)+'</div></div>').join('')
-    + '</div><button class="dlg-close" onclick="drConfirm()">确认</button></div>';
-  document.getElementById('bigModal').classList.add('show');
+// 中央弹窗按键主题：属性/种族专属配色+图标
+const ATTR_THEME = {
+  '林原': { bg:'linear-gradient(180deg,#4ade80,#15803d)', ic:'🌲' },
+  '沙漠': { bg:'linear-gradient(180deg,#fbbf24,#b45309)', ic:'🏜️' },
+  '雪域': { bg:'linear-gradient(180deg,#93c5fd,#1d4ed8)', ic:'❄️' },
+  '海洋': { bg:'linear-gradient(180deg,#22d3ee,#0e7490)', ic:'🌊' }
+};
+const RACE_THEME = {
+  '兽类': { bg:'linear-gradient(180deg,#d6a06a,#92400e)', ic:'🐾' },
+  '鸟类': { bg:'linear-gradient(180deg,#7dd3fc,#0369a1)', ic:'🪶' },
+  '水生类': { bg:'linear-gradient(180deg,#5eead4,#0f766e)', ic:'🐟' }
+};
+function g3dBtn(label, theme, sel, onclick, extraCls) {
+  const th = theme || { bg:'linear-gradient(180deg,#64748b,#334155)', ic:'' };
+  return '<button class="g3d '+(extraCls||'')+(sel?' sel':'')+'" style="background:'+th.bg+'" onclick="'+onclick+'">'+(th.ic?(th.ic+' '):'')+label+'</button>';
 }
-function drPick(i){ window._drPick=i; document.querySelectorAll('#bmContent [id^=dr]').forEach(el=>{ if(el.tagName!=='BUTTON') el.style.outline='none'; }); const el=document.getElementById('dr'+i); if(el) el.style.outline='3px solid #ffd54f'; }
-function drConfirm(){
-  const cb=window._drCb, pk=window._drPick, insts=window._drInsts;
-  window._drCb=null; window._drPick=null; window._drInsts=null;
-  closeBigModal();
-  if (insts && pk!=null && insts[pk]!=null) {
-    const p=P(myId); const hi=p.hand.indexOf(insts[pk]);
-    if(hi>-1){
-      if (HOST && NET.on) {
-        // 联机：通知房主重排（同 cid 第1张置顶）
-        netSend({ t:'g', d:{ k:'act', a:'reorder', cid: cardOf(insts[pk]).id } });
-      } else { p.hand.splice(hi,1); p.hand.unshift(insts[pk]); render(); }
+function attrBtnHtml(a, sel, fn) { return g3dBtn(a, ATTR_THEME[a], sel, fn+'(\''+a+'\')'); }
+function raceBtnHtml(r, sel, fn) { return g3dBtn(r, RACE_THEME[r], sel, fn+'(\''+r+'\')'); }
+// 中央猜测弹窗：猜属性（可选种族）两段式，60秒时限；cb(a,r) 由房主本地/客户端 fxAsk 各自传入
+function showGuessArModal(cb, title, withRace) {
+  const d = document.getElementById('bmContent');
+  window._gArCb = cb; window._gArA = null; window._gArR = null; window._gArRace = !!withRace;
+  const stage = () => {
+    let html = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">'+title+'</span>'
+      + '<div class="glabel">属 性'+(window._gArA?('（已选 '+window._gArA+'）'):'')+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'+ATTRS.map(a=>attrBtnHtml(a, window._gArA===a, 'gArA')).join('')+'</div>';
+    if (window._gArRace) {
+      html += '<div class="glabel">种 族'+(window._gArR?('（已选 '+window._gArR+'）'):'')+'</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'+(window._gArA?RACES.map(r=>raceBtnHtml(r, window._gArR===r, 'gArR')).join(''):'<div class="gsub">⬆ 先选一个属性</div>')+'</div>';
     }
+    html += '<div style="display:flex;gap:10px;margin-top:14px">'+(window._gArA&&(window._gArR||!window._gArRace)?'<button class="g3d gold" onclick="gArSubmit()">✅ 提交猜测</button>':'')+'<button class="g3d slate" onclick="gArRedo()">🔄 重选</button></div></div>';
+    d.innerHTML = html;
+  };
+  window._gArStage = stage; stage();
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => {
+    const a = window._gArA || ATTRS[Math.floor(Math.random()*ATTRS.length)];
+    const r = window._gArR || RACES[Math.floor(Math.random()*RACES.length)];
+    finishGuessAr(a, r);
+  });
+}
+function gArA(a){ window._gArA = a; window._gArStage(); }
+function gArR(r){ window._gArR = r; window._gArStage(); }
+function gArRedo(){ window._gArA = null; window._gArR = null; window._gArStage(); }
+function gArSubmit(){ finishGuessAr(window._gArA, window._gArR); }
+function finishGuessAr(a, r){
+  const cb = window._gArCb, race = window._gArRace;
+  window._gArCb = null; window._gArA = null; window._gArR = null;
+  stopModalTimer(); closeBigModal();
+  if (cb) cb(a, race ? r : null);
+}
+// 猜总数（灰狼）：中央数字选盘，60秒时限
+function showGuessTotalModal(cb) {
+  const d = document.getElementById('bmContent');
+  window._gTotCb = cb;
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🐺 猜现在所有玩家的手牌总数</span><div class="gsub">最接近的玩家获胜</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:440px">'
+    + [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(n=>'<button class="g3d" style="background:linear-gradient(180deg,#a78bfa,#5b21b6);min-width:52px" onclick="gTot('+n+')">'+n+'</button>').join('')
+    + '</div></div>';
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => gTot(Math.floor(Math.random()*16)));
+}
+function gTot(n){ const cb = window._gTotCb; window._gTotCb = null; stopModalTimer(); closeBigModal(); if (cb) cb(n); }
+// 圣诞快乐分发（圣诞老人玩法）：抽 N 张全部展示，逐张点选卡牌→点选玩家头像送出，60秒时限
+function showXmasModal(insts, cb, selfPid) {
+  const d = document.getElementById('bmContent');
+  window._xmasInsts = insts; window._xmasCb = cb; window._xmasSelf = selfPid;
+  window._xmasAssign = insts.map(()=>null); window._xmasSel = null;
+  const stage = () => {
+    const alive = S.players.filter(p=>p.alive);
+    const assigned = window._xmasAssign.filter(a=>a!=null).length;
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:640px"><span class="gtitle">🎄 圣诞快乐 · 你是圣诞老人</span>'
+      + '<div class="gsub">先点 1 张礼物卡，再点下方玩家头像送出（也可以送自己）· 已送出 '+assigned+'/'+insts.length+' 张</div>'
+      + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:288px;overflow-y:auto">'
+      + insts.map((inst,i)=>{
+          const to = window._xmasAssign[i];
+          const sel = window._xmasSel===i;
+          return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(to!=null?'opacity:.5;':'')+(sel?'outline:3px solid #ffd54f;border-radius:10px;':'')+'" onclick="xmasCard('+i+')"><img src="'+cardOf(inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+esc(cardOf(inst).name)+' ❤'+(cardOf(inst).fv||0)+'</div><div style="font-size:10px;color:#86efac;text-align:center">'+(to!=null?('→ '+esc(P(to).name)):(sel?'✋ 已选中，去点玩家头像':'点击选择'))+'</div></div>';
+        }).join('')
+      + '</div><div class="glabel">🎁 送给谁？</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+      + alive.map(p=>g3dBtn(esc(p.name)+(p.id===window._xmasSelf?'（自己）':''), {bg: p.id===window._xmasSelf?'linear-gradient(180deg,#f472b6,#be185d)':'linear-gradient(180deg,#38bdf8,#1d4ed8)', ic:'🧑'}, false, 'xmasGive(\''+p.id+'\')', window._xmasSel==null?'dis':'')).join('')
+      + '</div><button class="g3d gold" style="margin-top:12px" onclick="xmasConfirm()">'+(assigned<insts.length?'🔔 确定分发（还剩'+(insts.length-assigned)+'张未送）':'🔔 确定分发')+'</button></div>';
+  };
+  window._xmasStage = stage; stage();
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => {
+    const alive = S.players.filter(p=>p.alive);
+    window._xmasAssign = window._xmasInsts.map(()=>alive[Math.floor(Math.random()*alive.length)].id);
+    toast('⏱ 分发超时，剩余礼物已随机送出','err');
+    xmasConfirm(true);
+  });
+}
+function xmasCard(i){ if (window._xmasAssign[i]!=null) return; window._xmasSel = (window._xmasSel===i?null:i); window._xmasStage(); }
+function xmasGive(pid){ if (window._xmasSel==null) return; window._xmasAssign[window._xmasSel]=pid; window._xmasSel=null; window._xmasStage(); }
+function xmasConfirm(auto){
+  const assign = window._xmasAssign, insts = window._xmasInsts, cb = window._xmasCb;
+  if (!auto) {
+    if (assign.some(a=>a==null)) { toast('还有礼物没有送出','err'); return; }
+  } else {
+    const alive = S.players.filter(p=>p.alive);
+    for (let i=0;i<assign.length;i++) if (assign[i]==null) assign[i]=alive[Math.floor(Math.random()*alive.length)].id;
   }
-  if (cb) cb(pk);
+  window._xmasCb=null; window._xmasInsts=null; window._xmasAssign=null; window._xmasSel=null;
+  stopModalTimer(); closeBigModal();
+  if (cb) cb(assign);
+}
+// 疑案推理猜测环节：逐个玩家点选「真心/说谎」，60秒时限
+function showDeductionGuessModal(others, covered, ps, cb) {
+  const d = document.getElementById('bmContent');
+  window._ddOthers = others; window._ddCovered = covered; window._ddPs = ps; window._ddCb = cb;
+  window._ddGuess = {}; window._ddI = 0;
+  const stage = () => {
+    const i = window._ddI;
+    if (i >= others.length) {
+      const guesses = ps.map(p=>{
+        const g = window._ddGuess[p.id];
+        if (g === undefined) return Math.random()<0.5;
+        return g ? Math.random()<0.5 : Math.random()<0.5;
+      });
+      window._ddCb = null; stopModalTimer(); closeBigModal();
+      if (cb) cb(guesses);
+      return;
+    }
+    const p = others[i];
+    const cov = covered.find(e=>e.p.id===p.id);
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:560px"><span class="gtitle">🔍 疑案推理（'+(i+1)+'/'+others.length+'）</span>'
+      + '<div style="font-size:13px;margin-bottom:8px">'+esc(p.name)+' 盖放了 1 张牌并描述它，你觉得：</div>'
+      + (cov ? '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 14px;margin-bottom:10px"><div style="width:56px;height:78px;border-radius:6px;background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:20px">🂠</div><div style="font-size:12px;color:rgba(255,255,255,.7)">「'+cardOf(cov.inst).name+'」（对你隐藏，结算后揭示）</div></div>' : '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:10px">（对方没盖放牌）</div>')
+      + '<div style="display:flex;gap:14px;margin-top:6px"><button class="g3d" style="background:linear-gradient(180deg,#fb7185,#9f1239);padding:12px 26px;font-size:15px" onclick="ddGuess(true)">🤥 在说谎</button><button class="g3d" style="background:linear-gradient(180deg,#4ade80,#15803d);padding:12px 26px;font-size:15px" onclick="ddGuess(false)">💬 是真心话</button></div>'
+      + '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:8px">答对抽3张 · 答错弃2张</div></div>';
+  };
+  window._ddStage = stage; stage();
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => { while (window._ddI < window._ddOthers.length) { window._ddGuess[window._ddOthers[window._ddI].id] = Math.random()<0.5; window._ddI++; } toast('⏱ 猜测超时，已随机结算','err'); stage(); });
+}
+function ddGuess(lie){ window._ddGuess[window._ddOthers[window._ddI].id] = lie; window._ddI++; window._ddStage(); }
+// 疑案推理结算揭示：展示各玩家盖放的牌
+function showDeductionModal(ps, covered, guesses) {
+  const d = document.getElementById('bmContent');
+  const rows = ps.map((p,i)=>{
+    const cov = covered.find(e=>e.p.id===p.id);
+    const g = guesses ? guesses[i] : null;
+    return '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px 12px;margin:4px 0">'
+      + (cov ? '<img src="'+cardOf(cov.inst).img+'" style="width:52px;height:72px;object-fit:cover;object-position:top;border-radius:6px">' : '<div style="width:52px;height:72px;border-radius:6px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center">—</div>')
+      + '<div style="flex:1"><div style="font-size:13px;font-weight:800">'+esc(p.name)+(p.id===myId?'（你）':'')+'</div><div style="font-size:11px;color:rgba(255,255,255,.6)">'+(cov?('盖放：「'+cardOf(cov.inst).name+'」 '+cardOf(cov.inst).attr+cardOf(cov.inst).race):'未盖放')+'</div></div>'
+      + (g!=null?'<div style="font-size:12px;font-weight:800;color:'+(g?'#86efac':'#fca5a5')+'">'+(g?'猜对 ✓':'猜错 ✗')+'</div>':'')
+      + '</div>';
+  }).join('');
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:560px"><span class="gtitle">🔍 疑案推理 · 揭晓</span>'+rows+'<button class="g3d gold" onclick="closeBigModal()">关闭</button></div>';
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => closeBigModal());
 }
 // 桌面区（场外）查看：月夜访客盖放牌 / 明暗交锋·北极狐盖放牌 / 桌面馒头
 function showTableZone() {
@@ -1891,21 +2068,49 @@ function fxZonePick(si) {
   closeBigModal();
   if (PFX) fxAdvance();
 }
-function showGuessHandModal(t) {
+// 猜手牌（网纹长颈鹿）：两段式 — 第一阶段选牌背，第二阶段选属性·种族；房主本地/客户端 fxAsk 双路径
+function showGuessHandModal(t, askCount, askName) {
   const d = document.getElementById('bmContent');
-  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:16px;font-weight:900;margin-bottom:10px">猜 '+t.name+' 的1张手牌：先点1张，再猜属性·种族</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:288px;overflow-y:auto">'+t.hand.map((inst,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxGhPick('+i+')"><img src="'+cardOf(inst).img+'" style="width:80px;height:112px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"></div>').join('')+'</div><div id="ghBtns" style="display:none"><div style="font-size:13px;margin:8px">属性</div><div class="row" style="display:flex;gap:6px">'+ATTRS.map(a=>'<button onclick="fxGhA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="ghR" style="display:none;margin-top:6px"><div style="font-size:13px;margin:8px">种族</div><div style="display:flex;gap:6px">'+RACES.map(r=>'<button onclick="fxGhR(\''+r+'\')">'+r+'</button>').join('')+'</div></div></div><button class="dlg-close" onclick="closeHvModal()">放弃</button></div>';
+  const count = t ? t.hand.length : (askCount||0);
+  window._ghIdx = null; window._ghA = null; window._ghR = null;
+  window._ghCount = count; window._ghStage = 1;
+  const stage = () => {
+    const targetName = t ? esc(t.name) : esc(askName||'对方');
+    let html = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🦒 猜 '+targetName+' 的1张手牌</span>';
+    if (window._ghStage === 1) {
+      html += '<div class="gsub">先点 1 张盖着的牌</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:288px;overflow-y:auto">'
+        + Array.from({length: window._ghCount}, (_,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxGhPick('+i+')"><div style="width:80px;height:112px;border-radius:8px;border:2px solid rgba(255,255,255,.4);background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:22px">🂠</div></div>').join('')
+        + '</div>';
+    } else {
+      html += '<div class="gsub">再猜这张牌的属性·种族</div><div class="glabel">属 性</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'+ATTRS.map(a=>attrBtnHtml(a, window._ghA===a, 'ghA')).join('')+'</div>'
+        + '<div class="glabel">种 族</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'+RACES.map(r=>raceBtnHtml(r, window._ghR===r, 'ghR')).join('')+'</div>'
+        + '<div style="display:flex;gap:10px;margin-top:14px"><button class="g3d slate" onclick="ghRedo()">🔄 重新选牌</button>'+(window._ghA&&window._ghR?'<button class="g3d gold" onclick="ghSubmit()">✅ 提交猜测</button>':'')+'</div>';
+    }
+    html += '</div>';
+    d.innerHTML = html;
+  };
+  window._ghStageRender = stage; stage();
   document.getElementById('bigModal').classList.add('show');
+  startModalTimer(60, () => {
+    window._ghIdx = window._ghIdx!=null ? window._ghIdx : Math.floor(Math.random()*Math.max(1,window._ghCount));
+    ghFinish(ATTRS[Math.floor(Math.random()*ATTRS.length)], RACES[Math.floor(Math.random()*RACES.length)]);
+  });
 }
-let ghA=null;
-function fxGhPick(i) {
-  if (fxAskStep) { window._ghIdx = i; document.getElementById('ghBtns').style.display='block'; return; }
-  if(!PFX)return; PFX.ctx.guess={inst:P(PFX.ctx.t).hand[i]}; document.getElementById('ghBtns').style.display='block';
+function ghA(a){ window._ghA = a; window._ghStageRender(); }
+function ghR(r){ window._ghR = r; window._ghStageRender(); }
+function ghRedo(){ window._ghIdx=null; window._ghA=null; window._ghR=null; window._ghStage=1; window._ghStageRender(); }
+function fxGhPick(i) { window._ghIdx = i; window._ghStage = 2; window._ghStageRender(); }
+function ghFinish(a, r) {
+  const idx = window._ghIdx!=null ? window._ghIdx : -1;
+  window._ghA=null; window._ghR=null; window._ghStage=1;
+  stopModalTimer(); closeBigModal();
+  if (fxAskStep) { sendAct('fx', { idx, a, r }); endClientFx(); return; }
+  if (!PFX) return;
+  const t = P(PFX.ctx.t);
+  PFX.ctx.guess = { inst: (t && t.hand[idx]) || null, a, r };
+  fxAdvance();
 }
-function fxGhA(a){ ghA=a; document.getElementById('ghR').style.display='block'; }
-function fxGhR(r) {
-  if (fxAskStep) { sendAct('fx',{idx: window._ghIdx!=null?window._ghIdx:-1, a:ghA, r}); ghA=null; window._ghIdx=null; endClientFx(); return; }
-  if(!PFX)return; PFX.ctx.guess.a=ghA; PFX.ctx.guess.r=r; ghA=null; closeBigModal(); fxAdvance();
-}
+function ghSubmit(){ ghFinish(window._ghA, window._ghR); }
 // ============ 客户端：效果询问 UI（由房主 fxAsk 消息驱动） ============
 function endClientFx() {
   fxAskStep = null;
@@ -1932,12 +2137,13 @@ function clientFxAsk(step) {
   } else if (step.type === 'rps') {
     html += '<div class="t">猜拳</div><div class="row"><button onclick="fxRps(\'石头\')">✊ 石头</button><button onclick="fxRps(\'剪刀\')">✌ 剪刀</button><button onclick="fxRps(\'布\')">✋ 布</button></div>';
   } else if (step.type === 'ar') {
-    html += '<div class="t">猜牌堆顶角色牌</div><div class="t">属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxArA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="fxArR" style="display:none;margin-top:6px"><div class="t">种族</div><div class="row">'+RACES.map(r=>'<button onclick="fxArR(\''+r+'\')">'+r+'</button>').join('')+'</div></div>';
-    setHint('👉 猜牌堆最上方角色牌的属性和种族','gold');
+    showGuessArModal((a,r)=>{ sendAct('fx',{a,r}); endClientFx(); }, '🦔 猜牌堆最上方角色牌的属性·种族', true); return;
   } else if (step.type === 'a') {
-    html += '<div class="t">选择1个属性</div><div class="row">'+ATTRS.map(a=>'<button onclick="fxAttr(\''+a+'\')">'+a+'</button>').join('')+'</div>';
+    showGuessArModal((a)=>{ sendAct('fx',{a}); endClientFx(); }, '选择 1 个属性', false); return;
+  } else if (step.type === 'ta') {
+    showGuessArModal((a)=>{ sendAct('fx',{a}); endClientFx(); }, '🌸 你被指定猜牌堆最上方1张牌的属性', false); return;
   } else if (step.type === 'guessTotal') {
-    html += '<div class="t">猜全场手牌总数</div><div class="row">'+[0,1,2,3,4,5,6,7,8,9,10].map(n=>'<button onclick="fxTotal('+n+')">'+n+'</button>').join('')+'</div>';
+    showGuessTotalModal(n=>{ sendAct('fx',{n}); endClientFx(); }); return;
   } else if (step.type === 'hv') { clientHvModal(step); return; }
   else if (step.type === 'deckpick') { clientDeckPickModal(step); return; }
   else if (step.type === 'guessHand') { clientGuessModal(step); return; }
@@ -1966,10 +2172,7 @@ function clientDeckPickModal(step) {
   document.getElementById('bigModal').classList.add('show');
 }
 function clientGuessModal(step) {
-  const d = document.getElementById('bmContent');
-  const cards = Array.from({length: step.count||0}, (_,i)=>'<div style="display:inline-block;margin:6px;cursor:pointer" onclick="fxGhPick('+i+')"><div style="width:80px;height:112px;border-radius:8px;border:2px solid rgba(255,255,255,.4);background:linear-gradient(135deg,#1e3a5f,#134e4a);display:flex;align-items:center;justify-content:center;font-size:22px">🂠</div></div>').join('');
-  d.innerHTML = '<div class="dlg"><div style="font-size:16px;font-weight:900;margin-bottom:10px">猜 '+esc(step.tName||'对方')+' 的1张手牌：先点1张（背面），再猜属性·种族</div><div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:288px;overflow-y:auto">'+cards+'</div><div id="ghBtns" style="display:none"><div style="font-size:13px;margin:8px">属性</div><div class="row" style="display:flex;gap:6px">'+ATTRS.map(a=>'<button onclick="fxGhA(\''+a+'\')">'+a+'</button>').join('')+'</div><div id="ghR" style="display:none;margin-top:6px"><div style="font-size:13px;margin:8px">种族</div><div style="display:flex;gap:6px">'+RACES.map(r=>'<button onclick="fxGhR(\''+r+'\')">'+r+'</button>').join('')+'</div></div></div><button class="dlg-close" onclick="closeHvModal()">放弃</button></div>';
-  document.getElementById('bigModal').classList.add('show');
+  showGuessHandModal(null, step.count||0, step.tName||'对方');
 }
 function clientZpModal(step) {
   const d = document.getElementById('bmContent');
@@ -2018,14 +2221,14 @@ function clientReveal(d) {
 }
 
 // ============ 效果 API 原语 ============
-// 卡组固定316张（每种2张），抽尽后不再重洗
+// 卡组固定310张（每种2张，重复事件牌不重复入组），抽尽后不再重洗
 function drawCards(pid, n) {
 const p = P(pid); let got = 0; const gotInsts = [];
 for (let i=0;i<n;i++) {
 const inst = S.deck.pop(); if (!inst) break;
 p.hand.push(inst); gotInsts.push(inst); got++;
 }
-if (got && !S.deck.length && !S._deckEmptyNoted) { S._deckEmptyNoted = true; if (!NET.on || HOST) toast('📦 牌堆已抽尽，不再补充','err'); log('📦 牌堆耗尽（本局卡组316张，抽完不重洗）', true); }
+if (got && !S.deck.length && !S._deckEmptyNoted) { S._deckEmptyNoted = true; if (!NET.on || HOST) toast('📦 牌堆已抽尽，不再补充','err'); log('📦 牌堆耗尽（本局卡组310张，抽完不重洗）', true); }
   if (got) { log(p.name+' 抽了 '+got+' 张牌');
     if (pid === myId) {
       if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'draw', pid } });
@@ -2034,8 +2237,7 @@ if (got && !S.deck.length && !S._deckEmptyNoted) { S._deckEmptyNoted = true; if 
     } else flyCard('ai', ()=>{});
   }
   render();
-  // 规则：从牌堆抽牌的效果，抽到的牌展示在画面中央供玩家选择（房主/单机视角直接看，客户端由房主 evt 驱动）
-  if (got && pid === myId && (!NET.on || HOST)) showDrawReveal(gotInsts, '🃏 你从牌堆抽了 '+got+' 张牌');
+  // 普通抽牌不再弹窗：玩家能直接看到手牌入场动画
 }
 function randomSplice(arr) { return arr.length ? arr.splice(Math.floor(Math.random()*arr.length),1)[0] : null; }
 function discardFrom(pid, n) {
@@ -2139,10 +2341,15 @@ coverZoneCard: (pid,turns) => { const p=P(pid); const cand=p.slots.find(s=>s.ins
     guessMyCard: (c,inst) => {
       if(!inst){ A.note('没有可猜的牌'); return; }
       const tc=cardOf(inst); const t=P(c.t);
-      const hit=Math.random()<0.4;
-      if (hit) { drawCards(c.actor,2); log('🎴 '+P(c.actor).name+' 猜「'+tc.name+'」被抽走 → 猜中，抽2张'); }
-      else { const back=randomSplice(t.hand); if(back) S.discard.push(back); log('🎴 猜错：'+t.name+' 丢弃1张手牌'); }
-      render();
+      const settle=(ok)=>{
+        if (ok) { drawCards(c.actor,2); log('🎴 '+P(c.actor).name+' 猜「'+tc.name+'」被猜中，抽2张'); }
+        else { const back=randomSplice(t.hand); if(back) S.discard.push(back); log('🎴 猜错：'+t.name+' 丢弃1张手牌'); }
+        render();
+      };
+      // 被猜的玩家是人类且是自己（房主视角）时，中央弹窗猜测；否则随机结算
+      if (t && t.id === myId && (!NET.on || HOST)) {
+        showGuessArModal((a,r)=>{ settle(!!(a===tc.attr && r===tc.race)); }, '🎴 「'+tc.name+'」的属性·种族是？（耳廓狐：猜对抽3张）', true);
+      } else settle(Math.random()<0.4);
     },
     guessTotalResolve: c => {
       const total=S.players.filter(p=>p.alive).reduce((s,p)=>s+p.hand.length,0);
@@ -2151,10 +2358,31 @@ coverZoneCard: (pid,turns) => { const p=P(pid); const cand=p.slots.find(s=>s.ins
       if (ok) drawCards(c.actor,2); else discardFrom(c.actor,1);
     },
     // ===== 事件牌助手 =====
-    xmas: pid => { const n=S.players.filter(p=>p.alive).length; const p=P(pid); const drawn=[]; for(let i=0;i<n;i++){ const gi=S.deck.pop(); if(!gi) break; p.hand.push(gi); drawn.push(gi); } if(!drawn.length){ render(); return; } const others=S.players.filter(q=>q.alive&&q.id!==pid); const dist=(keepIdx)=>{ let di=0; drawn.forEach((x,i)=>{ if(i===keepIdx) return; const hi=p.hand.indexOf(x); if(hi>-1) p.hand.splice(hi,1); if(others.length) others[di%others.length].hand.push(x); di++; }); log('🎄 '+p.name+' 抽'+drawn.length+'张，留下1张，分发'+(drawn.length-1)+'张给在场玩家'); render(); };
-      if (pid===myId && drawn.length>1) { render(); showDrawReveal(drawn, '🎄 圣诞快乐：点选 1 张留下，其余分发给在场玩家', pk=>dist(pk!=null?pk:0)); }
-      else if (pid===myId && drawn.length===1) { log('🎄 只有1张，直接留下'); render(); }
-      else dist(Math.floor(Math.random()*drawn.length)); },
+    xmas: pid => { const n=S.players.filter(p=>p.alive).length; const p=P(pid); const drawn=[]; for(let i=0;i<n;i++){ const gi=S.deck.pop(); if(!gi) break; p.hand.push(gi); drawn.push(gi); } if(!drawn.length){ render(); return; }
+      const dist = (assign) => {
+        // assign: 每张牌的目标 pid 数组（含送给自己）
+        drawn.forEach((x,i)=>{
+          const hi = p.hand.indexOf(x); if (hi>-1) p.hand.splice(hi,1);
+          const to = P(assign[i]); if (to) to.hand.push(x);
+        });
+        log('🎄 '+p.name+' 抽'+drawn.length+'张并分发：'+drawn.map((x,i)=>cardOf(x).name+'→'+(P(assign[i])?P(assign[i]).name:'?')).join('，'));
+        render();
+      };
+      if (pid===myId && (!NET.on || HOST)) { render(); showXmasModal(drawn, assign=>dist(assign), pid); }
+      else { // AI：优先留高友情值牌给自己，其余随机送
+        const sorted = drawn.slice().sort((a,b)=>(cardOf(b).fv||0)-(cardOf(a).fv||0));
+        const others = S.players.filter(q=>q.alive&&q.id!==pid);
+        const assign = [];
+        let oi = 0;
+        sorted.forEach(x=>{
+          const keep = (x===sorted[0]) || !others.length;
+          if (keep) assign.push(pid);
+          else { assign.push(others[oi%others.length].id); oi++; }
+        });
+        // assign 与 drawn 顺序对齐
+        const assignAligned = drawn.map(x=>assign[sorted.indexOf(x)]||pid);
+        dist(assignAligned);
+      } },
     moonlight: pid => { const n=Math.min(S.players.filter(p=>p.alive).length, S.deck.length); for(let i=0;i<n;i++){ S.tableStack.push(S.deck.pop()); } if(S.resolve) S.resolve.table=true; log('🌙 '+n+' 张牌盖放在桌面（月夜访客）'); },
     harvest: pid => { const p=P(pid); p.harvest = { stack: p.hand.slice(), covered: [], turns: 3 }; p.hand=[]; log('🍂 '+p.name+' 手牌盖放桌面，3回合内每回合用牌堆顶1张替换，之后收回'); },
     partyFeast: pid => { const alive=S.players.filter(p=>p.alive); const n=alive.length; const pool=[]; for(let i=0;i<n;i++){ const g=S.deck.pop(); if(g) pool.push(g); } shuffle(pool); alive.forEach(p=>{ const inst=pool.pop(); if(inst) p.hand.push(inst); }); log('🎉 聚会盛宴：每人随机分得1张'); render(); },
@@ -2170,7 +2398,23 @@ coverZoneCard: (pid,turns) => { const p=P(pid); const cand=p.slots.find(s=>s.ins
     lightDark: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const cand=p.hand.filter(h=>cardOf(h).counter); if(cand.length){ const inst=cand[0]; rmHand(p,inst); S.aside.push({pid:p.id,inst,lightDark:true}); } }); log('🌓 明暗交锋：各玩家1张反击牌盖放桌面'); },
     californiaBeach: pid => { S.players.filter(p=>p.alive).forEach(p=>{ const oc=p.hand.find(h=>cardOf(h).attr==='海洋'&&cardOf(h).type==='角色牌'); if(oc){ rmHand(p,oc); const free=freeSlotIdx(p); if(free>-1) place(p.id,oc,free,true); drawCards(p.id,2); } }); log('🏖 加州海滨结算完成'); },
     finiteSong: (pid,inst,tid) => { if(!inst) return; const p=P(pid),t=P(tid); rmHand(p,inst); const shown=cardOf(inst); p.hand.forEach(i=>S.discard.push(i)); p.hand=[]; if(shown.name.includes('朱鹮')){ t.alive=false; t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; toast('🎤 绯羽绝唱！'+t.name+' 直接出局','err'); log('💀 '+t.name+' 被绯羽绝唱淘汰'); } else { t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; log('🎤 绯羽绝唱：双方弃全部手牌'); } render(); },
-    deduction: pid => { const ps=S.players.filter(p=>p.alive); const covered=[]; ps.forEach(p=>{ const inst=randomSplice(p.hand); if(inst) covered.push({p,inst}); }); const results=[]; ps.forEach((p,i)=>{ const ok=Math.random()<0.5; if(ok){ for(let k=0;k<3;k++){ const g=S.deck.pop(); if(!g) break; p.hand.push(g); } } else { for(let k=0;k<2&&p.hand.length;k++){ S.discard.push(randomSplice(p.hand)); } } results.push(p.name+(ok?' 猜对（抽3张）':' 猜错（弃2张）')); }); covered.forEach(e=>{ e.p.hand.push(e.inst); }); log('🔍 疑案推理：'+results.join('；')+'；盖放的牌已收回手牌'); if(covered.length) showDrawReveal(covered.map(e=>e.inst), '🔍 疑案推理：各玩家盖放在桌面又收回的牌'); render(); },
+    deduction: pid => { const ps=S.players.filter(p=>p.alive); const covered=[]; ps.forEach(p=>{ const inst=randomSplice(p.hand); if(inst) covered.push({p,inst}); });
+      const settle = (guesses) => {
+        // guesses: 与 ps 同序的答对标记数组
+        const results=[];
+        ps.forEach((p,i)=>{ const ok=!!guesses[i]; if(ok){ for(let k=0;k<3;k++){ const g=S.deck.pop(); if(!g) break; p.hand.push(g); } } else { for(let k=0;k<2&&p.hand.length;k++){ S.discard.push(randomSplice(p.hand)); } } results.push(p.name+(ok?' 猜对（抽3张）':' 猜错（弃2张）')); });
+        covered.forEach(e=>{ e.p.hand.push(e.inst); });
+        log('🔍 疑案推理：'+results.join('；')+'；盖放的牌已收回手牌');
+        render();
+        // 结算揭示：展示各自盖放的牌
+        if (pid===myId && (!NET.on || HOST)) showDeductionModal(ps, covered, guesses);
+      };
+      // 猜测环节：对每个其他玩家，玩家点选是否说谎
+      if (pid===myId && (!NET.on || HOST)) {
+        const others = ps.filter(p=>p.id!==myId);
+        if (!others.length) { settle(ps.map(()=>Math.random()<0.5)); return; }
+        showDeductionGuessModal(others, covered, ps, guesses=>settle(guesses));
+      } else { settle(ps.map(()=>Math.random()<0.5)); } },
     flowerExpedition: (c,tid) => { const both=S.players.filter(p=>[c.actor,tid].includes(p.id)); const flowerN=both.reduce((s,p)=>s+p.hand.filter(h=>(cardOf(h).bonds||[]).includes('花丸探险队')).length+p.slots.filter(x=>x.inst&&(cardOf(x.inst).bonds||[]).includes('花丸探险队')).length,0); let ok=flowerN>=2; if(!ok){ const top=S.deck[S.deck.length-1]; if(top){ const tc=cardOf(top); let guess; if(tid===myId){ guess=window.__flowerGuess; } else guess=ATTRS[Math.floor(Math.random()*4)]; guess=guess||ATTRS[Math.floor(Math.random()*4)]; ok=guess===tc.attr; toast('花丸探险：猜'+guess+' 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); S.discard.push(S.deck.pop()); } } else toast('花丸探险队羁绊≥2，直接成功！','gold'); if(ok){ drawCards(c.actor,4); drawCards(tid,4); } else { discardFrom(c.actor,2); discardFrom(tid,2); } window.__flowerGuess=null; },
   };
   function coverZoneR2(pid,n){ A.coverZoneR(pid,n); }
@@ -2207,6 +2451,59 @@ function endTurn(pid) {
     }
   }
   finishTurn(pid);
+}
+// ============ 四神汇聚光环（281-284 统一即时效果）============
+// 触发条件：【四神汇聚】羁绊达成（友情区正面朝上四神卡≥2张）且这些牌被放置在友情区时，
+// 每个回合结束触发各自光环：白虎=其他所有玩家弃1张手牌 / 朱雀=选任意玩家弃1张友情区牌 /
+// 青龙=自己额外抽1张 / 玄武=自己抽1张
+function godZoneIds(p) {
+return p.slots.filter(s => s.inst && s.faceUp && (cardOf(s.inst).bonds||[]).includes('四神汇聚')).map(s => cid(s.inst));
+}
+function fireGodAuras() {
+if (!S || S.winner) return;
+const acts = [];
+S.players.forEach(pp => {
+if (!pp.alive) return;
+const gods = godZoneIds(pp);
+if (gods.length < 2) return; // 需集齐≥2张四神，羁绊才算达成
+[283,284,281,282].forEach(g => { if (gods.includes(g)) acts.push({ god: g, owner: pp.id }); });
+});
+const step = () => {
+const a = acts.shift();
+if (!a) return;
+const owner = P(a.owner);
+if (a.god === 283) { drawCards(a.owner,1); log('🔱 四神·青龙光环：'+owner.name+' 额外抽 1 张'); step(); }
+else if (a.god === 284) { drawCards(a.owner,1); log('🔱 四神·玄武光环：回合结束 '+owner.name+' 抽 1 张'); step(); }
+else if (a.god === 281) {
+  let n = 0;
+  S.players.forEach(o => { if (o.alive && o.id !== a.owner && o.hand.length) { const inst = randomSplice(o.hand); S.discard.push(inst); n++; } });
+  if (n) log('🔱 四神·白虎光环：其他玩家各丢弃 1 张手牌（共 '+n+' 张）');
+  render(); step();
+} else if (a.god === 282) {
+  const targets = S.players.filter(o => o.alive && o.slots.some(s=>s.inst&&s.faceUp));
+  if (!targets.length) { step(); return; }
+  const pickAndDiscard = t => {
+    const cand = t.slots.filter(s=>s.inst&&s.faceUp);
+    if (!cand.length) return;
+    const s = cand[Math.floor(Math.random()*cand.length)];
+    const inst = s.inst; s.inst = null; S.discard.push(inst);
+    log('🔱 四神·朱雀光环：'+owner.name+' 选 '+t.name+' 友情区的「'+cardOf(inst).name+'」丢弃');
+    render();
+  };
+  if (owner.ai) { pickAndDiscard(targets[Math.floor(Math.random()*targets.length)]); step(); }
+  else {
+    const d = document.getElementById('bmContent');
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🔱 四神·朱雀 光环</span><div class="gsub">选择 1 位玩家，丢弃其友情区 1 张牌（每回合一次）</div><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">'
+      + targets.map(t=>g3dBtn(esc(t.name),{bg:'linear-gradient(180deg,#38bdf8,#1d4ed8)',ic:'🎯'},false,'window._godZ(\''+t.id+'\')')).join('')
+      + '</div></div>';
+    window._godZ = t => { pickAndDiscard(P(t)); closeBigModal(); };
+    startModalTimer(60, () => { pickAndDiscard(targets[Math.floor(Math.random()*targets.length)]); closeBigModal(); toast('⏱ 朱雀光环超时，已随机结算'); }, 'bigModal');
+    document.getElementById('bigModal').classList.add('show');
+    step(); // 弹窗停留选择，不阻塞回合推进
+  }
+}
+};
+step();
 }
 function finishTurn(pid) {
   const p = P(pid);
@@ -2246,9 +2543,11 @@ function finishTurn(pid) {
     done.forEach(x => { if (P(x.pid)) P(x.pid).hand.push(x.inst); });
     S.aside = S.aside.filter(x => !done.includes(x));
     if (done.filter(x=>x.lightDark).length) log('🌓 明暗交锋：盖放牌返回手牌');
-    if (done.filter(x=>!x.lightDark).length) log('🌊 桌面盖放计时结束，牌回到手牌');
-  }
-  // 个人标记/限制衰减
+if (done.filter(x=>!x.lightDark).length) log('🌊 桌面盖放计时结束，牌回到手牌');
+}
+// 四神汇聚光环：羁绊达成且在友情区时，每个回合结束触发即时效果
+fireGodAuras();
+// 个人标记/限制衰减
   S.players.forEach(pp => {
     ['restrict','protect','mark'].forEach(cat => {
       const o = pp.flags[cat]; Object.keys(o).forEach(k => { o[k]--; if (o[k] <= 0) delete o[k]; });

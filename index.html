@@ -93,7 +93,21 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 .tb-zone-btn:hover { transform:translateY(-2px); filter:brightness(1.1); }
 .tb-zone-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #92400e, 0 3px 8px rgba(0,0,0,.4); }
 .tb-zone-btn b { color:#fff; font-size:17px; }
+/* 亮眼状态特效（金光 + 火焰） */
+.shiny-aura { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 68%, rgba(255,200,40,.30) 0%, rgba(255,160,0,.14) 42%, transparent 72%); animation:shinyBreath 2s ease-in-out infinite; }
+.shiny-rays { position:absolute; left:50%; bottom:4%; width:150vmax; height:150vmax; transform:translateX(-50%); background:conic-gradient(from 0deg, rgba(255,215,80,.14) 0deg 12deg, transparent 12deg 30deg, rgba(255,215,80,.14) 30deg 42deg, transparent 42deg 60deg, rgba(255,215,80,.14) 60deg 72deg, transparent 72deg 90deg, rgba(255,215,80,.14) 90deg 102deg, transparent 102deg 120deg, rgba(255,215,80,.14) 120deg 132deg, transparent 132deg 150deg, rgba(255,215,80,.14) 150deg 162deg, transparent 162deg 180deg, rgba(255,215,80,.14) 180deg 192deg, transparent 192deg 210deg, rgba(255,215,80,.14) 210deg 222deg, transparent 222deg 240deg, rgba(255,215,80,.14) 240deg 252deg, transparent 252deg 270deg, rgba(255,215,80,.14) 270deg 282deg, transparent 282deg 300deg, rgba(255,215,80,.14) 300deg 312deg, transparent 312deg 330deg, rgba(255,215,80,.14) 330deg 342deg, transparent 342deg 360deg); animation:shinySpin 14s linear infinite; opacity:.8; }
+@keyframes shinySpin { from { transform:translateX(-50%) rotate(0deg); } to { transform:translateX(-50%) rotate(360deg); } }
+@keyframes shinyBreath { 0%,100% { opacity:.65; } 50% { opacity:1; } }
+.shiny-flame { position:absolute; width:26px; height:38px; border-radius:50% 50% 42% 42%/62% 62% 34% 34%; background:radial-gradient(circle at 50% 78%, #fff8 0 2px, #ffd54a 32%, #ff9a2e 68%, #ff5f1f 100%); filter:blur(.6px); opacity:.92; animation:shinyFlick 0.8s ease-in-out infinite; }
+@keyframes shinyFlick { 0% { transform:translateY(0) scale(1); opacity:.95; } 30% { transform:translateY(-14px) scale(1.18,.9); opacity:1; } 60% { transform:translateY(-8px) scale(.92,1.12); opacity:.85; } 100% { transform:translateY(0) scale(1); opacity:.95; } }
+.shiny-gold { position:absolute; width:8px; height:8px; border-radius:50%; background:#ffe08a; box-shadow:0 0 8px 2px #ffce54aa; animation:shinyGold 3s ease-in infinite; }
+@keyframes shinyGold { 0% { transform:translateY(0) scale(1); opacity:0; } 12% { opacity:1; } 100% { transform:translateY(-190px) scale(.4); opacity:0; } }
+.shiny-flash { position:absolute; inset:0; background:#fff; animation:shinyFlash .55s ease-out forwards; }
+@keyframes shinyFlash { from { opacity:.85; } to { opacity:0; } }
 @keyframes zonePulse { 0%,100% { box-shadow:0 4px 0 #92400e, 0 6px 14px rgba(0,0,0,.45), 0 0 0 rgba(251,191,36,0); } 50% { box-shadow:0 4px 0 #92400e, 0 6px 14px rgba(0,0,0,.45), 0 0 18px rgba(251,191,36,.55); } }
+/* 友情区弹窗：手牌保持在弹窗下方可见可点 */
+body.keep-hand #bigModal { z-index: 60; background: rgba(0,0,0,.35); backdrop-filter: none; align-items: flex-start; padding-top: 64px; }
+body.keep-hand #game .hand-zone { z-index: 70; }
 /* 左下角醒目阶段横幅 */
 #phaseBanner { position:fixed; left:10px; bottom:316px; z-index:26; display:none; align-items:center; gap:10px; padding:8px 16px; border-radius:12px; background:linear-gradient(90deg,rgba(15,23,42,.92),rgba(15,23,42,.55)); border:1px solid rgba(251,191,36,.5); border-left:6px solid #fbbf24; box-shadow:0 4px 16px rgba(0,0,0,.5); pointer-events:none; max-width:560px; }
 #phaseBanner .pb-ico { font-size:24px; }
@@ -545,7 +559,8 @@ body.side-closed #plist, body.side-closed #chatBox { transform: translateX(120%)
   <div class="bg-ghost" id="gameBg"></div>
   <div class="topbar">
     <span class="tb-grp"><b id="tb-room">🏞 --</b><span class="tb-sep">｜</span><span id="tb-th">门槛 25</span><span class="tb-sep">｜</span><span id="tb-deck">牌堆 --</span><span class="tb-sep">｜</span><span id="tb-disc">弃牌 --</span><span class="tb-sep">｜</span><span id="tb-round">回合 --</span></span>
-    <button id="tb-zone" class="tb-zone-btn" onclick="showTableZone()" title="点击查看桌面盖放/除外与自己友情区的牌">🂠 桌面 <b id="tb-table">--</b> · 我的友情区 <b id="tb-myzone">--</b><span style="font-size:11px;opacity:.9"> ▼</span></button>
+    <button id="tb-zone" class="tb-zone-btn" onclick="showTableZone()" title="点击查看所有玩家的桌面盖放/除外/馒头等牌">🂠 桌面 <b id="tb-table">--</b><span style="font-size:11px;opacity:.9"> ▼</span></button>
+    <button id="tb-myzoneBtn" class="tb-zone-btn" style="background:linear-gradient(180deg,#8b5cf6,#6d28d9);box-shadow:0 4px 0 #4c1d95,0 6px 14px rgba(0,0,0,.45)" onclick="showMyZone()" onmouseover="this.style.boxShadow='0 4px 0 #4c1d95,0 6px 14px rgba(0,0,0,.45)'" title="点开查看自己的友情区（手牌保持在下方可对照）">💛 我的友情区 <b id="tb-myzoneN">--</b><span style="font-size:11px;opacity:.9"> ▼</span></button>
 <span id="tb-phase"></span>
     <span id="tb-timer"></span>
     <span class="sp"></span>
@@ -806,7 +821,7 @@ E(413,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.partner(c.actor,c.t||c.actor);}});
 E(414,{evt:1,run:(a,c)=>{a.improvSeasoning(c.actor);}});
 E(415,{evt:1,run:(a,c)=>{a.bunShare(c.actor);}});
 E(416,{evt:1,run:(a,c)=>{a.bunFeast(c.actor);}});
-E(417,{evt:1,run:(a,c)=>{a.extra(c.actor,1);a.protect(c.actor,'shiny',1);a.note('本回合可额外打出1张角色牌');}});
+E(417,{evt:1,run:(a,c)=>{a.extra(c.actor,1);const p=P(c.actor);if(p&&!p.declared){p.declared=true;p.declareTurn=S.turns;log('🌟 '+p.name+' 闪亮登场，直接进入【亮眼】状态！维持到下一个自己的回合即获胜');if(S&&S.activeEffects)S.activeEffects.push({key:'shiny_'+c.actor,sourcePid:c.actor,name:'闪亮登场',desc:p.name+' 处于【亮眼】状态：维持到下一个自己的回合即获胜；若被丢弃·偷取友情区牌则状态消失。',durType:'untilCond',createdAt:S.turns});render();}a.note('本回合可额外打出1张角色牌，并进入亮眼状态');}});
 E(418,{evt:1,steps:c=>[['t'],['hv',1]],run:(a,c)=>{a.ultrasound(c,c.t,c.hv[0]);}});
 E(419,{evt:1,steps:c=>[['t']],run:(a,c)=>{a.huntGame(c.actor,c.t||c.actor);}});
 E(420,{evt:1,steps:c=>[['a']],run:(a,c)=>{window.__luckyGuess=c.attr;a.luckyBlast(c.actor);}});
@@ -1274,8 +1289,9 @@ _.TRACKS = {
   storm_snow:  { fn:'storm_snow',           loop:true },
   storm_ocean: { fn:'storm_ocean',          loop:true },
   storm_peril: { fn:'storm_peril',          loop:true },
-  victory:     { fn:'friend_gathering',     loop:false },
-  defeat:      { fn:'friend_fail',          loop:false },
+  victory:     { fn:'victory_bgm',          loop:false },
+  defeat:      { fn:'defeat_bgm',           loop:false },
+  shiny:       { fn:'shiny_bgm',            loop:true  }, // 亮眼状态专属 BGM（胜利在望）
 };
 
 // ---- BGM 状态 ----
@@ -1404,6 +1420,33 @@ AUDIO.triggerChainStorm = function(sceneKey) {
 AUDIO.playBattle = function(isTutorial) { AUDIO.play(isTutorial ? 'tutorial' : 'battle'); };
 AUDIO.playVictory = function() { AUDIO.play('victory'); };
 AUDIO.playDefeat = function() { AUDIO.play('defeat'); };
+
+// ---- 亮眼状态音乐 ----
+// 进入亮眼：切换到亮眼专属 BGM
+AUDIO.playShiny = function() { AUDIO.play('shiny'); };
+// 场景连锁风暴曲查询（亮眼被打断后回归正确的对局曲）
+AUDIO.stormTrackFor = function(sceneKey) { return SCENE_STORM[sceneKey] || 'battle'; };
+// 亮眼被打断：音乐骤停 → 滑倒音效 → 3秒沉默 → 回归对局曲
+AUDIO.shinyBreak = function(resume) {
+  if (_.fadeTimer) { clearInterval(_.fadeTimer); _.fadeTimer = null; }
+  // 骤停（无渐变）
+  for (var i = 0; i < 2; i++) {
+    var b = _.bgm[i];
+    if (b.el) { try { b.el.pause(); } catch(e) {} try { b.el.currentTime = 0; } catch(e) {} }
+    b.name = '';
+  }
+  // 喜剧滑倒音效
+  _.playSfxFile('sfx_slip.mp3', 1.25);
+  // 3 秒沉默后回归对局曲
+  if (_.shinyResumeTimer) { clearTimeout(_.shinyResumeTimer); }
+  _.shinyResumeTimer = setTimeout(function() {
+    _.shinyResumeTimer = null;
+    if (window.__gameEnded && window.__gameEnded()) return; // 终局后交给胜负音乐
+    var c = _.bgm[_.active];
+    if (c && c.name) return; // 已有新音乐接管，不抢占
+    AUDIO.play(resume || 'battle');
+  }, 3000);
+};
 
 // ===== SFX 文件音效助手（播放短音频文件） =====
 _.playSfxFile = function(filename, volMul) {
@@ -3479,13 +3522,41 @@ function showTableZone() {
   if ((S.aside||[]).length) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#f9a8d4;margin:6px 0">🂠 桌面盖放 / 除外区</div>' + S.aside.map(x=>x.lightDark ? coverHtml(x.pid,'明暗交锋'+(x.rounds!=null?('·剩'+x.rounds+'回合'):'')) : coverHtml(x.pid, x.rounds!=null ? ('盖放·剩'+x.rounds+'回合') : '除外')).join('');
   if ((S.tableBuns||[]).length) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#fcd34d;margin:6px 0">🍞 桌面馒头（全员共享友情值）</div>' + S.tableBuns.map(i=>cardHtml(i,'桌面馒头 ❤'+(cardOf(i).fv||0))).join('');
   (S.players||[]).forEach(p=>{ if(p.harvest&&(p.harvest.stack.length||p.harvest.covered.length)) rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#86efac;margin:6px 0">🍂 收获之秋 · '+p.name+'（剩 '+p.harvest.turns+' 回合 · 盖放手牌 '+p.harvest.stack.length+' 张）</div>' + p.harvest.stack.concat(p.harvest.covered).map(()=>coverHtml(p.id,'收获之秋盖放')).join(''); });
-  const _meZ = S.players.find(p=>p.id===myId);
-  if (_meZ) { const _zc = _meZ.slots.filter(s=>s.inst); rows += '<div style="width:100%;font-size:13px;font-weight:800;color:#7dd3fc;margin:6px 0">💛 我的友情区（'+_zc.length+' 张 · 可用格 '+usable(_meZ)+'/7）</div>' + _meZ.slots.map(s=>s.inst?(s.faceUp?cardHtml(s.inst,'❤'+(cardOf(s.inst).fv||0)):coverHtml(myId,'盖放·不计友情值')):'').join(''); }
-  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">🂠 桌面区（场外）</div>'
+  d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><div style="font-size:18px;font-weight:900;margin-bottom:10px">🂠 桌面区（场上所有玩家）</div>'
     + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:432px;overflow-y:auto;padding:0 8px">'+(rows||'<div style="color:rgba(255,255,255,.5);padding:24px">桌面是空的（盖放/除外的牌会出现在这里）</div>')+'</div>'
     + '<button class="dlg-close" onclick="closeBigModal()">关闭</button></div>';
   document.getElementById('bigModal').classList.add('show');
 }
+// 我的友情区弹窗：手牌保留在弹窗正下方，方便对齐情报；可直接点选空格放置选中的手牌
+function showMyZone() {
+  if (!S) return;
+  const me = S.players.find(p=>p.id===myId); if (!me) return;
+  const d = document.getElementById('bmContent');
+  let rows = '';
+  me.slots.forEach((s,si) => {
+    const sel = mode==='place' && !s.inst && !s.locked;
+    let inner;
+    if (s.inst && s.faceUp) inner = '<img src="'+cardOf(s.inst).img+'" style="width:86px;height:120px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid '+(sel?'#4ade80':'rgba(255,255,255,.4)')+'">';
+    else if (s.inst) inner = '<div style="width:86px;height:120px;border-radius:8px;'+BACK_STYLE+'display:flex;align-items:center;justify-content:center;font-size:34px">🂠</div>';
+    else inner = '<div style="width:86px;height:120px;border-radius:8px;border:2px dashed rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:26px;color:rgba(255,255,255,.35);'+(sel?'border-color:#4ade80;color:#4ade80;':'')+'">＋</div>';
+    rows += '<div data-slot="'+si+'" style="display:inline-block;margin:6px;text-align:center;cursor:'+(sel?'pointer':'default')+'">'+inner
+      + '<div style="font-size:11px;margin-top:3px">'+(s.inst?(s.faceUp?'「'+cardOf(s.inst).name+'」 ❤'+(cardOf(s.inst).fv||0):'盖放牌'):(s.locked?'🔒 锁定':'空格'))+'</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,.55)">格 '+(si+1)+'</div></div>';
+  });
+  d.innerHTML = '<div style="width:min(880px,92%);background:rgba(15,23,42,.96);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:18px;text-align:center">'
+    + '<div style="font-size:18px;font-weight:900;margin-bottom:6px">💛 我的友情区（'+me.slots.filter(s=>s.inst).length+' 张 · 可用格 '+usable(me)+'/7）</div>'
+    + '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:8px">手牌保留在下方，可与友情区对照情报'+(mode==='place'?' · 正在放置：点选空格放入':'')+'</div>'
+    + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:300px;overflow-y:auto;padding:0 8px">'+rows+'</div>'
+    + '<button class="dlg-close" onclick="closeBigModal()">关闭</button></div>';
+  d.querySelectorAll('[data-slot]').forEach(elm => {
+    elm.onclick = () => onSlotClick(me, Number(elm.dataset.slot));
+  });
+  // 手牌保持可见：弹窗层级降至手牌之下，手牌保持在弹窗正下方可点选对照
+  document.getElementById('bigModal').classList.add('show');
+  document.body.classList.add('keep-hand');
+}
+// 关闭弹窗时同步移除手牌保持态
+(function(){ const _ob = closeBigModal; closeBigModal = function() { document.body.classList.remove('keep-hand'); _ob(); }; })();
 // 选目标友情区1张牌（北方苍鹰等）：明牌可点选，盖放牌不可选（房主本地版 + 客户端版共用 fxAsk 通道）
 function showZonePickModal(tp) {
   const d = document.getElementById('bmContent');
@@ -4349,7 +4420,7 @@ function finishTurnImpl(pid) {
   // 亮眼判定（宣告后一整轮；教学对局不判定胜负）
   if (p.declared && S.turns - p.declareTurn >= S.order.length) {
     if (zoneFv(p) >= S.threshold) { if (!S.tut) { doWin(p); return; } log('📖 教学对局：不判定亮眼胜利，继续教学'); }
-    p.declared = false; log(p.name+' 友情值跌出门槛，亮眼取消');
+    else { p.declared = false; log(p.name+' 友情值跌出门槛，亮眼取消'); shinyBreakFx(p); }
   }
   S.turns++;
   // ===== 回合结束钩子 =====
@@ -4554,7 +4625,9 @@ function onSlotClick(p, idx) {
     if (!HOST && NET.on) { sendAct('place', { inst: selInst, slot: idx }); selInst = null; mode = null; setHint(''); render(); return; }
     place(myId, selInst, idx, true);
     selInst = null; mode = null; setHint('');
-    render(); return;
+    render();
+    if (document.body.classList.contains('keep-hand')) showMyZone(); // 友情区弹窗打开时放置后立即刷新
+    return;
   }
   const s = p.slots[idx];
   if (s.inst && s.faceUp) showDetail(cardOf(s.inst), null, s);
@@ -4721,7 +4794,11 @@ function render() {
   const _hvn = S.players.reduce((n,p)=>n+((p.harvest&&p.harvest.stack)||[]).length+((p.harvest&&p.harvest.covered)||[]).length+(p._hvn||0),0);
   const tbn = (S.tableStack||[]).length + (S.tableBuns||[]).length + (S.aside||[]).length + _hvn;
   const te = document.getElementById('tb-table'); if (te) te.textContent = tbn;
-  const _mzEl = document.getElementById('tb-myzone'); if (_mzEl) _mzEl.textContent = _mzn;
+  const _mzEl = document.getElementById('tb-myzoneN'); if (_mzEl) _mzEl.textContent = _mzn;
+  // 亮眼状态：特效与音乐跟踪（进入/被打断）—— 含观战者与客户端（由快照同步触发）
+  const _anyDecl = (S.players||[]).some(pp => pp.declared);
+  if (_anyDecl && !window._shinyOn) shinyOn();
+  else if (!_anyDecl && window._shinyOn) shinyBreakFx();
   const _rmEl = document.getElementById('tb-room'); if (_rmEl) _rmEl.textContent = '🏞 '+(S.roomName||'加帕里公园');
   document.getElementById('tb-round').textContent = '回合 '+(Math.floor(S.turns / Math.max(1,S.order.length))+1);
   // 左下角醒目阶段横幅
@@ -4810,27 +4887,33 @@ function renderMe() {
   const me = P(myId); if (!me) return;
   const el = document.getElementById('mePanel');
   const isMy = cur() && cur().id === myId;
-  let slotsHtml = '';
-  me.slots.forEach((s,si) => {
-    const sel = mode==='place' && !s.inst && !s.locked;
-    let _fvTag='';
-    if (s.inst && s.faceUp) { const _c=cardOf(s.inst); const _fv=((s.fvOverride!=null)?s.fvOverride:(_c.fv||0))+(s.bonus||0); if (_fv!==(_c.fv||0)) _fvTag='<span style="position:absolute;bottom:2px;right:2px;background:rgba(0,0,0,.75);color:#4ade80;font-size:10px;font-weight:800;padding:0 4px;border-radius:4px">❤'+_fv+'</span>'; }
-    slotsHtml += '<div class="slot'+(s.locked?' locked':'')+(sel?' sel':'')+'" data-slot="'+si+'">'+(s.inst&&s.faceUp?'<img src="'+cardOf(s.inst).img+'">'+_fvTag:(s.inst&&s.faceUp===false?'':''))+'</div>';
-  });
   el.innerHTML = '<div class="me-head" id="meHead">'+avHtml(me, 30)+'<span class="nm">'+me.name+'（你）</span>'+(isMy&&S.phase==='action'?'<span class="my-turn">我的回合</span>':'')+(me.declared?'<span class="tag-declare">亮眼中</span>':'')+(me.skip>0?'<span class="tag-declare" style="background:#94a3b8">出局'+me.skip+'</span>':'')
     +(zoneFv(me)>=S.threshold && !me.declared && isMy ? '<button class="declare-btn" onclick="hDeclare()">交够了朋友！</button>':'')
     +'<span class="fv">❤ '+zoneFv(me)+' / '+S.threshold+(S.tableBuns.length?' +🍞'+S.tableBuns.length:'')+'</span></div>'
-    +'<div class="slots">'+slotsHtml+'</div>';
+    +'<div style="font-size:11px;color:rgba(255,255,255,.45);padding:4px 2px 0">💛 友情区 '+me.slots.filter(s=>s.inst).length+' 张 · 可用格 '+usable(me)+'/7 —— 点顶部「我的友情区」按钮查看详情</div>';
   const mh = el.querySelector('#meHead');
-  if (mh) { mh.style.cursor='pointer'; mh.onclick = () => { if (mode==='fx-target') { fxPickTarget(myId); return; } }; }
+  if (mh) { mh.style.cursor='pointer'; mh.onclick = () => { if (mode==='fx-target') { fxPickTarget(myId); return; } showMyZone(); }; }
   // 选目标状态下自己面板整体也可点选（卡牌效果若允许选自己）
   if (mode==='fx-target') { el.style.cursor = 'pointer'; el.onclick = () => { fxPickTarget(myId); }; }
-  el.querySelectorAll('[data-slot]').forEach(elm => {
-    elm.onclick = () => onSlotClick(me, Number(elm.dataset.slot));
-  });
 }
 // 持续效果面板渲染
 // 月夜访客持续效果：左侧面板显示桌面剩余未发动张数
+// ===== 亮眼状态特效与音乐（金光 + 火焰 + 胜利在望 BGM，含观战者同步） =====
+function shinyLayer() { let el = document.getElementById('shinyLayer'); if (!el) { el = document.createElement('div'); el.id = 'shinyLayer'; el.style.cssText = 'position:fixed;inset:0;z-index:55;pointer-events:none;overflow:hidden'; document.body.appendChild(el); } return el; }
+function shinyOn() {
+  const l = shinyLayer();
+  const flames = Array.from({length:7},(_,i)=>'<div class="shiny-flame" style="left:'+(14+i*12)+'%;bottom:-4px;animation-duration:'+(0.55+Math.random()*0.5).toFixed(2)+'s;animation-delay:'+(Math.random()*0.4).toFixed(2)+'s"></div>').join('');
+  const golds = Array.from({length:12},()=>'<div class="shiny-gold" style="left:'+(6+Math.random()*88).toFixed(1)+'%;bottom:'+(2+Math.random()*40).toFixed(1)+'%;animation-delay:'+(Math.random()*3).toFixed(2)+'s"></div>').join('');
+  l.innerHTML = '<div class="shiny-aura"></div><div class="shiny-rays"></div>'+flames+golds+'<div class="shiny-flash"></div>';
+  AUDIO.playShiny();
+  window._shinyOn = true;
+}
+function shinyBreakFx(p) {
+  window._shinyOn = false;
+  shinyLayer().innerHTML = '';
+  toast('💥 '+((p&&p.name)?p.name:'亮眼')+' 的【亮眼】状态被打断，消失了！','err');
+  AUDIO.shinyBreak(AUDIO.stormTrackFor(window._curScene));
+}
 function upsertMoonlightFx() {
   if (!S.activeEffects) S.activeEffects = [];
   const n = (S.tableStack||[]).length;
@@ -5229,7 +5312,7 @@ const CNT_SHOUTS = ['慢着！','接招！','没想到吧！','休想！','结�
 const shout = CNT_SHOUTS[Math.floor(Math.random()*CNT_SHOUTS.length)];
 const okLine = dlgOf(card.id, 'ok');
 showManga('', '', shout + (okLine ? '<span class="sub">'+okLine+'</span>' : '<span class="sub">反制「'+(targetCard?targetCard.name:'')+'」</span>'), 5000);
-setTimeout(() => { l.innerHTML = ''; }, 2100);
+setTimeout(() => { l.innerHTML = ''; }, 4200);
 }
 
 // ============ 提示 ============

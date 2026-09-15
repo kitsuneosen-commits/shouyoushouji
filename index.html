@@ -18,6 +18,12 @@ body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 #bgfx { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .bg-p { position: absolute; bottom: -24px; border-radius: 50%; pointer-events: none; will-change: transform, opacity; animation: bgfloat linear infinite; }
 @keyframes bgfloat { 0% { transform: translate(0,0); opacity: 0; } 12% { opacity: var(--o,.5); } 85% { opacity: var(--o,.5); } 100% { transform: translate(var(--dx,30px), -770px); opacity: 0; } }
+/* ===== 萤火虫特效（与单机版一致） ===== */
+#fireflies { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.firefly { position:absolute; width:4px; height:4px; border-radius:50%; background:#fde047; box-shadow:0 0 6px 2px rgba(251,191,36,.5), 0 0 12px 4px rgba(251,191,36,.2); animation:fly linear infinite; opacity:0; }
+@keyframes fly { 0% { opacity:0; transform:translate(0,0) scale(0); } 8% { opacity:.9; transform:translate(10px,-8px) scale(1); } 20% { transform:translate(30px,20px) scale(.8); } 35% { transform:translate(-15px,45px) scale(1.1); } 50% { opacity:.8; transform:translate(-35px,20px) scale(.6); } 68% { transform:translate(20px,-10px) scale(1); } 82% { opacity:.6; transform:translate(40px,30px) scale(.7); } 100% { opacity:0; transform:translate(-20px,60px) scale(0); } }
+#soundTip { display:none; position:fixed; left:50%; bottom:6%; transform:translateX(-50%); z-index:60; background:rgba(0,0,0,.55); color:#fde047; border:1px solid rgba(253,224,71,.4); border-radius:999px; padding:8px 18px; font-size:14px; font-weight:700; backdrop-filter:blur(6px); animation:sndPulse 1.6s ease-in-out infinite; pointer-events:none; white-space:nowrap; }
+@keyframes sndPulse { 0%,100% { opacity:.65; } 50% { opacity:1; } }
 /* ===== 大厅 ===== */
 #menu { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; }
 .menu-banner { position: relative; z-index: 2; width: 62%; max-width: 1150px; min-width: 520px; text-align: center; animation: bannerfloat 3.5s ease-in-out infinite; }
@@ -452,6 +458,8 @@ body.side-closed #plist, body.side-closed #chatBox { transform: translateX(120%)
 
 <div id="menu">
 <div class="bg-ghost" id="menuBg"></div>
+  <div id="fireflies"></div>
+  <div id="soundTip">🔊 轻触任意位置开启音乐</div>
   <div class="menu-banner"><img id="titleImg" alt="加帕裡公園 朋友收集"></div>
   <div class="menu-box">
 <div class="menu-card">
@@ -1489,11 +1497,32 @@ fitStage();
 // 首次交互解锁音频：页面加载即尝试自动播放BGM（无需点击）；被浏览器策略拦截时低频重试 + 任意交互兆底
 function unlockAudio() {
   AUDIO.unlock();
+  var n = 0; var iv = setInterval(function(){ n++; var st = AUDIO.bgmState && AUDIO.bgmState(); if (st && st.t > 0 && !st.paused) { window._hideSoundTip && window._hideSoundTip(); clearInterval(iv); } if (n > 10) clearInterval(iv); }, 200);
 }
 try { setTimeout(function(){ unlockAudio(); }, 100); } catch(e) {}
 try { var _arN = 0; var _arT = setInterval(function(){ _arN++; if (_arN > 8 || (AUDIO.bgmState && AUDIO.bgmState().t > 0)) { clearInterval(_arT); return; } unlockAudio(); }, 700); } catch(e) {}
 document.addEventListener('click', unlockAudio, true);
 document.addEventListener('touchstart', unlockAudio, true);
+// 萤火虫特效（与单机版一致）
+(function(){
+  const ff = document.getElementById('fireflies');
+  if (!ff) return;
+  for (let i = 0; i < 18; i++) {
+    const el = document.createElement('div');
+    el.className = 'firefly';
+    const dur = 6 + Math.random() * 8;
+    const delay = Math.random() * -14;
+    el.style.left = (5 + Math.random() * 90) + '%';
+    el.style.top = (5 + Math.random() * 85) + '%';
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay = delay + 's';
+    el.style.width = el.style.height = (2 + Math.random() * 4) + 'px';
+    ff.appendChild(el);
+  }
+})();
+// 声音提示：BGM 被浏览器自动播放策略拦截时，提示轻触任意处开启（自动播放成功则不提示）
+window._hideSoundTip = function(){ const t = document.getElementById('soundTip'); if (t) t.style.display = 'none'; };
+(function(){ const tip = document.getElementById('soundTip'); if (!tip) return; setTimeout(function(){ const st = AUDIO.bgmState && AUDIO.bgmState(); if (!st || !(st.t > 0)) tip.style.display = 'block'; }, 1200); })();
 // 手机竖屏提示层：点击请求全屏 + 锁横屏（尽力而为，失败则仅提示旋转）
 (function(){ const rt = document.getElementById('rtFullBtn'); if (!rt) return; rt.onclick = async () => { try { await document.documentElement.requestFullscreen(); } catch(e) {} try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch(e) {} fitStage(); }; })();
 // 右侧玩家/聊天抽屉（默认收起，不遮挡桌面）

@@ -228,6 +228,12 @@ body.keep-hand #game .hand-zone { z-index: 70; }
   0%,100% { box-shadow: 0 0 6px 2px rgba(60,220,110,.4); }
   50%      { box-shadow: 0 0 12px 4px rgba(60,240,120,.65); }
 }
+.hcard.tmgcand .hcard-inner { border-color: #ffb020; animation: goldpulse 2.2s ease-in-out infinite; }
+.hcard.tmgcand img { filter: saturate(1.35) brightness(1.12); }
+@keyframes goldpulse {
+  0%,100% { box-shadow: 0 0 8px 3px rgba(255,176,32,.45); }
+  50%      { box-shadow: 0 0 16px 6px rgba(255,196,64,.8); }
+}
 .hcard .top-info { position: absolute; top: 3px; left: 3px; right: 3px; display: flex; justify-content: space-between; z-index: 2; font-size: 10px; }
 .hcard .type-tag { padding: 1px 6px; border-radius: 99px; font-weight: 800; background: rgba(0,0,0,.55); }
 .hcard .type-tag.bun { background: #ec4899; }
@@ -586,7 +592,7 @@ body.side-closed #plist, body.side-closed #chatBox { transform: translateX(120%)
 
 <div id="fx-layer"></div>
 <div class="win-overlay" id="winOverlay"></div>
-<div id="loseOverlay"><div class="lose-img" id="loseImg"></div><div class="lose-bar"><div class="lose-title">GAME OVER · 败北</div><div class="lose-btns"><button class="lose-btn" id="btnRestart">🔄 重新开始</button><button class="lose-btn" id="btnQuitRoom">🚪 退出房间</button></div></div></div>
+<div id="loseOverlay"><div class="lose-img" id="loseImg"></div><div class="lose-bar"><div class="lose-title">GAME OVER · 败北</div><div class="lose-btns"><button class="lose-btn" id="btnQuitRoom">🚪 退出房间</button></div></div></div>
 <div id="firstOverlay"><div class="first-big" id="firstBig"></div></div>
 <div id="tut">
   <div id="tutStage"></div>
@@ -725,7 +731,7 @@ E(309,{
 });
 E(310,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.discardChoose(c.actor,4);a.discardChoose(c.t,4);}});
 E(311,{ret3:1,run:(a,c)=>{a.skip(c.actor,1);}});
-E(312,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.skip(c.t,1);}});
+E(312,{ret3:1,steps:c=>[['t']],run:(a,c)=>{a.skip(c.t,1);},counterSteps:()=>[],counterRun:(a,c)=>{const t=P(c._info&&c._info.pid)||P(c.t)||null;if(t)a.discardR(t.id,2);a.note('黑头白鹬【时】：'+(t?t.name:'对方')+' 回合未出牌，丢弃2张手牌');}});
 E(313,{ret3:1,run:(a,c)=>{a.allPlayers(p=>a.draw(p.id,1));},counterSteps:()=>[],counterRun:(a,c)=>{a.draw(c.actor,2);}});
 E(314,{cond:H(1),steps:c=>[['tx'],['h',1],['hvBack',1]],run:(a,c)=>{const myCard=c.h[0];const theirCard=c.hv[0];a.swapWithTarget(c.actor,myCard,c.t);if(c._chained)a.draw(c.actor,1);a.note('雪鸮：与目标交换了1张手牌');},counterSteps:c=>[['hvBack',1]],counterRun:(a,c)=>{a.discardC(c.t||c.actor,c.hv);a.note('雪鸮反击：丢弃其1张手牌');}});
 E(315,{run:(a,c)=>{a.selfBondToZone(c.actor);a.skip(c.actor,1);},counterSteps:c=>[],counterRun:(a,c)=>{const pids=S.order.filter(pid=>pid!==c.actor&&P(pid).alive);pids.forEach(pid=>{const p=P(pid);const slots=p.slots.filter(s=>s.inst);if(slots.length){const si=Math.floor(Math.random()*slots.length);p.hand.push(slots[si].inst);slots[si].inst=null;}});render();a.note('鲸头鹳反击：目标友情区1张牌随机返回手牌');}});
@@ -743,9 +749,9 @@ E(322,{
   counterRun:(a,c)=>{a.discardC(c.actor,c.h);const r=typeof S!=='undefined'&&S.resolve;const sPid=r?(r.chain.length?r.chain[r.chain.length-1].by:r.initiator):c.actor;if((c.hv||[]).length)a.discardC(sPid,c.hv);},
 });
 E(323,{noCnt:1,cond:H(3),steps:c=>[['h',3],['tx']],run:(a,c)=>{a.discardC(c.actor,c.h);a.discardR(c.t,3);a.note('游隼：不可被反击');},counterSteps:c=>[['hvBack',1]],counterRun:(a,c)=>{a.stealC(c.t||c.actor,c.actor,c.hv);a.note('游隼反击：反击无效，偷1张');}});
-E(324,{steps:c=>[['t'],['t2']],run:(a,c)=>{a.restrict(c.t,'noInstant',1);a.restrict(c.t2,'noInstant',1);a.restrict(c.actor,'noCounter',1);}});
-E(325,{cond:c=>c.zone<=3?'':'自己友情区已有4张及以上，无法打出',run:(a,c)=>{a.global('noCounter',c.actor);}});
-E(326,{s:1,run:(a,c)=>{if(a.handCount(c.actor)===0)a.draw(c.actor,5);else a.note('非最后1张手牌，无抽牌');}});
+E(324,{steps:c=>[['t'],['t2']],run:(a,c)=>{a.restrict(c.t,'noInstant',1);a.restrict(c.t2,'noInstant',1);a.restrict(c.actor,'noCounter',1);},counterSteps:()=>[],counterRun:(a,c)=>{if(S.order.some(pid=>P(pid).alive&&pid!==c.actor)){S.takeNextTurn=c.actor;a.note('🐆 异化薮猫【时】：对方回合未出牌，直接结束本轮，开始自己的回合');}else{a.draw(c.actor,1);}}});
+E(325,{cond:c=>c.zone<=3?'':'自己友情区已有4张及以上，无法打出',run:(a,c)=>{a.global('noCounter',c.actor);},counterSteps:()=>[],counterRun:(a,c)=>{const me=P(c.actor);const t=P(c._info&&c._info.pid);if(!t){a.note('野山羊【时】：无目标');return;}const src=me.slots.find(s=>s.inst);const dst=t.slots.findIndex(s=>!s.inst&&!s.locked);if(src&&dst>-1){const inst=src.inst;src.inst=null;src.bonus=0;t.slots[dst]={inst:inst,faceUp:false,coverTurns:2};a.note('🐐 野山羊【时】：自己友情区「'+cardOf(inst).name+'」盖放到 '+t.name+' 的友情区');render();}else a.note('🐐 野山羊【时】：自己友情区无牌或对方友情区无空格，无法发动');}});
+E(326,{s:1,run:(a,c)=>{if(a.handCount(c.actor)===0)a.draw(c.actor,5);else a.note('非最后1张手牌，无抽牌');},counterSteps:()=>[],counterRun:(a,c)=>{const win=Math.random()<0.5;const t=P(c._info&&c._info.pid)||P(c.t);a.note('野槌蛇【时】：投硬币'+(win?'猜对':'猜错'));if(win&&t)a.discardAll(t.id);}});
 E(327,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punish林原兽类',1);}});
 E(328,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punish沙漠兽类',1);}});
 E(329,{steps:c=>[['t']],run:(a,c)=>{a.mark(c.t,'punishCounter',1);}});
@@ -761,8 +767,8 @@ E(331,{
 E(332,{steps:c=>[['tx'],['slkeep']],run:(a,c)=>{a.note('❄️「雪豹」即时效果完成');}});
 E(333,{s:1,grow:1,run:()=>{}});
 E(334,{ret3:1,cond:H(2),steps:c=>[['h',2]],run:(a,c)=>{a.draw(c.actor,1);a.discardC(c.actor,c.h);}});
-E(335,{s:1,run:(a,c)=>{a.draw(c.actor,6);P(c.actor).pendSelf={need:6,skip:1};a.note('🐜 小食蚁兽：下个玩家的回合结束阶段需自选6张手牌丢弃');}});
-E(336,{cond:c=>H(1)(c)||DECK1(c),steps:c=>[['h',1],['deckpick',5]],run:(a,c)=>{a.discardC(c.actor,c.h);if(c.picked)a.gainPicked(c.actor,c.picked);}});
+E(335,{s:1,run:(a,c)=>{a.draw(c.actor,6);P(c.actor).pendSelf={need:6,skip:1};a.note('🐜 小食蚁兽：下个玩家的回合结束阶段需自选6张手牌丢弃');},counterSteps:()=>[],counterRun:(a,c)=>{a.draw(c.actor,4);P(c.actor).pendSelf={need:3,skip:1};a.note('🐜 小食蚁兽【时】：对方回合未出牌，自己抽4张，下个自己的回合结束阶段需自选3张手牌丢弃');}});
+E(336,{cond:c=>H(1)(c)||DECK1(c),steps:c=>[['h',1],['deckpick',5]],run:(a,c)=>{a.discardC(c.actor,c.h);if(c.picked)a.gainPicked(c.actor,c.picked);},counterSteps:()=>[],counterRun:(a,c)=>{const me=P(c.actor);const free=me.slots.findIndex(s=>!s.inst&&!s.locked);if(free>-1){me.slots[free]={inst:c.played,faceUp:true,fvOverride:(cardOf(c.played).fv||0)*2};a.note('🍀 幸运兽【时】：以友情值×2放入自己的友情区');if(S.resolve)S.resolve.taken=null;}else a.note('幸运兽【时】：友情区已满，无法放置');}});
 E(337,{run:(a,c)=>{a.selfPlaceCovered();a.draw(c.actor,2);}});
 E(338,{steps:c=>[['t'],['guessHand']],run:(a,c)=>{a.guessHandResolve(c);}});
 E(339,{cond:c=>{try{return c.S.players.some(p=>p.alive&&p.id!==c.pid&&p.slots.some(s=>s.inst))&&c.P(c.pid).slots.some(s=>s.inst)?'':'双方友情区都需要有牌，无法打出';}catch(e){return '';}},steps:c=>[['tx'],['zp'],['zpSelf']],run:(a,c)=>{a.swapZoneSpecific(c.zp,c.zp2);a.note('王企鹅：交换了2张友情区牌');},counterSteps:c=>[['zp']],counterRun:(a,c)=>{a.zoneDiscardOne(c.zp);a.note('王企鹅反击：丢弃对方友情区1张');}});
@@ -800,7 +806,7 @@ E(358,{run:(a,c)=>{a.draw(c.actor,1);a.protect(c.actor,'instant',1);}});
 E(359,{steps:c=>[['ar']],run:(a,c)=>{a.guessTopResolve(c,2,pid=>a.allOthers(pid,q=>a.discardR(q,2)));}});
 E(360,{s:1,cond:c=>{try{const ps=c.S.players.filter(p=>p.alive&&p.id!==c.pid);return ps.some(p=>p.hand.length>c.hand-1)?'':'没有手牌比自己多的玩家，无法打出';}catch(e){return '';}},run:(a,c)=>{const rich=a.players().some(p=>p.alive&&p.id!==c.actor&&a.handCount(p.id)>a.handCount(c.actor));if(rich){const n=a.handCount(c.actor);a.discardAll(c.actor);a.allOthers(c.actor,p=>a.discardR(p,n));}else a.note('自己手牌并不少，无效果');}});
 E(361,{cond:c=>{try{const ps=c.S.players.filter(p=>p.alive&&p.id!==c.pid);return ps.some(p=>p.hand.length<c.hand-1)?'':'没有手牌比自己少的玩家，无法打出';}catch(e){return '';}},steps:c=>[['t']],steps:c=>[['t'],['hv',2]],run:(a,c)=>{if(a.handCount(c.actor)>a.handCount(c.t))a.stealC(c.t,c.actor,(c.hv||[]).slice(0,2));else a.note('对方手牌不少于你，无效果');}});
-E(362,{steps:c=>[['t']],run:(a,c)=>{a.registerEffect('scarletIbis_'+c.t,c.actor,'美洲红鹮','该玩家不能使用属性为林原的角色牌，且到下一个该玩家的回合结束时需丢弃1张手牌。','untilMyNextTurn');a.restrict(c.t,'noInstant',a.dur());a.pending(c.t,1);},counterSteps:(c)=>[['t']],counterRun:(a,c)=>{try{window.AUDIO.triggerChainStorm('',362);}catch(e){}a.draw(c.t,3);a.pending(c.t,5);}});
+E(362,{steps:c=>[['t']],run:(a,c)=>{a.registerEffect('scarletIbis_'+c.t,c.actor,'美洲红鹮','该玩家不能使用属性为林原的角色牌，且到下一个该玩家的回合结束时需丢弃1张手牌。','untilMyNextTurn');a.restrict(c.t,'noInstant',a.dur());a.pending(c.t,1);},counterSteps:(c)=>(c._info&&c._info.pid)?[]:[['t']],counterRun:(a,c)=>{try{window.AUDIO.triggerChainStorm('',362);}catch(e){}const t=(c._info&&c._info.pid)||c.t;a.draw(t,5);a.pending(t,6);}});
 E(363,{run:(a,c)=>{a.global('noCounter',c.actor);a.extra(c.actor,1);}});
 E(364,{steps:c=>[['tx']],run:(a,c)=>{a.takePlayedCard(c.t);a.discardChoose(c.t,3);a.note('🐆 美洲豹：「美洲豹」已交给 '+P(c.t).name+'，其自选3张手牌丢弃');}});
 E(365,{cond:c=>c.zone<2?'':'自己友情区已有2张及以上，无法打出',run:(a,c)=>{a.draw(c.actor,2);}});
@@ -834,7 +840,7 @@ E(391,{cond:c=>{try{const me=c.S.players.find(p=>p.id===c.pid);const rc=me?me.ha
 E(392,{s:1,run:(a,c)=>{a.flipAllCovered();}});
 E(393,{run:(a,c)=>{a.draw(c.actor,2);},counterSteps:c=>[['h',1]],counterRun:(a,c)=>{a.discardC(c.actor,c.h);a.draw(c.actor,5);}});
 E(394,{steps:c=>[['t']],run:(a,c)=>{a.mill(3);a.coverZoneCard(c.t,0);}});
-E(395,{steps:c=>[['t'],['t2',pid=>pid!==c.t&&pid!==c.actor]],run:(a,c)=>{a.stealR(c.t2||c.actor,c.t||c.actor,3);a.giveRandom(c.t||c.actor,c.actor);}});
+E(395,{steps:c=>[['t'],['t2',pid=>pid!==c.t&&pid!==c.actor]],run:(a,c)=>{a.stealR(c.t2||c.actor,c.t||c.actor,3);a.giveRandom(c.t||c.actor,c.actor);},counterSteps:()=>[],counterRun:(a,c)=>{const t=P(c._info&&c._info.pid);if(t){a.mark(t.id,'blindEye',1);a.note('🦊 藏狐【时】：'+t.name+' 本轮蒙住眼睛（跳过抽牌）');}}});
 E(396,{run:(a,c)=>{const n=(typeof S!=='undefined'&&S)?S.players.filter(p=>p.alive).length:4;a.setGflag('kaguPunish',c.actor,Math.max(1,n));},counterSteps:()=>[],counterRun:(a,c)=>{a.draw(c.actor,c._chained?2:5);}});
 E(397,{s:1,run:(a,c)=>{const n=(typeof S!=='undefined'&&S)?S.players.filter(p=>p.alive).length:3;a.mark(c.actor,'owlFreePlay',Math.max(1,n));},counterSteps:()=>[],counterRun:(a,c)=>{a.draw(c.actor,2);}});
 E(398,{run:(a,c)=>{a.wolfGame(c.actor);}});
@@ -895,10 +901,19 @@ var TIMING_DEFS = {
   313: { trigs: ['endNoPlay'], selfExcl: true },                     // 丹顶鹤：任意玩家（不含自己）回合结束未出牌 → 抽2
   341: { trigs: ['endNoPlay'], selfExcl: true },                     // 帝企鹅：任意玩家（不含自己）回合结束未出牌 → 看其友情区盖放1张
   315: { trigs: ['endNoPlay'], selfExcl: true },                     // 鲸头鹳：任意玩家（不含自己）回合结束未出牌 → 随机友回手
+  312: { trigs: ['endNoPlay'], selfExcl: true },                     // 黑头白鹬：对方丢弃2张牌
+  314: { trigs: ['endNoPlay'], selfExcl: true },                     // 雪鸮：对方展示手牌，选1张丢弃
+  324: { trigs: ['endNoPlay'], selfExcl: true },                     // 异化薮猫：直接结束本轮，开始自己的回合
+  325: { trigs: ['endNoPlay'], selfExcl: true },                     // 野山羊：自己友情区1张牌盖放到对方友情区
+  326: { trigs: ['endNoPlay'], selfExcl: true },                     // 野槌蛇：投硬币，猜对对方丢弃所有手牌
+  335: { trigs: ['endNoPlay'], selfExcl: true },                     // 小食蚁兽：抽4张，回合结束丢3张
+  336: { trigs: ['endNoPlay'], selfExcl: true },                     // 幸运兽：友情值×2放入友情区
+  362: { trigs: ['endNoPlay'], selfExcl: true },                     // 美洲红鹮：对方抽5张后丢弃6张
+  395: { trigs: ['endNoPlay'], selfExcl: true },                     // 藏狐：对方本轮蒙眼（跳过抽牌）
   366: { trigs: ['endTurn'] },                                       // 罗德侯鲸：任意玩家回合结束阶段 → 该玩家丢弃全部手牌
 };
 // AI 发动意愿（概率）
-var TIMING_AI_PROB = { 286: 0.55, 287: 0.7, 292: 0.45, 396: 0.5, 313: 0.5, 315: 0.4, 341: 0.5, 366: 0.5 };
+var TIMING_AI_PROB = { 286: 0.55, 287: 0.7, 292: 0.45, 396: 0.5, 313: 0.5, 315: 0.4, 341: 0.5, 366: 0.5, 312: 0.5, 314: 0.5, 324: 0.3, 325: 0.45, 326: 0.5, 335: 0.55, 336: 0.5, 362: 0.5, 395: 0.4 };
 
 var TIMING = null;   // 当前开启的时点窗 { trig, info, cands, claimed, sec, timerId, passed, done }
 var TIMING_Q = [];   // 待处理时点事件队列
@@ -918,10 +933,18 @@ function TCLEAR(id) {
 function timingLabel(ev) {
   const info = (ev && ev.info) || {};
   const who = info.pid && P(info.pid) ? P(info.pid).name : '?';
-  if (ev && ev.trig === 'endNoPlay') return who + ' 回合结束且未打出任何牌';
+  if (ev && ev.trig === 'endNoPlay') return who + ' 回合结束且未打出任何牌（【静息者】羁绊【时】发动机会）';
   if (ev && ev.trig === 'endTurn') return who + ' 的回合即将结束';
   if (info.zone) return who + ' 弃置友情区牌';
   return who + ' 弃置手牌';
+}
+// 时点候选牌名清单（提示持有玩家哪几张牌可发动）
+function timingCandNames(ev) {
+  try {
+    const mine = timingCandidates(ev).filter(c => c.pid === myId);
+    if (!mine.length) return '';
+    return '你的「' + mine.map(c => '【' + cardOf(c.inst).name + '】').join('') + '」可发动';
+  } catch (e) { return ''; }
 }
 
 // ===== 时点事件采集（推入队列，在效果完成后/回合流程中排空） =====
@@ -991,7 +1014,8 @@ function openTiming(ev, done) {
   }
   TIMING = { trig: ev.trig, info: ev.info, cands: cands, ev: ev, claimed: null, sec: 60, timerId: null, passed: {}, done: done || null };
   log('⏱ 时点开启：' + timingLabel(ev) + '（60秒内可发动【时】反击）', true);
-  showBanner('⏱ <b>时点开启</b>：' + timingLabel(ev) + '<br><span style="font-size:12px">持有对应【时】反击牌的玩家可在 60 秒内发动（手牌发红光）</span>', 2600, 'gold');
+  const _candTip = timingCandNames(ev);
+  showBanner('⏱ <b>时点开启</b>：' + timingLabel(ev) + '<br><span style="font-size:12px">' + (_candTip ? '<b style="color:#ffd54f">' + _candTip + '</b>（手牌金色发光）<br>' : '') + '持有对应【时】反击牌的玩家可在 60 秒内发动</span>', 3400, 'gold');
   render();
   updateTimingBar();
   scheduleTimingAI();
@@ -1022,6 +1046,7 @@ function scheduleTimingAI() {
   const hasHuman = t.cands.some(function(c){ return !P(c.pid).ai; });
   const base = hasHuman ? 20000 : 1400;
   let delay = base;
+  let lastAiDelay = 0;
   const byPid = {};
   t.cands.forEach(function(c) {
     if (byPid[c.pid]) return;
@@ -1029,11 +1054,20 @@ function scheduleTimingAI() {
     if (!P(c.pid).ai) return;
     delay += hasHuman ? 3500 : 2200;
     const my = c.inst;
+    lastAiDelay = delay;
     TSET(function() {
       if (!TIMING || TIMING !== t || t.claimed) return;
       if (Math.random() < (TIMING_AI_PROB[c.id] || 0.5)) doTimingActivate(c.pid, my);
     }, delay);
   });
+  // 纯 AI 候选：全部决策完毕后提前收窗，避免无人发动时空等满 60 秒
+  if (!hasHuman && lastAiDelay > 0) {
+    TSET(function() {
+      if (!TIMING || TIMING !== t || t.claimed) return;
+      log('⏱ 无玩家发动时点，窗口关闭');
+      closeTiming(null);
+    }, lastAiDelay + 1800);
+  }
 }
 // 人类点击发红光的时点牌 → 确认弹窗
 function showTimingConfirm(inst) {
@@ -1075,7 +1109,15 @@ function timingActivateNow(pid, inst, ev, after) {
   else pushFeed('⏱ 「' + ccard.name + '」时点反击发动 · ' + p.name, inst, 'act');
   const eff = EFFECTS[ccard.id];
   const chained = !!(info.inChain);
-  stepCounter2(pid, inst, eff, { info: info, chained: chained, cb: function() { if (after) after({ pid: pid, inst: inst }); } });
+  stepCounter2(pid, inst, eff, { info: info, chained: chained, cb: function() {
+    // 时点反击牌去向：若未被效果放入友情区（如幸运兽），则进弃牌堆
+    try {
+      const inHand = S.players.some(function(pl){ return pl.hand.indexOf(inst) > -1; });
+      const inZone = S.players.some(function(pl){ return pl.slots.some(function(s){ return s.inst === inst; }); });
+      if (!inHand && !inZone && S.discard.indexOf(inst) === -1) S.discard.push(inst);
+    } catch (e) {}
+    if (after) after({ pid: pid, inst: inst });
+  } });
 }
 
 // ===== 步骤式反击执行器（结算时使用；无步骤直接 counterRun） =====
@@ -1258,9 +1300,30 @@ function updateTimingBar() {
   if (!TIMING) { if (el) el.remove(); return; }
   const bar = timingBarEl();
   const meIn = TIMING.cands.some(function(c){ return c.pid === myId; }) && !TIMING.passed[myId];
+  const myCands = meIn ? TIMING.cands.filter(function(c){ return c.pid === myId; }) : [];
+  const myNames = myCands.map(function(c){ return '【' + cardOf(c.inst).name + '】'; }).join('');
   bar.innerHTML = '<span class="tb-ico">⏱</span> 时点：<b>' + timingLabel(TIMING) + '</b>'
     + '<span class="tb-left">' + TIMING.sec + 's</span>'
-    + (meIn ? '<span class="tb-me">你的【时】反击牌正在发红光，点击可发动</span>' : '<span class="tb-wait">等待持有时点牌的玩家发动…</span>');
+    + (meIn ? '<span class="tb-me">你的「' + myNames + '」可以发动（手牌金色发光，点击发动）</span>' : '<span class="tb-wait">等待持有时点牌的玩家发动…</span>')
+    + (meIn ? '<button class="tb-cancel" title="放弃本次时点反击">✕ 取消</button>' : '');
+  const cb = bar.querySelector('.tb-cancel');
+  if (cb) cb.onclick = timingCancelSelf;
+}
+// 时点窗取消：本人是候选且尚未发动时，可主动放弃（联机客户端走 timingPass，单机/房主直接标记 passed）
+function timingCancelSelf() {
+  if (!TIMING || TIMING.claimed) return;
+  if (TIMING._viewOnly) return; // 观战视图无权限
+  const meIn = TIMING.cands.some(function(c){ return c.pid === myId; }) && !TIMING.passed[myId];
+  if (!meIn) { toast('你不是本次时点的候选玩家', 'err'); return; }
+  if (typeof sendAct === 'function' && typeof HOST !== 'undefined' && !HOST && typeof NET !== 'undefined' && NET.on) {
+    sendAct('timingPass'); // 房主标记 passed 并广播
+    TIMING.passed[myId] = 1;
+  } else {
+    TIMING.passed[myId] = 1;
+    log('⏱ 你放弃了时点反击');
+  }
+  render();
+  updateTimingBar();
 }
 
 // ===== 样式注入 =====
@@ -1269,17 +1332,20 @@ function updateTimingBar() {
   const st = document.createElement('style');
   st.id = 'timingChainCSS';
   st.textContent = [
-    // 时点条
-    '#timingBar{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:9500;display:flex;align-items:center;gap:12px;',
-    'background:linear-gradient(135deg,rgba(120,10,20,.92),rgba(60,8,30,.92));border:1px solid rgba(255,120,120,.65);',
-    'border-radius:14px;padding:10px 22px;color:#fff;font-size:14px;box-shadow:0 6px 28px rgba(255,60,60,.35);',
+    // 时点条（游戏画面中央，避免超出游戏界面框）
+    '#timingBar{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9500;display:flex;align-items:center;gap:12px;max-width:min(720px,86vw);',
+    'background:linear-gradient(135deg,rgba(120,10,20,.94),rgba(60,8,30,.94));border:1px solid rgba(255,120,120,.75);',
+    'border-radius:14px;padding:12px 24px;color:#fff;font-size:14px;box-shadow:0 8px 36px rgba(255,60,60,.45);',
     'animation:tbIn .3s ease}',
-    '@keyframes tbIn{from{transform:translateX(-50%) translateY(-24px);opacity:0}}',
+    '@keyframes tbIn{from{transform:translate(-50%,-50%) translateY(-24px);opacity:0}}',
     '#timingBar .tb-ico{font-size:20px;animation:tbPulse 1s infinite}',
     '@keyframes tbPulse{50%{transform:scale(1.25)}}',
     '#timingBar .tb-left{font-weight:900;color:#fca5a5;font-size:18px;min-width:44px;text-align:center}',
     '#timingBar .tb-me{color:#fde047;font-size:12px;max-width:280px}',
     '#timingBar .tb-wait{color:rgba(255,255,255,.55);font-size:12px}',
+    '#timingBar .tb-cancel{cursor:pointer;border:1px solid rgba(255,150,150,.6);background:rgba(120,20,40,.65);color:#fecaca;',
+    'border-radius:8px;padding:4px 12px;font-size:12px;font-weight:800;transition:all .15s;margin-left:2px}',
+    '#timingBar .tb-cancel:hover{background:rgba(180,30,60,.85);color:#fff;box-shadow:0 0 12px rgba(255,80,110,.6)}',
     // 时点红光
     '.hcard.tmgcand .hcard-inner{box-shadow:0 0 18px 4px rgba(255,50,50,.95),inset 0 0 12px rgba(255,0,0,.25)!important;',
     'animation:tmgGlow 0.9s ease-in-out infinite;border-radius:10px}',
@@ -1682,6 +1748,11 @@ function effView(s) {
 // 打出前置条件判定：返回 '' = 可打出；返回原因字符串 = 禁止打出（并置灰）
 function playCondBlock(card, pid) {
   if (S && S.gflags && S.gflags.noDrawFx && /抽/.test(String(card.effect||'')+String(card.counter||''))) return '🐻 棕熊：当前不能发动【使玩家抽牌】的卡牌效果';
+  // 关联角色牌的事件牌：手牌没有角色牌时禁止打出（不做强制结算）
+  if (card.type === '事件牌' && /角色牌/.test(String(card.effect||''))) {
+    const p0 = P(pid);
+    if (p0 && !p0.hand.some(h => h && cardOf(h) && cardOf(h).type === '角色牌')) return '🎭 手牌没有角色牌，无法发动此事件牌';
+  }
   const eff = EFFECTS[card.id];
   if (!eff || typeof eff.cond !== 'function') return '';
   const p = P(pid); if (!p) return '';
@@ -2156,7 +2227,8 @@ HOST = (m.pid === m.host); // 以服务器判定为准，防止残留的幽灵�
 const ATTRS = ['林原','沙漠','雪域','海洋'];
 const RACES = ['兽类','鸟类','水生类'];
 const RACE_TAG = { '兽类':'amber', '鸟类':'sky', '水生类':'cyan' };
-function isSoloCard(card) { if (card.type==='加帕里馒头') return true; const d = EFFECTS[card.id]; return !!(d && d.s) || EFFECTS.hasSolo(card.effect); }
+// 友情区放置资格：仅加帕里馒头与角色牌可放置（事件牌一律不可）
+function isSoloCard(card) { if (card.type !== '加帕里馒头' && card.type !== '角色牌') return false; if (card.type==='加帕里馒头') return true; const d = EFFECTS[card.id]; return !!(d && d.s) || EFFECTS.hasSolo(card.effect); }
 function shuffle(a) { a = a.slice(); for (let i = a.length-1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function P(id) { return S.players.find(p => p.id === id); }
 function cur() { return P(S.order[S.turnIdx]); }
@@ -2382,6 +2454,26 @@ function showDefeat(msg) {
   ov.classList.add('show');
   requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add('fade')));
 }
+// 出局≠败北：短暂 GAME OVER 图标 → 淡出 → 留在房间内继续观战
+// 败北画面（loseOverlay）只会在有玩家获胜（doWin）时出现
+let _goIconT = null;
+function showGameOverIcon(msg) {
+  AUDIO.playDefeat();
+  stopTurnTimer(); clearTimer();
+  if (msg) log('💀 '+msg, true);
+  const old = document.getElementById('goIconOv'); if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'goIconOv';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,rgba(10,4,8,.92) 30%,rgba(10,4,8,.45) 70%,transparent);pointer-events:none;opacity:0;transition:opacity .5s';
+  el.innerHTML = '<div style="text-align:center">'
+    + (IMG.gameover ? '<div style="width:min(52vw,420px);height:min(30vw,240px);background-image:url(&quot;'+IMG.gameover+'&quot;);background-size:contain;background-repeat:no-repeat;background-position:center;filter:drop-shadow(0 0 26px rgba(255,40,80,.55))"></div>' : '<div style="font-size:64px;font-weight:900;color:#fda4af">GAME OVER</div>')
+    + '<div style="margin-top:10px;font-size:15px;font-weight:900;color:#fda4af;text-shadow:0 2px 8px #000">'+esc(msg||'你出局了')+'</div>'
+    + '<div style="margin-top:6px;font-size:13px;color:rgba(255,255,255,.75)">图标消失后你将留在房间内继续观战</div></div>';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  if (_goIconT) wdClearTimeout(_goIconT);
+  _goIconT = wdSetTimeout(() => { _goIconT = null; el.style.opacity = '0'; wdSetTimeout(() => { el.remove(); }, 600); }, 4000);
+}
 
 // ============ 回合流程 ============
 function nextTurnBegin() {
@@ -2589,8 +2681,14 @@ function rabbitGameModal(actorPid) {
       triggerSelfHurt(q.id, actorPid, 'discard', () => { (insts||[]).forEach(i=>{ const kk=q.hand.indexOf(i); if(kk>-1){ q.hand.splice(kk,1); S.discard.push(i); } }); log(q.name+' 丢弃了 '+(insts||[]).length+' 张手牌'); render(); if (HOST && NET.on) publishState(); });
     });
   };
-  // AI 与远程人类玩家：模拟 0.8~4.6 秒内随机点击时间
-  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { wdSetTimeout(() => { if (!ended) { times[p.id] = (Date.now()-t0)/1000; log('🐰 '+p.name+' 点了兔兔'); } }, 800 + Math.random()*3800); });
+  // 远程人类玩家：真实交互点击兔兔（47秒超时视为未点击 → 5.2秒）
+  ps.filter(p => NET.on && !p.ai && p.id !== myId && NET.members.some(m => m.pid === p.id && !m.offline)).forEach(p => {
+    modalAskRemote(p, { k:'fxAsk', step: { type:'rbClick', cardId: 0, n: 0 } }, v => {
+      times[p.id] = (v && typeof v.t === 'number') ? v.t : 5.2;
+    }, { t: 5.2 });
+  });
+  // AI 玩家：模拟 0.8~4.6 秒内随机点击时间
+  ps.filter(p => p.ai).forEach(p => { wdSetTimeout(() => { if (!ended) { times[p.id] = (Date.now()-t0)/1000; log('🐰 '+p.name+' 点了兔兔'); } }, 800 + Math.random()*3800); });
   const d = document.getElementById('bmContent');
   if (!d) { finish(); return; }
   d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🐰 学 兔 兔</span>'
@@ -2622,8 +2720,17 @@ function wolfGameModal(actorPid) {
     render(); if (HOST && NET.on) publishState();
   };
   const maybeDone = () => { if (!ended && ps.every(p => p.id in guesses)) setTimeout(finish, 500); };
-  // AI 与远程人类玩家：房主代理随机猜
-  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { wdSetTimeout(() => { if (!ended) { guesses[p.id] = Math.floor(Math.random()*(MAXG+1)); maybeDone(); } }, 800 + Math.random()*8000); });
+  // 远程人类玩家：真实交互输入数字猜手牌总数（19秒超时视为随机）
+  ps.filter(p => NET.on && !p.ai && p.id !== myId && NET.members.some(m => m.pid === p.id && !m.offline)).forEach(p => {
+    modalAskRemote(p, { k:'fxAsk', step: { type:'wolfNum', cardId: 398, max: MAXG } }, v => {
+      if (ended) return;
+      let g = (v && typeof v.n === 'number') ? Math.round(v.n) : NaN;
+      if (isNaN(g) || g < 0 || g > MAXG) g = Math.floor(Math.random()*(MAXG+1));
+      guesses[p.id] = g; maybeDone();
+    }, { n: Math.floor(Math.random()*(MAXG+1)) });
+  });
+  // AI 玩家：随机猜
+  ps.filter(p => p.ai).forEach(p => { wdSetTimeout(() => { if (!ended) { guesses[p.id] = Math.floor(Math.random()*(MAXG+1)); maybeDone(); } }, 800 + Math.random()*8000); });
   const ov = document.createElement('div'); ov.id = 'wolfOv';
   ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:100000;display:flex;align-items:center;justify-content:center';
   ov.innerHTML = '<div style="color:#fff;text-align:center;padding:20px;max-width:480px">'
@@ -2704,6 +2811,17 @@ else { toast('轮到你了，请抽牌', 'gold'); if (S.tableBuns.length) toast(
 function doDraw(pid) {
   AUDIO.sfxCardDraw();
   const p = P(pid);
+  // 🦊 藏狐【时】蒙眼：本轮跳过抽牌，直接进入行动阶段
+  if (p.flags.mark.blindEye) {
+    delete p.flags.mark.blindEye;
+    log('🦊 藏狐【时】蒙眼：' + p.name + ' 蒙住眼睛，本轮跳过抽牌');
+    toast('🦊 ' + p.name + ' 被藏狐蒙眼：本轮跳过抽牌');
+    S.phase = 'action'; S.actionUsed = false; S.eventUsed = false;
+    log('⚡ 行动阶段：可打出1张角色/事件牌，或放置进友情区');
+    render();
+    if (p.ai) aiTimers.push(wdSetTimeout(()=>aiAction(p), 800));
+    return;
+  }
   // 收获之秋：跳过抽牌，改用牌堆顶盖放
   if (p.harvest) {
     const gi = S.deck.pop(); if (gi) p.harvest.covered.push(gi);
@@ -2812,6 +2930,27 @@ function place(pid, instId, slotIdx, faceUp) {
     if (occ.length) { const t=occ[Math.floor(Math.random()*occ.length)]; t.faceUp=false; t.coverTurns=2; log('🐯 剑齿虎：'+p.name+' 盖放1张友情区牌'); }
   }
   render();
+}
+// 单独放置的 s:1 角色牌：放置后触发其效果（相当于出牌；288 白脸角鸮/397 雕鸬等持续标记由此激活）
+function soloPlaceFx(pid, instId) {
+  if (!S || S.resolve || PFX) return; // 结算进行中不触发（保持放置本身）
+  const card = cardOf(instId);
+  if (!card || card.type !== '角色牌') return;
+  const def = EFFECTS[card.id];
+  if (!def || typeof def.run !== 'function') return;
+  const ctx = { actor: pid, played: instId, h: [], hv: [], t: null, t2: null, zp: null, coin: null, rps: null, ar: null, attr: null, picked: null, guess: null };
+  let steps = [];
+  try { steps = def.steps ? def.steps(ctx) : []; } catch (e) { steps = []; }
+  log('📥 「' + card.name + '」放置友情区：触发其单独放置效果', true);
+  if (!steps.length) {
+    const api = makeAPI(pid, ctx);
+    try { def.run(api, ctx); } catch (e) { log('效果执行异常：' + e.message); }
+    render();
+    if (typeof HOST !== 'undefined' && HOST && typeof NET !== 'undefined' && NET.on && typeof publishState === 'function') publishState();
+    return;
+  }
+  PFX = { def: def, ctx: ctx, steps: steps, i: 0, _solo: true };
+  fxStep();
 }
 function rmHand(p, instId) { const i = p.hand.indexOf(instId); if (i>-1) p.hand.splice(i,1); }
 
@@ -3450,6 +3589,21 @@ function fxAskTimeout() {
   toast((who?who.name:'玩家')+' 操作超时，自动处理');
   aiResolveStep(st);
 }
+// --- 远程玩家小游戏交互（独立于 PFX 的 fxAsk 管线：疑案推理/明暗交锋/雪域冲击/长空巡猎/花丸探险等弹窗效果联机化） ---
+let modalAskT = null; // { pid, cb, timer }
+function modalAskRemote(p, msg, cb, def) {
+  if (!p || !HOST || !NET.on) { if (cb) cb(null); return; }
+  if (modalAskT) modalAskDone(def); // 前一个问题强制按默认值结算
+  modalAskT = { pid: p.id, cb: cb, timer: null };
+  modalAskT.timer = wdSetTimeout(() => { modalAskDone(def); }, 47000);
+  netSend({ t:'gto', to: p.id, d: msg });
+}
+function modalAskDone(v) {
+  if (!modalAskT) return;
+  if (modalAskT.timer) { wdClearTimeout(modalAskT.timer); modalAskT.timer = null; }
+  const cb = modalAskT.cb; modalAskT = null;
+  if (cb) cb(v);
+}
 function applyFxAnswer(v) {
   if (!PFX || !fxAskTo) return;
   const ctx = PFX.ctx;
@@ -3499,12 +3653,13 @@ function finishEffect() {
     afterCounterText(_counter.pid, _counter.cInst);
     return;
   }
-  const { def, ctx, _base } = PFX;
+  const { def, ctx, _base, _solo } = PFX;
   const api = makeAPI(ctx.actor, ctx);
   try { def.run(api, ctx); } catch(e) { log('效果执行异常：'+e.message); console.error(e); }
   PFX = null;
   closeFxPanel(); mode = null; fxMode = null; fxAskTo = null; bondSel = []; setHint('');
   render();
+  if (_solo) { if (typeof HOST !== 'undefined' && HOST && typeof NET !== 'undefined' && NET.on && typeof publishState === 'function') publishState(); return; }
   postBase(_base);
 }
 // --- AI 自动解析步骤 ---
@@ -4255,8 +4410,156 @@ function endClientFx() {
   window._hvSel = null;
   render();
 }
+// ===== 客户端：小游戏型 fxAsk UI（疑案推理/明暗交锋/长空巡猎/雪域冲击/花丸探险） =====
+function clientMiniAsk(step) {
+  const d = document.getElementById('bmContent');
+  const ATTRS_ = ['林原','沙漠','雪域','海洋'];
+  const stage = () => {};
+  if (step.type === 'ddCover') {
+    const cards = step.cards || [];
+    const sel = [];
+    window._maPick = i => {
+      if (sel.length && sel[0] === i) return;
+      sel.length = 0; sel.push(i);
+      buildHtml();
+    };
+    const buildHtml = () => {
+      d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:680px"><span class="gtitle">🔍 疑案推理 · 盖放</span>'
+        + '<div class="gsub">选1张手牌盖放在桌面，稍后描述它（可以选择说谎）</div>'
+        + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:300px;overflow-y:auto">'
+        + cards.map((id,i)=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(sel[0]===i?'outline:3px solid #4ade80;border-radius:10px;':'')+'" onclick="window._maPick('+i+')"><img src="'+c.img+'" style="width:76px;height:106px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+'</div></div>'; }).join('')
+        + '</div><div style="margin-top:10px"><button class="g3d gold" style="'+(sel.length?'':'opacity:.4')+'" onclick="maConfirm()">'+(sel.length?'✔ 确认盖放':'请先点选1张')+'</button></div></div>';
+    };
+    window._maGet = () => sel.length ? { i: sel[0] } : null;
+    window._maDef = () => ({ i: Math.floor(Math.random()*cards.length) });
+    window._maStage = buildHtml; buildHtml();
+  } else if (step.type === 'ddSay') {
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:480px"><span class="gtitle">🔍 疑案推理 · 描述</span>'
+      + '<div class="gsub">下一位玩家将猜测你是否说谎。真心描述=如实报出牌名；说谎=谎报为「'+esc(step.lieName||'')+'」</div>'
+      + '<div style="display:flex;gap:14px;margin-top:6px"><button class="g3d" style="background:linear-gradient(180deg,#4ade80,#15803d);padding:12px 26px;font-size:15px" onclick="maAnswer({v:0})">💬 真心话</button><button class="g3d" style="background:linear-gradient(180deg,#fb7185,#9f1239);padding:12px 26px;font-size:15px" onclick="maAnswer({v:1})">🤥 说谎</button></div></div>';
+    window._maGet = () => null;
+    window._maDef = () => ({ v: Math.random() < 0.5 ? 0 : 1 });
+    window._maStage = null;
+  } else if (step.type === 'ddGuess') {
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:480px"><span class="gtitle">🔍 疑案推理 · 猜测</span>'
+      + '<div style="font-size:14px;margin:8px 0">'+esc(step.target||'对方')+' 描述他盖放的牌是：<b style="color:#fde047">「'+esc(step.claim||'')+'」</b></div>'
+      + '<div class="gsub">你觉得他说的是真话吗？答对抽3张 · 答错弃2张</div>'
+      + '<div style="display:flex;gap:14px;margin-top:6px"><button class="g3d" style="background:linear-gradient(180deg,#fb7185,#9f1239);padding:12px 26px;font-size:15px" onclick="maAnswer({v:1})">🤥 在说谎</button><button class="g3d" style="background:linear-gradient(180deg,#4ade80,#15803d);padding:12px 26px;font-size:15px" onclick="maAnswer({v:0})">💬 真心话</button></div></div>';
+    window._maGet = () => null;
+    window._maDef = () => ({ v: Math.random() < 0.5 ? 0 : 1 });
+    window._maStage = null;
+  } else if (step.type === 'ldPick') {
+    const cards = step.cards || [];
+    window._maPick = i => {
+      if (window._maSel === i) return;
+      window._maSel = i; buildLd();
+    };
+    const buildLd = () => {
+      d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:680px"><span class="gtitle">🌓 明暗交锋 · 盖放选择</span>'
+        + '<div class="gsub">选1张手牌盖放桌面（建议盖反击牌：本轮任意效果发动时若可反击→抽3张；本轮结束未用牌返回手牌）</div>'
+        + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:300px;overflow-y:auto">'
+        + cards.map((id,i)=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(window._maSel===i?'outline:3px solid #4ade80;border-radius:10px;':'')+'" onclick="window._maPick('+i+')"><img src="'+c.img+'" style="width:76px;height:106px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">'+c.name+(c.counter?' ⚔':'')+'</div></div>'; }).join('')
+        + '</div><div style="margin-top:10px"><button class="g3d gold" style="'+(window._maSel!=null?'':'opacity:.4')+'" onclick="maConfirm()">'+(window._maSel!=null?'✔ 确认盖放':'请先点选1张')+'</button></div></div>';
+    };
+    window._maSel = null;
+    window._maGet = () => window._maSel != null ? { i: window._maSel } : null;
+    window._maDef = () => ({ i: Math.floor(Math.random()*cards.length) });
+    window._maStage = buildLd; buildLd();
+  } else if (step.type === 'skyPick') {
+    const hand = step.hand || [], zone = step.zone || [];
+    window._maPick = (s,i) => { window._maSel = { s: s, i: i }; buildSky(); };
+    const buildSky = () => {
+      d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:680px"><span class="gtitle">🦅 长空巡猎 · 丢弃选择</span>'
+        + '<div class="gsub">你的手牌中有鸟族角色牌，需丢弃手牌或友情区任意1张牌</div>'
+        + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:300px;overflow-y:auto">'
+        + hand.map((id,i)=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(window._maSel&&window._maSel.s===1&&window._maSel.i===i?'outline:3px solid #4ade80;border-radius:10px;':'')+'" onclick="window._maPick(1,'+i+')"><img src="'+c.img+'" style="width:76px;height:106px;object-fit:cover;object-position:top;border-radius:8px;border:2px solid rgba(255,255,255,.4)"><div style="font-size:11px;text-align:center">手牌·'+c.name+'</div></div>'; }).join('')
+        + zone.map((id,i)=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(window._maSel&&window._maSel.s===2&&window._maSel.i===i?'outline:3px solid #4ade80;border-radius:10px;':'')+'" onclick="window._maPick(2,'+i+')"><img src="'+c.img+'" style="width:76px;height:106px;object-fit:cover;object-position:top;border-radius:8px;border:2px dashed rgba(251,191,36,.7)"><div style="font-size:11px;text-align:center">友情区·'+c.name+'</div></div>'; }).join('')
+        + '</div><div style="margin-top:10px"><button class="g3d gold" style="'+(window._maSel?'':'opacity:.4')+'" onclick="maConfirm()">'+(window._maSel?'✔ 确认丢弃':'请先点选1张')+'</button></div></div>';
+    };
+    window._maSel = null;
+    window._maGet = () => window._maSel ? { s: window._maSel.s, i: window._maSel.i } : null;
+    window._maDef = () => { const hi = hand.length ? Math.floor(Math.random()*hand.length) : -1; return hi > -1 ? { s:1, i:hi } : (zone.length ? { s:2, i:Math.floor(Math.random()*zone.length) } : null); };
+    window._maStage = buildSky; buildSky();
+  } else if (step.type === 'snowAdd') {
+    const cards = step.cards || [];
+    window._maPick = i => { window._maSel = i; buildSnow(); };
+    const buildSnow = () => {
+      d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:620px"><span class="gtitle">❄ 雪域冲击 · 强化选择</span>'
+        + '<div class="gsub">已选1张丢弃。是否追加丢弃1张雪域属性角色牌？追加成功→其他所有玩家友情区盖放2张；否则全场友情区盖放1张</div>'
+        + '<div style="display:flex;flex-wrap:wrap;justify-content:center;max-height:280px;overflow-y:auto">'
+        + cards.map((id,i)=>{ const c = CM[id] || cardOf(0); return '<div style="display:inline-block;margin:6px;cursor:pointer;'+(window._maSel===i?'outline:3px solid #ffd54f;border-radius:10px;':'')+'" onclick="window._maPick('+i+')"><img src="'+c.img+'" style="width:76px;height:106px;object-fit:cover;object-position:top;border-radius:8px"><div style="font-size:11px;text-align:center">'+c.name+'·'+c.attr+'</div></div>'; }).join('')
+        + '</div><div style="display:flex;gap:12px;margin-top:10px"><button class="g3d slate" onclick="maAnswer({i:-1})">只丢1张</button><button class="g3d gold" onclick="maConfirm()">追加强化</button></div></div>';
+    };
+    window._maSel = null;
+    window._maGet = () => window._maSel != null ? { i: window._maSel } : null;
+    window._maDef = () => ({ i: -1 });
+    window._maStage = buildSnow; buildSnow();
+  } else if (step.type === 'flower') {
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:480px"><span class="gtitle">🌸 花丸探险队</span>'
+      + '<div class="gsub">你被指定猜牌堆最上方1张牌的属性（猜对双方各抽4张，猜错双方各弃2张）</div>'
+      + '<div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center">'
+      + ATTRS_.map(a=>'<button class="g3d" style="padding:12px 22px;font-size:15px" onclick="maAnswer({a:\''+a+'\'})">'+a+'</button>').join('')
+      + '</div></div>';
+    window._maGet = () => null;
+    window._maDef = () => ({ a: ATTRS_[Math.floor(Math.random()*4)] });
+    window._maStage = null;
+  } else if (step.type === 'rbClick') {
+    // 学兔兔：点得越快越好（点击上报毫秒级反应时间）
+    const t0 = Date.now(); let clicked = false;
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🐰 学 兔 兔</span>'
+      + '<div class="gsub">5秒内点击兔兔！点击最慢的玩家丢弃2张手牌</div>'
+      + '<div id="maRbBtn" style="font-size:96px;cursor:pointer;margin:10px 0;user-select:none;animation:bannerfloat 1s infinite">🐰</div>'
+      + '<div class="gsub" id="maRbTime" style="color:#fde047">还剩 5.0 秒</div></div>';
+    window._maRb = () => {
+      if (clicked) return; clicked = true;
+      const el = document.getElementById('maRbTime'); if (el) el.textContent = '已点击！等待其他玩家…';
+      maAnswer({ t: Math.min(5.2, (Date.now()-t0)/1000) }, false, true);
+    };
+    const btn = document.getElementById('maRbBtn'); if (btn) btn.onclick = window._maRb;
+    window._maGet = () => null;
+    window._maDef = () => ({ t: 5.2 });
+    window._maStage = null;
+  } else if (step.type === 'wolfNum') {
+    // 灰狼：输入数字猜全场手牌总数
+    d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center;max-width:480px"><span class="gtitle">🐺 灰狼 · 猜手牌总数</span>'
+      + '<div class="gsub">当前所有玩家的手牌数总和是多少？输入数字（最接近的玩家抽5张牌，猜错无惩罚）</div>'
+      + '<input id="maWolfIn" type="number" min="0" max="'+(step.max||60)+'" inputmode="numeric" style="font-size:24px;width:200px;text-align:center;padding:10px;border-radius:10px;border:1px solid #555;background:#111;color:#fff">'
+      + '<div style="margin-top:16px"><button class="g3d gold" style="padding:12px 40px;font-size:15px" onclick="maWolfOk()">✔ 确认</button></div></div>';
+    window._maGet = () => null;
+    window._maDef = () => ({ n: Math.floor(Math.random()*((step.max||60)+1)) });
+    window._maStage = null;
+  } else {
+    window._maGet = () => null; window._maDef = () => null; window._maStage = null;
+    endClientFx(); return;
+  }
+  document.getElementById('bigModal').classList.add('show');
+  startModalTimer(45, () => { maAnswer(null, true); });
+}
+function maConfirm() {
+  const v = window._maGet ? window._maGet() : null;
+  if (!v) { toast('请先点选1张','err'); return; }
+  maAnswer(v);
+}
+function maAnswer(v, isTimeout, keepOpen) {
+  if (keepOpen) { sendAct('fx', v || {}); return; } // 学兔兔等：提交后保持弹窗等待其他玩家
+  stopModalTimer(); closeBigModal();
+  const def = window._maDef ? window._maDef() : null;
+  const out = v || def;
+  if (!isTimeout) toast(out ? '已提交选择' : '已提交（随机处理）', '');
+  endClientFx();
+  sendAct('fx', out || {});
+}
+function maWolfOk() {
+  const el = document.getElementById('maWolfIn');
+  const n = el ? parseInt(el.value, 10) : NaN;
+  if (isNaN(n) || n < 0) { toast('请输入 0-'+(60)+' 的数字','err'); return; }
+  maAnswer({ n: n });
+}
 function clientFxAsk(step) {
   fxAskStep = step;
+  // ===== 疑案推理/明暗交锋/雪域冲击/长空巡猎/花丸探险 等小游戏型步骤（独立 modalAsk 管线） =====
+  const miniTypes = ['ddCover','ddSay','ddGuess','ldPick','skyPick','snowAdd','flower','rbClick','wolfNum'];
+  if (miniTypes.indexOf(step.type) > -1) { clientMiniAsk(step); return; }
   const card = CM[step.cardId] || cardOf(0);
   const el = document.getElementById('fxpanel');
   let html = '<div class="t">⚡「'+card.name+'」效果</div><div class="d">'+(effView(card.effect)||'')+'</div>';
@@ -4515,6 +4818,7 @@ function clDkConfirm() {
 }
 function clientEvt(d) {
   if (d.e === 'scene') { applyScene({ key: d.s, name: d.n || '' }); return; }
+  if (d.e === 'sceneStorm') { if (!window._sceneStorm) { window._sceneStorm = true; AUDIO.triggerChainStorm(d.s || window._curScene); } return; }
   if (d.e === 'toast') { toast(d.text, d.g||''); return; }
   if (d.e === 'play') { showPlayFX(CM[d.card] || cardOf(0), d.name||'', ()=>{}); return; }
   if (d.e === 'bond') { showBondFX(d.cards||[], d.name||'', ()=>{}, d.bond||''); return; }
@@ -4873,6 +5177,12 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
       const first=(h||[]).slice();
       const snows=p.hand.filter(x=>!first.includes(x)&&cardOf(x).attr==='雪域'&&cardOf(x).type==='角色牌');
       if(p.id===myId&&HOST&&snows.length){ showSnowAddModal(p,snows,extra=>doIt(first.concat(extra||[]))); }
+      else if (NET.on && !p.ai && p.id !== myId && snows.length && NET.members.some(m => m.pid === p.id && !m.offline)) {
+        // 远程人类：真实交互选择是否追加雪域角色牌（47秒超时视为不追加）
+        modalAskRemote(p, { k:'fxAsk', step: { type:'snowAdd', cardId: 421, cards: snows.map(x=>cardOf(x).id), firstN: first.length } }, v => {
+          doIt((v && typeof v.i === 'number' && v.i >= 0 && v.i < snows.length) ? first.concat([snows[v.i]]) : first);
+        });
+      }
       else if(p.ai&&snows.length&&Math.random()<0.5){ doIt(first.concat([snows[0]])); }
       else doIt(first);
     },
@@ -4893,8 +5203,21 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
           nextP(i,k+1);
         };
         if(p.id===myId&&HOST){ showSkyPickModal(p,handC,zoneC,(src,inst)=>drop(src,inst)); }
+        else if (NET.on && !p.ai && p.id !== myId && (handC.length || zoneC.length) && NET.members.some(m => m.pid === p.id && !m.offline)) {
+          // 远程人类：真实交互选择丢弃手牌或友情区1张
+          modalAskRemote(p, { k:'fxAsk', step: { type:'skyPick', cardId: 422, hand: handC.map(x=>cardOf(x).id), zone: zoneC.map(x=>cardOf(x).id) } }, v => {
+            let src='hand', inst=null;
+            if (v && typeof v.i === 'number' && v.i >= 0) {
+              if (v.s === 2 && v.i < zoneC.length) { src='zone'; inst=zoneC[v.i].inst; }
+              else if (v.i < handC.length) { src='hand'; inst=handC[v.i]; }
+            }
+            if (!inst) { if (handC.length) { src='hand'; inst=handC[Math.floor(Math.random()*handC.length)]; } else if (zoneC.length) { src='zone'; inst=zoneC[Math.floor(Math.random()*zoneC.length)].inst; } else { nextP(i+1,0); return; } }
+            drop(src, inst);
+          });
+        }
         else if(handC.length&&(!zoneC.length||Math.random()<0.5)) drop('hand',handC[Math.floor(Math.random()*handC.length)]);
-        else drop('zone',zoneC[Math.floor(Math.random()*zoneC.length)].inst);
+        else if (zoneC.length) drop('zone',zoneC[Math.floor(Math.random()*zoneC.length)].inst);
+        else nextP(i+1,0);
       };
       nextP(0,0);
     },
@@ -4906,6 +5229,13 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
         const p=players[i];
         if(!p.hand.length){ next(i+1); return; }
         if(p.id===myId&&HOST){ showLightDarkPickModal(p, inst=>{ coverOne(p,inst); next(i+1); }); }
+        else if (NET.on && !p.ai && p.id !== myId && NET.members.some(m => m.pid === p.id && !m.offline)) {
+          // 远程人类：真实交互选1张手牌盖放（47秒超时随机）
+          modalAskRemote(p, { k:'fxAsk', step: { type:'ldPick', cardId: 423, cards: p.hand.map(x=>cardOf(x).id) } }, v => {
+            const idx = (v && typeof v.i === 'number' && v.i >= 0 && v.i < p.hand.length) ? v.i : Math.floor(Math.random()*p.hand.length);
+            coverOne(p, p.hand[idx]); next(i+1);
+          });
+        }
         else { coverOne(p, randomSplice(p.hand)); next(i+1); }
       };
       next(0);
@@ -4913,14 +5243,38 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
     californiaBeach: pid => { const parts=[],absent=[]; S.players.filter(p=>p.alive).forEach(p=>{ const oc=p.hand.find(h=>cardOf(h).attr==='海洋'&&cardOf(h).type==='角色牌'); if(oc){ rmHand(p,oc); const free=freeSlotIdx(p); if(free>-1) place(p.id,oc,free,true); else p.hand.push(oc); drawCards(p.id,2); parts.push(p.id); } else absent.push(p.id); }); log('🏖 加州海滨结算完成：'+parts.length+' 人放置洋流角色'+(absent.length?'，'+absent.length+' 人缺席':'')); if(absent.length && (typeof NET==='undefined' || !NET.on || HOST)) showBeachAbsent(parts,absent); },
     finiteSong: (pid,inst,tid) => { if(!inst) return; const p=P(pid),t=P(tid); rmHand(p,inst); const shown=cardOf(inst); p.hand.forEach(i=>S.discard.push(i)); p.hand=[]; if(shown.name.includes('朱鹮')){ t.alive=false; t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; toast('🎤 绯羽绝唱！'+t.name+' 直接出局','err'); log('💀 '+t.name+' 被绯羽绝唱淘汰'); } else { t.hand.forEach(i=>S.discard.push(i)); t.hand=[]; log('🎤 绯羽绝唱：双方弃全部手牌'); } render(); },
     deduction: pid => {
-      const ps=S.players.filter(p=>p.alive);
+      // 疑案推理：只有手牌有角色牌的玩家是「嫌疑人」；无角色牌玩家不参加（提示「你不是嫌疑人」），等待其他人结算
+      const hasRole = p => p.hand.some(h => cardOf(h).type === '角色牌');
+      const excluded = S.players.filter(p => p.alive && !hasRole(p));
+      const ps = S.players.filter(p => p.alive && hasRole(p));
+      const exTip = '你不是嫌疑人（手牌中没有角色牌），不参加疑案推理，等待其他玩家结算';
+      excluded.forEach(p => {
+        log('🔍 ' + p.name + ' 没有角色牌，不是嫌疑人（不参加疑案推理）');
+        if (p.id === myId) toast(exTip, 'err');
+        else if (NET.on && !p.ai && NET.members.some(m => m.pid === p.id && !m.offline)) netSend({ t:'gto', to: p.id, d:{ k:'evt', e:'toast', text: exTip, g:'err' } });
+      });
+      if (ps.length < 2) {
+        log('🔍 疑案推理：' + (ps.length ? '嫌疑人不足2人，效果结束' : '场上没有嫌疑人，无人参加'));
+        render(); if (HOST && NET.on) publishState();
+        return;
+      }
+      log('🔍 疑案推理：嫌疑人为 ' + ps.map(p=>p.name).join('、'));
       const covered=[], says=[], guesses=[];
       const fakeClaim=(p,notInst)=>{ const others=p.hand.filter(h=>h!==notInst); if(others.length) return cardOf(others[Math.floor(Math.random()*others.length)]).name; const all=CARDS.filter(c=>c.type==='角色牌'); return all.length?all[Math.floor(Math.random()*all.length)].name:'？？？'; };
+      const isLiveRemote = p => NET.on && !p.ai && p.id !== myId && NET.members.some(m => m.pid === p.id && !m.offline);
       const nextCover=(i)=>{
         if(i>=ps.length){ nextSay(0); return; }
         const p=ps[i];
         if(!p.hand.length){ covered.push({p,inst:null}); nextCover(i+1); return; }
-        if(p.id===myId&&HOST){ showDdCoverModal(p, inst=>{ rmHand(p,inst); covered.push({p,inst}); nextCover(i+1); }); }
+        const doneCover=inst=>{ rmHand(p,inst); covered.push({p,inst}); if (HOST && NET.on) publishState(); nextCover(i+1); };
+        if(p.id===myId&&HOST){ showDdCoverModal(p, doneCover); }
+        else if (isLiveRemote(p)) {
+          // 远程人类：真实交互选1张手牌盖放（47秒超时随机）
+          modalAskRemote(p, { k:'fxAsk', step: { type:'ddCover', cardId: 426, cards: p.hand.map(x=>cardOf(x).id), n:1 } }, v => {
+            const idx = (v && typeof v.i === 'number' && v.i >= 0 && v.i < p.hand.length) ? v.i : Math.floor(Math.random()*p.hand.length);
+            doneCover(p.hand[idx]);
+          });
+        }
         else { const inst=randomSplice(p.hand); rmHand(p,inst); covered.push({p,inst}); nextCover(i+1); }
       };
       const nextSay=(i)=>{
@@ -4929,6 +5283,13 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
         if(!e.inst){ says.push({truth:true,claim:'（无牌）'}); nextSay(i+1); return; }
         const say=(truth)=>{ says.push({truth,claim: truth?cardOf(e.inst).name:fakeClaim(e.p,e.inst)}); nextSay(i+1); };
         if(e.p.id===myId&&HOST){ showDdSayModal(e.p, e.inst, truth=>say(truth)); }
+        else if (isLiveRemote(e.p)) {
+          // 远程人类：真实交互选择真心/说谎（47秒超时随机）
+          const lieName = fakeClaim(e.p, e.inst);
+          modalAskRemote(e.p, { k:'fxAsk', step: { type:'ddSay', cardId: 426, truthName: cardOf(e.inst).name, lieName: lieName } }, v => {
+            say((v && typeof v.v === 'number') ? v.v === 0 : Math.random() >= 0.4);
+          });
+        }
         else say(Math.random()>=0.4);
       };
       const nextGuess=(i)=>{
@@ -4938,6 +5299,12 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
         const gi=ps.indexOf(e.p); const guesser=ps[(gi+1)%ps.length];
         const g=(lie)=>{ guesses.push({guesser,lie}); nextGuess(i+1); };
         if(guesser.id===myId&&HOST){ showDdGuessModal(e.p, says[i], lie=>g(lie)); }
+        else if (isLiveRemote(guesser)) {
+          // 远程人类：真实交互猜测是否说谎（47秒超时随机）
+          modalAskRemote(guesser, { k:'fxAsk', step: { type:'ddGuess', cardId: 426, target: e.p.name, claim: (says[i]||{}).claim || '？？？' } }, v => {
+            g((v && typeof v.v === 'number') ? v.v === 1 : Math.random() < 0.5);
+          });
+        }
         else g(Math.random()<0.5);
       };
       const settle=()=>{
@@ -4958,7 +5325,25 @@ wolfGame: (actorPid) => { wolfGameModal(actorPid); },
       };
       nextCover(0);
     },
-    flowerExpedition: (c,tid) => { const both=S.players.filter(p=>[c.actor,tid].includes(p.id)); const flowerN=both.reduce((s,p)=>s+p.hand.filter(h=>(cardOf(h).bonds||[]).includes('花丸探险队')).length+p.slots.filter(x=>x.inst&&(cardOf(x.inst).bonds||[]).includes('花丸探险队')).length,0); let ok=flowerN>=2; if(!ok){ const top=S.deck[S.deck.length-1]; if(top){ const tc=cardOf(top); let guess; if(tid===myId){ guess=window.__flowerGuess; } else guess=ATTRS[Math.floor(Math.random()*4)]; guess=guess||ATTRS[Math.floor(Math.random()*4)]; ok=guess===tc.attr; toast('花丸探险：猜'+guess+' 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); S.discard.push(S.deck.pop()); } } else toast('花丸探险队羁绊≥2，直接成功！','gold'); if(ok){ drawCards(c.actor,4); drawCards(tid,4); } else { discardFrom(c.actor,2); discardFrom(tid,2); } window.__flowerGuess=null; },
+    flowerExpedition: (c,tid) => {
+      const finishFlower = (guess) => {
+        const both=S.players.filter(p=>[c.actor,tid].includes(p.id)); const flowerN=both.reduce((s,p)=>s+p.hand.filter(h=>(cardOf(h).bonds||[]).includes('花丸探险队')).length+p.slots.filter(x=>x.inst&&(cardOf(x.inst).bonds||[]).includes('花丸探险队')).length,0);
+        let ok=flowerN>=2;
+        if(!ok){ const top=S.deck[S.deck.length-1]; if(top){ const tc=cardOf(top); guess=guess||ATTRS[Math.floor(Math.random()*4)]; ok=guess===tc.attr; toast('花丸探险：猜'+guess+' 实际'+tc.attr+' '+(ok?'✓':'✗'), ok?'gold':''); S.discard.push(S.deck.pop()); } } else toast('花丸探险队羁绊≥2，直接成功！','gold');
+        if(ok){ drawCards(c.actor,4); drawCards(tid,4); } else { discardFrom(c.actor,2); discardFrom(tid,2); }
+        window.__flowerGuess=null; render(); if (HOST && NET.on) publishState();
+      };
+      if (tid === myId) { finishFlower(window.__flowerGuess); return; }
+      const tp = P(tid);
+      if (NET.on && tp && !tp.ai && tid !== myId && NET.members.some(m => m.pid === tid && !m.offline)) {
+        // 远程人类目标：真实交互猜牌堆顶1张牌的属性（47秒超时随机）
+        modalAskRemote(tp, { k:'fxAsk', step: { type:'flower', cardId: 427 } }, v => {
+          finishFlower((v && ATTRS.includes(v.a)) ? v.a : ATTRS[Math.floor(Math.random()*4)]);
+        });
+        return;
+      }
+      finishFlower(null);
+    },
   };
   function coverZoneR2(pid,n){ A.coverZoneR(pid,n); }
   // 参数归一化代理：效果定义可能传玩家对象或 pid，统一转 pid；空 pid 回退 actor
@@ -5127,11 +5512,26 @@ function finishTurnImpl(pid) {
       p.alive = false; p.hand.forEach(i=>S.discard.push(i)); p.hand = [];
       toast(p.name+' 可用格不足3个，出局了！','err');
       log('💀 '+p.name+' 出局', true);
-      if (p.id === myId) { showDefeat('你的可用格不足3个，出局了'); if (HOST && NET.on) publishState(); }
+      if (HOST && NET.on) publishState();
+      if (p.id === myId) showGameOverIcon('你的可用格不足3个，出局了');
     }
   }
-  // 亮眼判定（宣告后一整轮；教学对局不判定胜负）
-  if (p.declared && S.turns - p.declareTurn >= S.order.length) {
+  // 友情区放满7张但友情值未达30 → game over（出局后留在房间继续观战）
+  if (!S.tut) {
+    S.players.forEach(q => {
+      if (!q.alive) return;
+      if (q.slots.filter(s=>s.inst).length >= 7 && zoneFv(q) < S.threshold) {
+        q.alive = false; q.hand.forEach(i=>S.discard.push(i)); q.hand = [];
+        toast(q.name+' 友情区已满7张但友情值未达30，出局了！','err');
+        log('💀 '+q.name+' 友情区满7张未达标，出局', true);
+        if (HOST && NET.on) publishState();
+        if (q.id === myId) showGameOverIcon('友情区已满7张，但友情值未达30');
+      }
+    });
+  }
+  // 亮眼判定（宣告后一整轮；按存活玩家数计轮，教学对局不判定胜负；本回合出局的玩家不再判定获胜）
+  const aliveN = S.order.filter(id=>P(id).alive).length;
+  if (p.alive && p.declared && S.turns - p.declareTurn >= Math.max(2, aliveN)) {
     if (zoneFv(p) >= S.threshold) { if (!S.tut) { doWin(p); return; } log('📖 教学对局：不判定亮眼胜利，继续教学'); }
     else { p.declared = false; log(p.name+' 友情值跌出门槛，亮眼取消'); shinyBreakFx(p); }
   }
@@ -5186,9 +5586,13 @@ if (HOST && NET.on) publishState();
     S.players.forEach(pp => { pp.track = { attrs: [], instant: false }; });
     log('—— 第 '+(S.roundNo+1)+' 轮开始 ——');
   }
-  // 下一位
+  // 下一位（异化薮猫【时】：直接结束本轮开始自己的回合 → S.takeNextTurn 优先）
   let idx = S.turnIdx;
-  for (let k=0;k<S.order.length;k++) { idx = (idx+1)%S.order.length; if (P(S.order[idx]).alive) break; }
+  if (S.takeNextTurn) {
+    const ti = S.order.indexOf(S.takeNextTurn);
+    if (ti > -1 && P(S.takeNextTurn).alive) { idx = ti; log('🐆 异化薮猫【时】：直接结束本轮，开始 ' + P(S.takeNextTurn).name + ' 的回合'); }
+    S.takeNextTurn = null;
+  } else { for (let k=0;k<S.order.length;k++) { idx = (idx+1)%S.order.length; if (P(S.order[idx]).alive) break; } }
   S.turnIdx = idx;
   S.players.forEach(pp => pp.counters = 0);
   S.phase = 'prep'; S.actionUsed = false; S.eventUsed = false;
@@ -5271,7 +5675,7 @@ function aiAction(p) {
   let done = false;
   // 放置：仅限可单独放置的牌与馒头
   if (free > 3) {
-    if (solos.length) { const best = solos.sort((a,b)=>card(b).fv-card(a).fv)[0]; place(p.id, best, freeSlotIdx(p)); done = true; }
+      if (solos.length) { const best = solos.sort((a,b)=>card(b).fv-card(a).fv)[0]; place(p.id, best, freeSlotIdx(p)); soloPlaceFx(p.id, best); done = true; }
     else if (buns.length > 2 && p.hand.length > 4) { place(p.id, buns[0], freeSlotIdx(p)); done = true; }
   }
   if (!done && !S.resolve) {
@@ -5338,6 +5742,7 @@ function onSlotClick(p, idx) {
     if (card.type === '角色牌') S.actionUsed = true;
     if (!HOST && NET.on) { sendAct('place', { inst: selInst, slot: idx }); selInst = null; mode = null; setHint(''); render(); return; }
     place(myId, selInst, idx, true);
+    soloPlaceFx(myId, selInst);
     selInst = null; mode = null; setHint('');
     render();
     if (document.body.classList.contains('keep-hand')) showMyZone(); // 友情区弹窗打开时放置后立即刷新
@@ -5378,7 +5783,8 @@ if (_blk) { toast(_blk,'err'); return; }
 function hPlace() {
   if (!selInst) return;
   const card = cardOf(selInst);
-  if (!isSoloCard(card)) { toast('该牌不能自行放置：仅「可单独放在友情区」的牌和馒头可放置，普通角色牌需通过羁绊收集入区','err'); setHint('普通角色牌只能在他人出牌时凑羁绊入区（同一羁绊≥2张）'); return; }
+  if (card.type === '事件牌') { toast('友情区不能放置事件牌：只能放置加帕里馒头与角色牌','err'); setHint('事件牌需按效果打出，不能放入友情区'); return; }
+  if (!isSoloCard(card)) { toast('该牌不能自行放置：仅「可单独放在友情区」的角色牌和馒头可放置，普通角色牌需通过羁绊收集入区','err'); setHint('普通角色牌只能在他人出牌时凑羁绊入区（同一羁绊≥2张）'); return; }
   mode = 'place'; setHint('选择自己友情区的空格放置','gold'); render();
 }
 function hDraw() { if (!HOST && NET.on) { sendAct('draw'); return; } if (S.phase!=='draw'||cur().id!==myId) return; doDraw(myId); }
@@ -6120,6 +6526,7 @@ AUDIO.sfxCounter();
 if (window._curScene && !window._sceneStorm && card.type === '角色牌') {
   window._sceneStorm = true;
   AUDIO.triggerChainStorm(window._curScene);
+  if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'sceneStorm', s: window._curScene } });
 }
 if (HOST && NET.on) netSend({ t:'g', d:{ k:'evt', e:'counter', card: card.id, tcard: targetCard ? targetCard.id : 0, name } });
 const l = fxLayer();
@@ -6182,6 +6589,8 @@ function mkSnapshot(viewerPid) {
     })),
     lastChain: S.lastChain ? { main: cardOf(S.lastChain.main).id, initiator: S.lastChain.initiator, claimed: S.lastChain.claimed, negated: !!S.lastChain.negated, chain: (S.lastChain.chain||[]).map(ch=>({card: cardOf(ch.card).id, by: ch.by, kind: ch.kind})) } : null,
     feed: (S.feed||[]).map(f=>({ txt: f.txt, inst: f.inst ? cardOf(f.inst).id : null, cls: f.cls })),
+    // 场景/BGM 状态（含中途加入的观战者：快照同步场景与连锁风暴标记）
+    scene: window._curScene || null, storm: !!window._sceneStorm,
     // 时点窗序列化（客户端渲染时点条+红光用）
     timing: TIMING ? { kind: TIMING.kind, ev: TIMING.ev, sec: TIMING.sec, claimed: !!TIMING.claimed, cands: TIMING.cands.map(c=>({pid: c.pid, card: cardOf(c.card).id, inst: c.pid===viewerPid ? c.inst : null})), passed: TIMING.passed } : null
   };
@@ -6249,10 +6658,12 @@ break;
       if (S.phase!=='action' || cur().id!==from || S.resolve) break;
       const inst = normInsts(p, [v.inst])[0];
       if (!inst) break;
-      if (!isSoloCard(cardOf(inst))) break;
-      if (cardOf(inst).type==='角色牌') S.actionUsed = true;
-      place(from, inst, v.slot, true);
-      break;
+      if (cardOf(inst).type === '事件牌') { netSend({ t:'gto', to: from, d:{ k:'evt', e:'toast', text:'友情区不能放置事件牌：只能放置加帕里馒头与角色牌', g:'err' } }); break; }
+        if (!isSoloCard(cardOf(inst))) break;
+        if (cardOf(inst).type==='角色牌') S.actionUsed = true;
+        place(from, inst, v.slot, true);
+        soloPlaceFx(from, inst);
+        break;
     }
     case 'counter': {
       const r = S.resolve; if (!r || r.kind==='bun') break;
@@ -6351,6 +6762,7 @@ break;
       break;
     }
     case 'fx': {
+      if (modalAskT && modalAskT.pid === from) { modalAskDone(v); break; }
       if (fxAskTo && fxAskTo.pid === from) applyFxAnswer(v);
       break;
     }
@@ -6400,6 +6812,9 @@ function applySnap(s) {
     document.getElementById('menu').style.display = 'none';
     document.getElementById('game').style.display = 'block';
   }
+  // 中途收到对局快照（如观战者/等待中成员）：若仍停留在等待大厅则自动切入对局视图，防状态滞留
+  const _wr = document.getElementById('waitRoom');
+  if (_wr && _wr.classList.contains('show')) { _wr.classList.remove('show'); document.getElementById('game').style.display = 'block'; document.getElementById('menu').style.display = 'none'; }
   S.threshold = s.threshold; S.order = s.order.slice(); S.turnIdx = s.turnIdx; S.phase = s.phase;
   S.deck = Array(s.deckN).fill(0);
   S.discard = s.discard.slice();
@@ -6413,6 +6828,11 @@ function applySnap(s) {
   S.logArr = (s.logArr||[]).slice();
   S.lastChain = s.lastChain ? { main: s.lastChain.main + '#c', initiator: s.lastChain.initiator, claimed: s.lastChain.claimed, negated: !!s.lastChain.negated, chain: (s.lastChain.chain||[]).map(ch=>({card: ch.card + '#c', by: ch.by, kind: ch.kind})) } : null;
   S.feed = (s.feed||[]).map(f=>({ txt: f.txt, inst: f.inst != null ? f.inst + '#c' : null, cls: f.cls }));
+  // 场景/BGM 同步（中途加入的观战者首快照即应用；风暴已触发则直接切连锁风暴 BGM）
+  if (s.scene) {
+    if (window._curScene !== s.scene) { window._sceneStorm = false; applyScene({ key: s.scene }); }
+    if (s.storm && !window._sceneStorm) { window._sceneStorm = true; AUDIO.triggerChainStorm(s.scene); }
+  }
   // 时点窗客户端恢复（仅展示：倒计时由房主驱动，红光/时点条本地渲染）
   if (s.timing && !HOST) {
     TIMING = { trig: s.timing.ev && s.timing.ev.trig || s.timing.kind, info: (s.timing.ev && s.timing.ev.info) || {}, cands: s.timing.cands.map(c=>({pid: c.pid, inst: c.pid === myId && c.inst ? c.inst : c.card + '#c', id: c.card})), ev: s.timing.ev, claimed: s.timing.claimed, sec: s.timing.sec, timerId: null, passed: s.timing.passed || {}, done: null, _viewOnly: true };
@@ -6448,9 +6868,9 @@ function applySnap(s) {
     _snapTurns = S.turns;
     if (S.order[S.turnIdx] === myId && !S.winner && !S.noTimer) startTurnTimer(180); else stopTurnTimer();
   }
-  // 我方出局检测
+  // 我方出局检测：出局≠败北，只显示短暂 GAME OVER 图标，之后留在房间继续观战
   const meSnap = s.players.find(x => x.id === myId);
-  if (_wasAlive && meSnap && !meSnap.alive && !S.winner && !_lost) showDefeat('你的可用格不足3个，出局了');
+  if (_wasAlive && meSnap && !meSnap.alive && !S.winner && !_lost) showGameOverIcon('你出局了（败北只在有玩家获胜时出现）');
   if (meSnap) _wasAlive = meSnap.alive;
   if (!S.winner && !_lost) {
     const wov = document.getElementById('winOverlay'); if (wov) wov.classList.remove('show');
@@ -6467,7 +6887,10 @@ const w = S.players.find(p => p.id === S.winner);
       ov.classList.add('show');
     }
   } else if (!document.getElementById('loseOverlay').classList.contains('show')) {
-    showDefeat((w ? w.name : '对手')+' 交够了朋友，达成胜利');
+    // 观战者/未参战者不显示败北画面，仅提示胜者
+    const _isSpec = (typeof NET !== 'undefined' && NET.role === 'spectator') || !S.order.includes(myId);
+    if (_isSpec) { toast('🏆 '+(w ? w.name : '对手')+' 交够了朋友，获得胜利！','gold'); }
+    else showDefeat((w ? w.name : '对手')+' 交够了朋友，达成胜利');
   }
   }
 }
@@ -6673,27 +7096,7 @@ document.getElementById('roleBtn').onclick = () => {
 };
 
 // ============ 败北按钮 ============
-document.getElementById('btnRestart').onclick = () => {
-  sparkStop(); // 重开一局：重置火星粒子
-  const ov = document.getElementById('loseOverlay');
-  ov.classList.remove('fade', 'show');
-  document.getElementById('winOverlay').classList.remove('show');
-  if (S && S.tut) {
-    // 教学实战重开：保持教学模式
-    HOST = true; NET.pid = 'me'; myId = 'me';
-    startGameMp([{pid:'me', name:getNick(), av:KC6.avatar||''}, {pid:'tutai', name:'教学搭档', offline:true}], {tut:true});
-    return;
-  }
-  if (NET.on && NET.started) {
-    if (HOST) {
-      netSend({ t:'g', d:{ k:'evt', e:'newgame' } });
-      NET.ready = false;
-      startGameMp(NET.members);
-    } else { toast('只有房主可以重开一局', 'err'); }
-    return;
-  }
-  location.reload();
-};
+// （重新开始按钮已删除：出局≠败北，出局玩家显示短暂 GAME OVER 图标后留在房间内继续观战）
 document.getElementById('btnQuitRoom').onclick = () => { NET.quiet = true; location.reload(); };
 </script>
 </body>

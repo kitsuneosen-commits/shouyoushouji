@@ -905,6 +905,16 @@ var TIMING_Q = [];   // 待处理时点事件队列
 
 function FX_OFF() { return (typeof window !== 'undefined' && window.LAB && LAB.on); }
 
+// ===== 时点引擎计时器（联机时用 Web Worker 看门狗，后台不节流） =====
+// 线上模板已定义 wdSetTimeout/wdSetInterval/wdClearTimeout → 直接复用；单机版回退原生计时器
+function TSET(fn, ms) { return (typeof wdSetTimeout === 'function') ? wdSetTimeout(fn, ms) : setTimeout(fn, ms); }
+function TIVL(fn, ms) { return (typeof wdSetInterval === 'function') ? wdSetInterval(fn, ms) : setInterval(fn, ms); }
+function TCLEAR(id) {
+  if (id == null) return;
+  if (typeof id === 'string' && typeof wdClearTimeout === 'function') { wdClearTimeout(id); return; }
+  try { clearInterval(id); clearTimeout(id); } catch (e) {}
+}
+
 function timingLabel(ev) {
   const info = (ev && ev.info) || {};
   const who = info.pid && P(info.pid) ? P(info.pid).name : '?';
@@ -985,7 +995,7 @@ function openTiming(ev, done) {
   render();
   updateTimingBar();
   scheduleTimingAI();
-  TIMING.timerId = setInterval(timingTick, 1000);
+  TIMING.timerId = TIVL(timingTick, 1000);
 }
 function timingTick() {
   if (!TIMING) return;
@@ -999,7 +1009,7 @@ function timingTick() {
 function closeTiming(claimed) {
   const t = TIMING; if (!t) return;
   TIMING = null;
-  if (t.timerId) { clearInterval(t.timerId); t.timerId = null; }
+  if (t.timerId) { TCLEAR(t.timerId); t.timerId = null; }
   updateTimingBar();
   const d = t.done;
   render();
@@ -1019,7 +1029,7 @@ function scheduleTimingAI() {
     if (!P(c.pid).ai) return;
     delay += hasHuman ? 3500 : 2200;
     const my = c.inst;
-    setTimeout(function() {
+    TSET(function() {
       if (!TIMING || TIMING !== t || t.claimed) return;
       if (Math.random() < (TIMING_AI_PROB[c.id] || 0.5)) doTimingActivate(c.pid, my);
     }, delay);
@@ -1211,7 +1221,7 @@ function chainFXIntro(r, cb) {
   // 连锁第3张及以上卡牌时播放专属音效
   if (links.length >= 3 && typeof AUDIO !== 'undefined' && AUDIO.sfxChain3rd) { AUDIO.sfxChain3rd(); }
   log('⛓ 连锁成立：' + counters.length + ' 张反击牌入链，开始倒放结算（后发先至）', true);
-  setTimeout(function() { if (cb) cb(); }, 500 + links.length * 280);
+  TSET(function() { if (cb) cb(); }, 500 + links.length * 280);
 }
 // idx = 链环序号（1=原效果，2..=反击链环）；ok=true 结算成功（绿色高亮），false=被无效（红X抖动）
 function chainFXFlash(idx, ok, cb) {
@@ -1228,7 +1238,7 @@ function chainFXFlash(idx, ok, cb) {
       link.appendChild(g);
     }
   }
-  setTimeout(function() { if (cb) cb(); }, ok ? 650 : 550);
+  TSET(function() { if (cb) cb(); }, ok ? 650 : 550);
 }
 function chainFXClear() {
   const el = document.getElementById('chainStack');
@@ -2184,7 +2194,7 @@ if (DUP_EVT.has(c.id)) return;
 deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++));
 });
   S = { players, order: shuffle(players.map(p=>p.id)), turnIdx: 0, phase: 'draw',
-    deck: deck, discard: [], actionUsed: false, eventUsed: false,
+    deck: shuffle(deck), discard: [], actionUsed: false, eventUsed: false,
     resolve: null, threshold: 30, turns: 0, winner: null, feed: [], roomName: ROOM_NAMES[(Math.random()*ROOM_NAMES.length)|0],
     roundNo: 0, gflags: {}, activeEffects: [], tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: [],
     tut: isTut, noTimer: isTut };
@@ -2282,19 +2292,57 @@ function announceFirst(name, isMe) {
   setTimeout(() => ov.classList.remove('show'), 2800);
 }
 // ============ 回合计时（180秒超时跳过） ============
+// ===== 看门狗计时器（联机防卡死） =====
+// 浏览器会把后台标签页的 setTimeout/setInterval 节流到约每分钟1次（intensive throttling），
+// 而联机对局的推进全靠房主标签页里的计时器（结算倒计时/回合计时/时点窗/AI调度/fxAsk 45s兜底/弹窗超时）。
+// 房主标签页一切后台，整局就会冻结（多个房间同时卡住即多个房主都切了后台）。
+// Web Worker 的计时器不受此节流 → 用 Worker 心跳驱动所有游戏关键计时器，按真实时间戳推进，后台也不卡。
+const WD = (function(){
+  const jobs = new Map(); let seq = 0; let wk = null; let useNative = false;
+  function pump() {
+    const now = Date.now();
+    for (const j of Array.from(jobs.values())) {
+      if (j.type === 't') {
+        if (now >= j.at) { jobs.delete(j.id); try { j.fn(); } catch (e) { console.error(e); } }
+      } else {
+        let guard = 0;
+        while (now >= j.next && guard++ < 3) { j.next += j.ms; try { j.fn(); } catch (e) { console.error(e); } }
+        if (now >= j.next) j.next = now + j.ms; // 落后太多（长眠后恢复）→ 重新对齐
+      }
+    }
+  }
+  function ensure() {
+    if (wk !== null || useNative) return;
+    try {
+      const src = 'setInterval(function(){postMessage(1)},100);';
+      const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+      wk = new Worker(url);
+      wk.onmessage = function () { pump(); };
+    } catch (e) { wk = null; useNative = true; } // Worker 不可用 → 回退原生计时器
+  }
+  function st(fn, ms) { ensure(); if (!wk) return setTimeout(fn, ms); const id = 'w' + (++seq); jobs.set(id, { id: id, type: 't', fn: fn, at: Date.now() + Math.max(0, (+ms || 0)) }); return id; }
+  function si(fn, ms) { ensure(); if (!wk) return setInterval(fn, ms); const id = 'w' + (++seq); const m = Math.max(1, (+ms || 1)); jobs.set(id, { id: id, type: 'i', fn: fn, ms: m, next: Date.now() + m }); return id; }
+  function cl(id) { if (id == null) return; if (typeof id === 'string') { jobs.delete(id); return; } try { clearInterval(id); clearTimeout(id); } catch (e) {} }
+  return { st: st, si: si, cl: cl };
+})();
+function wdSetTimeout(fn, ms) { return WD.st(fn, ms); }
+function wdSetInterval(fn, ms) { return WD.si(fn, ms); }
+function wdClearTimeout(id) { return WD.cl(id); }
+function wdClearInterval(id) { return WD.cl(id); }
+// ===== 看门狗结束 =====
 let turnTimer = null;
 function startTurnTimer(sec) {
   stopTurnTimer();
   if (!S || S.noTimer) return;
   let left = sec;
   updTurnTimer(left);
-  turnTimer = setInterval(() => {
+  turnTimer = wdSetInterval(() => {
     left--; updTurnTimer(left);
     if (left <= 0) { stopTurnTimer(); toast('⏰ 回合超时，自动结束', 'err'); autoEndTurn(); }
   }, 1000);
 }
 function stopTurnTimer() {
-  if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+  if (turnTimer) { wdClearInterval(turnTimer); turnTimer = null; }
   const el = document.getElementById('tb-timer'); if (el) { el.textContent = ''; el.classList.remove('warn'); }
 }
 function updTurnTimer(left) {
@@ -2542,7 +2590,7 @@ function rabbitGameModal(actorPid) {
     });
   };
   // AI 与远程人类玩家：模拟 0.8~4.6 秒内随机点击时间
-  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { setTimeout(() => { if (!ended) { times[p.id] = (Date.now()-t0)/1000; log('🐰 '+p.name+' 点了兔兔'); } }, 800 + Math.random()*3800); });
+  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { wdSetTimeout(() => { if (!ended) { times[p.id] = (Date.now()-t0)/1000; log('🐰 '+p.name+' 点了兔兔'); } }, 800 + Math.random()*3800); });
   const d = document.getElementById('bmContent');
   if (!d) { finish(); return; }
   d.innerHTML = '<div class="dlg" style="flex-direction:column;align-items:center"><span class="gtitle">🐰 学 兔 兔</span>'
@@ -2575,7 +2623,7 @@ function wolfGameModal(actorPid) {
   };
   const maybeDone = () => { if (!ended && ps.every(p => p.id in guesses)) setTimeout(finish, 500); };
   // AI 与远程人类玩家：房主代理随机猜
-  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { setTimeout(() => { if (!ended) { guesses[p.id] = Math.floor(Math.random()*(MAXG+1)); maybeDone(); } }, 800 + Math.random()*8000); });
+  ps.filter(p => p.ai || (NET.on && p.id !== myId)).forEach(p => { wdSetTimeout(() => { if (!ended) { guesses[p.id] = Math.floor(Math.random()*(MAXG+1)); maybeDone(); } }, 800 + Math.random()*8000); });
   const ov = document.createElement('div'); ov.id = 'wolfOv';
   ov.style.cssText = 'position:fixed;inset:0;background:#000;z-index:100000;display:flex;align-items:center;justify-content:center';
   ov.innerHTML = '<div style="color:#fff;text-align:center;padding:20px;max-width:480px">'
@@ -2650,7 +2698,7 @@ if (!S || S.winner) return;
 S.phase = 'draw'; S.actionUsed = false; S.eventUsed = false;
 log('🀄 抽牌阶段');
 render();
-if (c.ai) { aiTimers.push(setTimeout(()=>aiTurn(c), 900)); }
+if (c.ai) { aiTimers.push(wdSetTimeout(()=>aiTurn(c), 900)); }
 else { toast('轮到你了，请抽牌', 'gold'); if (S.tableBuns.length) toast('🍞 桌面有馒头（点顶栏「桌面」查看）'); if (c.id === myId) startTurnTimer(180); }
 }
 function doDraw(pid) {
@@ -2669,7 +2717,7 @@ function doDraw(pid) {
     S.phase = 'action'; S.actionUsed = false; S.eventUsed = false;
     log('⚡ 行动阶段：可打出1张角色/事件牌，或放置进友情区');
     render();
-    if (p.ai) aiTimers.push(setTimeout(()=>aiAction(p), 800));
+    if (p.ai) aiTimers.push(wdSetTimeout(()=>aiAction(p), 800));
     return;
   }
   const inst = S.deck.pop();
@@ -2681,7 +2729,7 @@ function doDraw(pid) {
   S.phase = 'action'; S.actionUsed = false; S.eventUsed = false;
   log('⚡ 行动阶段：可打出1张角色/事件牌，或放置进友情区');
   render();
-  if (p.ai) aiTimers.push(setTimeout(()=>aiAction(p), 800));
+  if (p.ai) aiTimers.push(wdSetTimeout(()=>aiAction(p), 800));
 }
 // 打出角色/事件牌
 function playCard(pid, instId) {
@@ -2834,7 +2882,7 @@ function resolveWindow() {
   if (S.resolve.chain.some(ch=>ch.kind==='counter')) {
     // 已有反击 → 开启连锁反应窗口（可反击反击 / 馒头截断 / 结算）
     startResolveCountdown(RESOLVE_WINDOW); render();
-  } else if (!humanCanReact()) { aiTimers.push(setTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 700)); } // 无人可响应 → 快速自动结算，避免空等 60 秒
+  } else if (!humanCanReact()) { aiTimers.push(wdSetTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 700)); } // 无人可响应 → 快速自动结算，避免空等 60 秒
   else { startResolveCountdown(RESOLVE_WINDOW); render(); }
   publishState();
 }
@@ -2890,7 +2938,7 @@ S.resolve = { kind: r.kind, card: r.card, initiator: slPid, chain: [], bunUsed: 
 if (r.claim) S.resolve.claim = r.claim;
 // 重新开启反应窗口（重触发的效果即使原本是事件牌也可被反击）
 if (humanCanReact()) { startResolveCountdown(RESOLVE_WINDOW); render(); }
-else aiTimers.push(setTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 700));
+else aiTimers.push(wdSetTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 700));
 publishState();
 }
 // 海豚联盟「再打出」被动（打出/反击时文本声明可同时使用即时效果）
@@ -2962,7 +3010,7 @@ function startResolveCountdown(sec) {
   clearTimer();
   rzLeft = sec;
   updateRzTimer(rzLeft); publishState();
-  timer505 = setInterval(() => {
+  timer505 = wdSetInterval(() => {
     // 玩家正在做选择（凑羁绊/效果选牌/选择目标/弹窗）时暂停倒计时
     const bigM = document.getElementById('bigModal');
     const busy = mode==='bond-hand' || mode==='fx-hand' || mode==='fx-target' || (bigM && bigM.classList.contains('show'));
@@ -2976,8 +3024,8 @@ function startResolveCountdown(sec) {
 window.addEventListener('wheel', function(e){ if (e.ctrlKey) { e.preventDefault(); const now = Date.now(); if (!window.__zoomTipAt || now - window.__zoomTipAt > 3000) { window.__zoomTipAt = now; try { toast('已阻止页面缩放（如画面过大请按 Ctrl+0 恢复）','err'); } catch(err){} } } }, { passive: false });
 window.addEventListener('keydown', function(e){ if (e.ctrlKey && (e.key==='='||e.key==='+'||e.key==='-')) e.preventDefault(); });
 // （旧的缩放补偿系统已移除：新方案为固定 1920×910 舞台 + fitStage 等比缩放，见文件开头）
-function clearTimer() { if (timer505) { clearInterval(timer505); timer505 = null; } rzLeft = 0; }
-function clearTimers() { clearTimer(); stopTurnTimer(); aiTimers.forEach(clearTimeout); aiTimers = []; }
+function clearTimer() { if (timer505) { wdClearInterval(timer505); timer505 = null; } rzLeft = 0; }
+function clearTimers() { clearTimer(); stopTurnTimer(); aiTimers.forEach(wdClearTimeout); aiTimers = []; }
 function updateRzTimer(left) { const el = document.getElementById('rzTimer'); if (el) el.textContent = left > 0 ? left+'s' : ''; }
 
 function doClaim(pid, handIds) {
@@ -3089,7 +3137,7 @@ if (S.phase === 'action' && c && !c.ai) render();
 const c2 = cur();
 if (S.phase === 'action' && c2 && c2.ai && !S.winner) {
 const pid = c2.id;
-aiTimers.push(setTimeout(() => { if (S && S.phase==='action' && !S.resolve && !S.winner && cur().id===pid) endTurn(pid); }, 800));
+aiTimers.push(wdSetTimeout(() => { if (S && S.phase==='action' && !S.resolve && !S.winner && cur().id===pid) endTurn(pid); }, 800));
 }
 publishState();
 }
@@ -3371,7 +3419,7 @@ function fxStep() {
 }
 function fxAdvance() { if (PFX) { PFX.i++; fxStep(); } }
 // --- 远程玩家效果步骤：发 fxAsk，限时45s，超时AI代答 ---
-function clearFxAskTimer() { if (fxAskTo && fxAskTo.timer) { clearTimeout(fxAskTo.timer); fxAskTo.timer = null; } }
+function clearFxAskTimer() { if (fxAskTo && fxAskTo.timer) { wdClearTimeout(fxAskTo.timer); fxAskTo.timer = null; } }
 function mpAskStep(st) {
   const ctx = PFX.ctx;
   const card = cardOf(ctx.played);
@@ -3393,7 +3441,7 @@ else if (type === 'zpSelf') { const t = P(ctx.actor); const cands = t ? t.slots.
 fxAskTo.payload = payload;
   netSend({ t:'gto', to: ctx.actor, d:{ k:'fxAsk', step: payload } });
   render();
-  fxAskTo.timer = setTimeout(() => fxAskTimeout(), 45000);
+  fxAskTo.timer = wdSetTimeout(() => fxAskTimeout(), 45000);
 }
 function fxAskTimeout() {
   if (!fxAskTo || !PFX) return;
@@ -3640,13 +3688,13 @@ function startModalTimer(sec, onTimeout, hostId) {
   host.appendChild(bar);
   const fmt = () => { bar.textContent = '⏱ ' + left + 's'; };
   fmt();
-  modalTimer = setInterval(() => {
+  modalTimer = wdSetInterval(() => {
     left--;
     if (left <= 0) { stopModalTimer(); if (onTimeout) onTimeout(); return; }
     fmt();
   }, 1000);
 }
-function stopModalTimer() { if (modalTimer) { clearInterval(modalTimer); modalTimer = null; } const b = document.getElementById('modalTimerBar'); if (b) b.remove(); }
+function stopModalTimer() { if (modalTimer) { wdClearInterval(modalTimer); modalTimer = null; } const b = document.getElementById('modalTimerBar'); if (b) b.remove(); }
 function showHandModal(t, n, steal) {
   const d = document.getElementById('bmContent');
   window._hvSel = [];
@@ -5214,7 +5262,7 @@ function aiAction(p) {
   if (!S || S.phase !== 'action' || cur().id !== p.id) return;
   const card = inst => cardOf(inst);
   // 春日翢鸢锁
-  if (p.flags.mark.lockHand5 && p.hand.length >= 5) { if (p.hand.length > 5) { const _kd = randomSplice(p.hand); S.discard.push(_kd); emitTimingDiscard(p.id, [_kd], {fx:true}); log('🌸 '+p.name+' 被春日眺鸢锁定，弃1张手牌'); } log(p.name+' 被锁手牌，无法出牌'); aiTimers.push(setTimeout(()=>endTurn(p.id), 600)); return; }
+  if (p.flags.mark.lockHand5 && p.hand.length >= 5) { if (p.hand.length > 5) { const _kd = randomSplice(p.hand); S.discard.push(_kd); emitTimingDiscard(p.id, [_kd], {fx:true}); log('🌸 '+p.name+' 被春日眺鸢锁定，弃1张手牌'); } log(p.name+' 被锁手牌，无法出牌'); aiTimers.push(wdSetTimeout(()=>endTurn(p.id), 600)); return; }
   const free = usable(p);
   const buns = p.hand.filter(h => card(h).type==='加帕里馒头');
   const solos = p.hand.filter(h => isSoloCard(card(h)) && card(h).type!=='加帕里馒头');
@@ -5235,7 +5283,7 @@ function aiAction(p) {
   if (!S.resolve) {
     // 宣告胜利
     if (!p.declared && zoneFv(p) >= S.threshold) { p.declared = true; p.declareTurn = S.turns; toast('🌟 '+p.name+' 宣告「交够了朋友」！','gold'); log('🌟 '+p.name+' 宣告亮眼', true); }
-    aiTimers.push(setTimeout(()=>endTurn(p.id), 600));
+    aiTimers.push(wdSetTimeout(()=>endTurn(p.id), 600));
   }
   render();
 }
@@ -5375,7 +5423,7 @@ function afterCounterText(pid, cInst) {
   if (S.resolve && !S.resolve._driving) {
     // 仍可继续反应（连锁反击/馒头）→ 60秒窗口；否则快速自动进入连锁结算
     if (humanCanReact()) startResolveCountdown(RESOLVE_WINDOW);
-    else aiTimers.push(setTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 800));
+    else aiTimers.push(wdSetTimeout(() => { if (S.resolve && !S.resolve._driving) startEffect(); }, 800));
   }
 }
 // 步骤式反击效果启动器（复用 PFX 步骤系统，完成时走 finishEffect 的 counter 分支）
@@ -6103,7 +6151,7 @@ function setHint(text, gold) { const h = document.getElementById('hint'); h.text
 function publishState() {
   if (!HOST || !NET.on || !S) return;
   if (pubT) return;
-  pubT = setTimeout(() => { pubT = null; doPublish(); }, 60);
+  pubT = wdSetTimeout(() => { pubT = null; doPublish(); }, 60);
 }
 function doPublish() {
   if (!HOST || !NET.on || !S) return;

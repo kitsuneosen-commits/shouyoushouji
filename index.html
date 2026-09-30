@@ -284,6 +284,21 @@ body.keep-hand #game .hand-zone { z-index: 70; }
 .dv-title { font-size: 16px; font-weight: 900; margin-bottom: 12px; color: #fbbf24; }
 #bigModal { position: fixed; inset: 0; z-index: 96; background: rgba(0,0,0,.8); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; }
 #bigModal.show { display: flex; animation: fadein .2s; }
+/* 玩法规则页（游戏内规则说明） */
+#rulesModal { position: fixed; inset: 0; z-index: 97; background: rgba(0,0,0,.82); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; }
+#rulesModal.show { display: flex; animation: fadein .25s; }
+.rules-box { width: min(880px, 93%); max-height: 84vh; display: flex; flex-direction: column; background: rgba(15,23,42,.97); border: 1px solid rgba(255,255,255,.16); border-radius: 16px; overflow: hidden; box-shadow: 0 18px 60px rgba(0,0,0,.65); }
+.rules-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: linear-gradient(90deg, rgba(245,158,11,.22), rgba(244,114,182,.14)); border-bottom: 1px solid rgba(255,255,255,.12); }
+.rules-head span { font-size: 17px; font-weight: 900; color: #fbbf24; letter-spacing: 1px; }
+.rules-body { padding: 16px 22px 24px; overflow-y: auto; font-size: 13.5px; line-height: 1.85; color: rgba(255,255,255,.88); }
+.rules-body h4 { margin: 18px 0 6px; font-size: 15px; color: #fbbf24; letter-spacing: .5px; }
+.rules-body h4:first-child { margin-top: 0; }
+.rules-body p { margin: 0 0 6px; }
+.rules-body ul { margin: 4px 0 8px; padding-left: 20px; }
+.rules-body li { margin: 4px 0; }
+.rules-body b { color: #fff; }
+.rules-body .rk { display: inline-block; padding: 1px 7px; margin-right: 5px; border-radius: 6px; background: rgba(255,213,79,.16); color: #ffd54f; font-weight: 900; font-size: 12px; }
+.rules-body .note { margin-top: 14px; padding: 10px 12px; border-left: 3px solid #fbbf24; background: rgba(255,213,79,.07); border-radius: 0 8px 8px 0; color: rgba(255,255,255,.72); font-size: 12.5px; }
 .dlg { display: flex; flex-wrap: wrap; justify-content: center; text-align: center; color: #fff; flex-direction: column; align-items: center; }
 .dlg-close { margin-top: 12px; padding: 8px 22px; border: none; border-radius: 8px; background: #475569; color: #fff; font-weight: 700; cursor: pointer; }
 .dlg-close:hover { background: #64748b; }
@@ -554,6 +569,7 @@ button.tut2glow { outline: 2px solid #fde047; outline-offset: 2px; box-shadow: 0
 <button class="start-btn" id="joinCancel" style="width:78px;margin-top:0;background:#52525b">取消</button>
 </div>
 <button class="start-btn" id="storyBtn" style="background:#52525b;display:block">📖 剧情模式</button>
+<button class="start-btn" id="rulesBtn" style="background:#1d4ed8;display:block;margin-top:10px" onclick="openRules()">📖 玩法规则</button>
       <div id="connTip" class="menu-tip" style="color:#fca5a5;min-height:0"></div>
       <div class="menu-tip">规则：友情值达标并宣告后维持一整轮即获胜 · 角色牌凑羁绊赚友情 · 馒头切断连锁不可被反击 · 事件牌扭转局势 · 可用格&lt;3出局<br>游戏中掉线的玩家会由 AI 自动接管，本机可凭房间码重连续战。</div>
     </div>
@@ -639,6 +655,7 @@ button.tut2glow { outline: 2px solid #fde047; outline-offset: 2px; box-shadow: 0
 <div id="sideInfo"></div>
 <div id="discardView"><div class="dv-box"><div class="dv-title">🗑 弃牌区 · 点牌可查看详情，点空白处关闭</div><div id="dvContent"></div></div></div>
 <div id="bigModal"><div class="dv-box"><div id="bmContent"></div></div></div>
+<div id="rulesModal"><div class="rules-box"><div class="rules-head"><span>📖 玩法规则</span><button class="g3d slate" onclick="closeRules()">关闭</button></div><div class="rules-body" id="rulesBody"></div></div></div>
 
 <div id="fx-layer"></div>
 <div class="win-overlay" id="winOverlay"></div>
@@ -1700,8 +1717,15 @@ AUDIO.sfxCardPlay = function() { _.playSfxFile('sfx_deal.mp3', 1.1); };
 // 抽牌（★ 替换为文件音效 sfx_deal.mp3）
 AUDIO.sfxCardDraw = function() { _.playSfxFile('sfx_deal.mp3', 1.0); };
 
-// 触碰卡牌（★ 新增：文件音效 sfx_flip.wav）
-AUDIO.sfxCardHover = function() { _.playSfxFile('sfx_flip.wav', 0.7); };
+// 触碰卡牌（文件音效）——注意：原实现引用的 sfx_flip.wav 并不存在于 audio/ 目录，
+// 导致每次鼠标划过卡牌都会发一次 404 请求且没有声音；这里改用实际存在的 sfx_btn.wav 轻量提示音。
+var _lastHoverTs = 0;
+AUDIO.sfxCardHover = function() {
+  var now = Date.now();
+  if (now - _lastHoverTs < 90) return;  // 快速划过时限流：避免连发，也避免频繁创建 Audio 元素
+  _lastHoverTs = now;
+  _.playSfxFile('sfx_btn.wav', 0.3);
+};
 
 // 放置友情区（合成）
 AUDIO.sfxPlaceBond = _sfx(function() {
@@ -4007,6 +4031,61 @@ function fxTotal(n) { if (fxAskStep) { sendAct('fx',{n}); endClientFx(); return;
 function closeFxPanel() { const el=document.getElementById('fxpanel'); if(el) el.classList.remove('show'); if (mode==='fx-target'||mode==='fx-hand') { mode=null; fxMode=null; } }
 // 查看/选择目标手牌弹窗
 function closeBigModal() { stopModalTimer(); document.getElementById('bigModal').classList.remove('show'); }
+// ===== 玩法规则页 =====
+function rulesHtml() {
+  return ''
+  + '<h4>🎯 目标</h4>'
+  + '<p>把朋友请进你的<b>友情区</b>，累计 <b>30 点友情值</b>，宣告「交够了朋友」并撑过一整轮 —— 获胜。</p>'
+  + '<h4>🔄 一个回合</h4><ul>'
+  + '<li><span class="rk">抽牌</span>从牌堆抽 1 张。</li>'
+  + '<li><span class="rk">行动</span>三选一：打出 1 张<b>角色牌</b>发动它的即时效果 / 使用 1 张<b>事件牌</b> / 什么都不做。</li>'
+  + '<li><span class="rk">馒头</span><b>加帕里馒头</b>不占行动次数，任何时候都能打出或放进友情区。</li>'
+  + '<li><span class="rk">结束</span>手牌超过 7 张，要弃到 7 张。</li>'
+  + '</ul>'
+  + '<h4>💛 友情值从哪来</h4><ul>'
+  + '<li><b>羁绊配对（主要来源）</b>：别人打出角色牌时，你可以用手牌里与它<b>相同羁绊</b>的牌凑成组合，连同那张牌一起放进自己的友情区，一次拿到这些牌友情值的合计；并按其中<b>最高的幸运值</b>抽牌。</li>'
+  + '<li><b>单独放置</b>：标着「可单独放在友情区」的角色牌，以及所有馒头，都能直接放进友情区拿分。</li>'
+  + '<li><b>桌面馒头</b>：放在桌面上的馒头，友情值全场共享。</li>'
+  + '</ul>'
+  + '<h4>🛡 反击与连锁</h4><ul>'
+  + '<li>任意结算中都能从手牌发动<b>反击效果</b>打断对方。同一回合内，一名玩家在一个连锁上最多发动 <b>2 张</b>反击。</li>'
+  + '<li><b>馒头可以切断连锁</b>：馒头之后的反击不能再针对前面的效果；馒头本身<b>不能被反击</b>。</li>'
+  + '<li><b>【时】反击</b>只在特定时机开放（有人弃牌 / 你回合结束却没出牌 等）。时机到了会弹出<b>时点窗</b>，手牌金色发光，<b>60 秒内</b>点击即可发动。</li>'
+  + '</ul>'
+  + '<h4>💀 出局与亮眼</h4><ul>'
+  + '<li><b>出局</b>：回合结束时友情区<b>可用格少于 3 个</b>即出局（友情区最多 7 格）。已宣告亮眼者在维持期内免此判定。</li>'
+  + '<li><b>亮眼</b>：友情值 ≥ 30 就能宣告，进入【亮眼】状态；撑过一整轮（按存活人数计）且友情值仍 ≥ 30 → 获胜。中途跌破 30 则亮眼取消。</li>'
+  + '<li>只剩 1 人时，最后存活者获胜。</li>'
+  + '</ul>'
+  + '<h4>🎴 牌堆</h4>'
+  + '<p>本作共 <b>155 种</b>卡牌 × 2 = <b>310 张</b>：角色牌 130 种 · 事件牌 23 种 · 加帕里馒头 5 种。</p>'
+  + '<div class="note">卡牌效果一律以卡面文字为准；拿不准时可以在「弃牌区」点牌查看详情。</div>'
+  + '<h4>🌐 联机补充</h4><ul>'
+  + '<li>房主权威裁决：房间由房主标签页推进结算与计时，房主离开对局会终止。</li>'
+  + '<li>中途加入的玩家自动成为<b>观战者</b>；掉线玩家由 AI 接管，凭房间码可重连续战。</li>'
+  + '<li>需要你做选择的弹窗一律由你本人操作，只有超时才会由 AI 随机代选。</li>'
+  + '</ul>';
+}
+function openRules() {
+  const m = document.getElementById('rulesModal'), b = document.getElementById('rulesBody');
+  if (!m || !b) return;
+  b.innerHTML = rulesHtml();
+  b.scrollTop = 0;
+  m.classList.add('show');
+}
+function closeRules() { const m = document.getElementById('rulesModal'); if (m) m.classList.remove('show'); }
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRules(); });
+// 内联网站图标：顺手消除浏览器对 /favicon.ico 的 404 请求
+(function () {
+  try {
+    if (document.querySelector('link[rel="icon"]')) return;
+    const href = (typeof IMG !== 'undefined' && IMG && IMG.title) ? IMG.title : '';
+    if (!href) return;
+    const l = document.createElement('link');
+    l.rel = 'icon'; l.type = 'image/png'; l.href = href;
+    document.head.appendChild(l);
+  } catch (e) {}
+})();
 let modalTimer = null;
 function startModalTimer(sec, onTimeout, hostId) {
   stopModalTimer();

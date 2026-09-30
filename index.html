@@ -2400,7 +2400,7 @@ deck.push(c.id+'#'+(seq++), c.id+'#'+(seq++));
 });
   S = { players, order: (storyCfg && storyCfg.boss) ? ['foe','me'] : (tut2Cfg ? ['me','foe'] : shuffle(players.map(p=>p.id))), turnIdx: 0, phase: 'draw',
     deck: shuffle(deck), discard: [], actionUsed: false, eventUsed: false,
-    resolve: null, threshold: 30, turns: 0, winner: null, feed: [], roomName: storyCfg ? storyCfg.name : ROOM_NAMES[(Math.random()*ROOM_NAMES.length)|0],
+    resolve: null, threshold: 28, turns: 0, winner: null, feed: [], roomName: storyCfg ? storyCfg.name : ROOM_NAMES[(Math.random()*ROOM_NAMES.length)|0],
     roundNo: 0, gflags: {}, activeEffects: [], tableStack: [], tableBuns: [], aside: [], partner: null, counterDrawUsed: false, logArr: [],
     tut: isTut || tut2Cfg, noTimer: isTut || !!storyCfg, story: storyCfg ? storyCfg.key : null };
   _snapTurns = -1; _wasAlive = true; _lost = false;
@@ -4070,7 +4070,7 @@ function closeBigModal() { stopModalTimer(); document.getElementById('bigModal')
 function rulesHtml() {
   return ''
   + '<h4>🎯 目标</h4>'
-  + '<p>把朋友请进你的<b>友情区</b>，累计 <b>30 点友情值</b>，宣告「交够了朋友」并撑过一整轮 —— 获胜。</p>'
+  + '<p>把朋友请进你的<b>友情区</b>，累计 <b>28 点友情值</b>，宣告「交够了朋友」并撑过一整轮 —— 获胜。</p>'
   + '<h4>🔄 一个回合</h4><ul>'
   + '<li><span class="rk">抽牌</span>从牌堆抽 1 张。</li>'
   + '<li><span class="rk">行动</span>三选一：打出 1 张<b>角色牌</b>发动它的即时效果 / 使用 1 张<b>事件牌</b> / 什么都不做。</li>'
@@ -4089,7 +4089,7 @@ function rulesHtml() {
   + '</ul>'
   + '<h4>💀 出局与亮眼</h4><ul>'
   + '<li><b>出局</b>：回合结束时友情区<b>可用格少于 3 个</b>即出局（友情区最多 7 格）。已宣告亮眼者在维持期内免此判定。</li>'
-  + '<li><b>亮眼</b>：友情值 ≥ 30 就能宣告，进入【亮眼】状态；撑过一整轮（按存活人数计）且友情值仍 ≥ 30 → 获胜。中途跌破 30 则亮眼取消。</li>'
+  + '<li><b>亮眼</b>：友情值 ≥ 28 就能宣告，进入【亮眼】状态；撑过一整轮（按存活人数计）且友情值仍 ≥ 28 → 获胜。中途跌破 28 则亮眼取消。</li>'
   + '<li>只剩 1 人时，最后存活者获胜。</li>'
   + '</ul>'
   + '<h4>🎴 牌堆</h4>'

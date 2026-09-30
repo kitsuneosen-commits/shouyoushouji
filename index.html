@@ -4110,6 +4110,15 @@ function openRules() {
 }
 function closeRules() { const m = document.getElementById('rulesModal'); if (m) m.classList.remove('show'); }
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeRules(); });
+// 规则页必须脱离游戏舞台：fitStage() 会给 #stage 加 transform:scale()，身处其中的弹窗
+// 会跟着一起缩放（实测 414×896 手机视口下规则页被压到 190×162px，完全不可读）。
+// 移到 <body> 下即可按视口真实尺寸渲染。
+(function () {
+  try {
+    const m = document.getElementById('rulesModal');
+    if (m && m.parentNode && m.parentNode !== document.body) document.body.appendChild(m);
+  } catch (e) {}
+})();
 // 内联网站图标：顺手消除浏览器对 /favicon.ico 的 404 请求
 (function () {
   try {

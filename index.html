@@ -3209,6 +3209,19 @@ function resolveWindow() {
   else { startResolveCountdown(RESOLVE_WINDOW); render(); }
   publishState();
 }
+// AI 反击意愿：按局势决定，而不是固定 25%
+// 对手已宣告亮眼必须拦；自己落后时更该反击；手牌溢出时用掉比弃掉划算。
+function aiCounterUrge(who, foeId) {
+  try {
+    const foe = P(foeId);
+    const rivals = S.players.filter(q => q.alive && q.id !== who.id);
+    const top = rivals.reduce((m, q) => Math.max(m, zoneFv(q)), 0);
+    if (foe && foe.declared) return 0.75;
+    if (zoneFv(who) < top - 4) return 0.55;
+    if (who.hand.length >= 7) return 0.4;
+    return 0.3;
+  } catch (e) { return 0.25; }
+}
 function aiReactToHuman() {
   const r = S.resolve; if (!r) return;
   if (r.kind === 'event' || r.kind === 'bun') return;
@@ -3219,10 +3232,10 @@ function aiReactToHuman() {
     // AI 羁绊收集（优先于反击）
     if (card.type === '角色牌' && !def2noCnt(def)) {
       const combo = bestBondCombo(ai, card);
-      if (combo && Math.random() < 0.8) { doClaim(ai.id, combo.handIds); continue; }
+      if (combo) { const _after = usable(ai) - (combo.handIds.length + 1); const _safe = _after >= 3 || ai.declared || zoneFv(ai) + combo.fv >= S.threshold; if (_safe || Math.random() < 0.5) { doClaim(ai.id, combo.handIds); continue; } }
     }
 // AI 反击（25%，且有反击牌）；若发起者被阿法六线风鸟保护则跳过
-if (Math.random() < 0.25 && ai.counters < 2 && !def2noCnt(def) && !isNoCounterBird(r.initiator) && !isPartnerPair(ai.id, r.initiator)) {
+if (aiCounterUrge(ai, r.initiator) > Math.random() && ai.counters < 2 && !def2noCnt(def) && !isNoCounterBird(r.initiator) && !isPartnerPair(ai.id, r.initiator)) {
       const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), card) && !(S.gflags && S.gflags.noDrawFx && /抽/.test(String(cardOf(h).effect||'')+String(cardOf(h).counter||''))));
       if (cIdx > -1) {
 const cInst = ai.hand[cIdx]; rmHand(ai, cInst); ai.counters++;
@@ -3279,7 +3292,7 @@ function aiReactToCounter() {
     const lastCard = cardOf(lastCnt.card);
     for (const ai of S.players.filter(p=>p.ai && p.alive && p.id!==lastCnt.by)) {
       if (!S.resolve || S.resolve.claimed) break;
-      if (Math.random() < 0.2 && ai.counters < 2 && !isNoCounterBird(lastCnt.by) && !isPartnerPair(ai.id, lastCnt.by)) {
+      if (aiCounterUrge(ai, lastCnt.by) * 0.75 > Math.random() && ai.counters < 2 && !isNoCounterBird(lastCnt.by) && !isPartnerPair(ai.id, lastCnt.by)) {
         const cIdx = ai.hand.findIndex(h => cardOf(h).counter && counterFits(cardOf(h), lastCard, true) && !(S.gflags && S.gflags.noDrawFx && /抽/.test(String(cardOf(h).effect||'')+String(cardOf(h).counter||''))));
         if (cIdx > -1) {
           const cInst = ai.hand[cIdx]; rmHand(ai, cInst); ai.counters++;
@@ -3855,6 +3868,28 @@ function finishEffect() {
   postBase(_base);
 }
 // --- AI 自动解析步骤 ---
+// AI 选牌评估：友情值 + 与自己手牌凑羁绊的潜力（能凑羁绊的牌更该留）
+function aiCardScore(inst, viewer) {
+  try {
+    const c = cardOf(inst);
+    if (!c) return 0;
+    let s = c.fv || 0;
+    const bonds = c.bonds || [];
+    if (bonds.length && viewer && viewer.hand) {
+      const n = viewer.hand.filter(h => h !== inst && (cardOf(h).bonds || []).some(b => bonds.includes(b))).length;
+      s += Math.min(2, n) * 1.5;
+    }
+    return s;
+  } catch (e) { return 0; }
+}
+function aiPickWorst(owner, n, viewer) {
+  const v = viewer || owner;
+  return owner.hand.slice().sort((a, b) => aiCardScore(a, v) - aiCardScore(b, v)).slice(0, n);
+}
+function aiPickBest(owner, n, viewer) {
+  const v = viewer || owner;
+  return owner.hand.slice().sort((a, b) => aiCardScore(b, v) - aiCardScore(a, v)).slice(0, n);
+}
 function aiResolveStep(st) {
   const ctx = PFX.ctx;
   const type = st[0], arg = st[1];
@@ -3871,10 +3906,10 @@ function aiResolveStep(st) {
   if (type==='t' || type==='tx') ctx.t = pickFrom(arg);
   else if (type==='slkeep') { snowKeepStep(); return; } // 雪豹：目标抽3留2给1（目标为房主本人时弹窗，异步推进）
   else if (type==='t2') { let ex = ctx.t; ctx.t2 = pickFrom(pid=>pid!==ex); }
-  else if (type==='h') { const n = Math.min(arg, P(ctx.actor).hand.length); ctx.h = P(ctx.actor).hand.slice(0,n); }
-  else if (type==='hv') { const t=P(ctx.t); const n=Math.min(arg||1, t?t.hand.length:0); ctx.hv = t ? t.hand.slice(0,n) : []; }
-  else if (type==='hvBack') { const t=P(ctx.t); const n=Math.min(arg||1, t?t.hand.length:0); ctx.hv = t ? t.hand.slice(0,n) : []; }
-  else if (type==='hvBack2') { const t=P(ctx.t); const n=Math.min(arg||2, t?t.hand.length:0); ctx.hv = t ? t.hand.slice(0,n) : []; }
+  else if (type==='h') { const n = Math.min(arg, P(ctx.actor).hand.length); ctx.h = aiPickWorst(P(ctx.actor), n); }
+  else if (type==='hv') { const t=P(ctx.t); const n=Math.min(arg||1, t?t.hand.length:0); ctx.hv = t ? aiPickBest(t, n, P(ctx.actor)) : []; }
+  else if (type==='hvBack') { const t=P(ctx.t); const n=Math.min(arg||1, t?t.hand.length:0); ctx.hv = t ? aiPickBest(t, n, P(ctx.actor)) : []; }
+  else if (type==='hvBack2') { const t=P(ctx.t); const n=Math.min(arg||2, t?t.hand.length:0); ctx.hv = t ? aiPickBest(t, n, P(ctx.actor)) : []; }
   else if (type==='bondDiscard') { const bonds = Array.isArray(arg) ? arg : [arg]; const cands = S.discard.filter(i=>{ const b = cardOf(i).bonds || []; return b.some(x=>bonds.includes(x)); }); ctx.picked = cands.length ? cands[Math.floor(Math.random()*cands.length)] : null; }
   else if (type==='coin') ctx.coin = Math.random()<0.5;
   else if (type==='rps') ctx.rps = Math.random()<0.5;

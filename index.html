@@ -4119,6 +4119,39 @@ document.addEventListener('keydown', function (e) { if (e.key === 'Escape') clos
     if (m && m.parentNode && m.parentNode !== document.body) document.body.appendChild(m);
   } catch (e) {}
 })();
+// ===== 卡图兜底：图床不可用 / 完全离线时，把裂图换成「卡名占位卡面」 =====
+// 背景：155 张卡图目前全部来自远程图床（见交接文档），一旦图床失效或离线，
+// 所有卡面会变成裂图，玩家无法辨认手牌（实测屏蔽图床后 8/13 张图裂掉、游戏不可读）。
+function cardPlaceholderSvg(c) {
+  const e2 = (typeof esc === "function") ? esc : function (s) { return String(s == null ? "" : s); };
+  const name = e2(c && c.name ? c.name : "?");
+  const sub = e2(c ? ((c.attr || "") + " · " + (c.race || "")) : "");
+  const fv = e2(c ? ("❤ " + (c.fv || 0)) : "");
+  const lk = e2(c && c.luck ? ("🍀 " + c.luck) : "");
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="168">'
+    + '<rect width="120" height="168" rx="9" fill="#0f172a"/>'
+    + '<rect x="3" y="3" width="114" height="162" rx="7" fill="none" stroke="#64748b" stroke-dasharray="5 4"/>'
+    + '<text x="60" y="76" font-size="14" font-weight="bold" fill="#e2e8f0" text-anchor="middle" font-family="sans-serif">' + name + '</text>'
+    + '<text x="60" y="96" font-size="9" fill="#94a3b8" text-anchor="middle" font-family="sans-serif">' + sub + '</text>'
+    + '<text x="60" y="120" font-size="11" fill="#fbbf24" text-anchor="middle" font-family="sans-serif">' + fv + " " + lk + '</text>'
+    + '<text x="60" y="148" font-size="8" fill="#475569" text-anchor="middle" font-family="sans-serif">卡图不可用</text>'
+    + '</svg>';
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+window.addEventListener("error", function (ev) {
+  try {
+    const el = ev.target;
+    if (!el || el.tagName !== "IMG") return;
+    if (el.dataset && el.dataset.cfb === "1") return;
+    const src = el.getAttribute("src") || "";
+    if (!src || src.indexOf("data:") === 0) return;
+    let hit = null;
+    for (const k in CM) { const c = CM[k]; if (c && c.img === src) { hit = c; break; } }
+    if (!hit) return;   // 不是卡图（例如玩家头像），交给它自己的兜底逻辑
+    if (el.dataset) el.dataset.cfb = "1";
+    el.src = cardPlaceholderSvg(hit);
+  } catch (e) {}
+}, true);
 // 内联网站图标：顺手消除浏览器对 /favicon.ico 的 404 请求
 (function () {
   try {
